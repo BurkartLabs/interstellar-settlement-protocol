@@ -19,7 +19,12 @@ export const RATE_LIMITS = {
   "account-action": { windowMs: 60_000, envName: "ISP_RATE_LIMIT_ACCOUNT_ACTION_MAX", productionDefault: 120 },
   "message-minute": { windowMs: 60_000, envName: "ISP_RATE_LIMIT_MESSAGE_MINUTE_MAX", productionDefault: 30 },
   "message-hour": { windowMs: 60 * 60_000, envName: "ISP_RATE_LIMIT_MESSAGE_HOUR_MAX", productionDefault: 600 },
-  "new-conversation": { windowMs: 60 * 60_000, envName: "ISP_RATE_LIMIT_NEW_CONVERSATION_MAX", productionDefault: 60 }
+  "new-conversation": { windowMs: 60 * 60_000, envName: "ISP_RATE_LIMIT_NEW_CONVERSATION_MAX", productionDefault: 60 },
+  // AB#995 (docs/design/messaging.md "Limits that protect the server"): chat lines fan out to every socket in the channel,
+  // so their rate is the fan-out rate; forum threads and posts are the same write-rate reasoning. Per account.
+  "chat-line": { windowMs: 10_000, envName: "ISP_RATE_LIMIT_CHAT_LINE_MAX", productionDefault: 10 },
+  "forum-thread": { windowMs: 60 * 60_000, envName: "ISP_RATE_LIMIT_FORUM_THREAD_MAX", productionDefault: 10 },
+  "forum-post": { windowMs: 60 * 60_000, envName: "ISP_RATE_LIMIT_FORUM_POST_MAX", productionDefault: 120 }
 };
 
 /**
