@@ -4,7 +4,7 @@ import { registerAccount, authed } from "../helpers/api.js";
 import { accountsStore } from "../../server/game/store.js";
 import { applyRefineryOperations, getAccountById, getState, mutateAccountState, mutateState } from "../../server/gameState.js";
 import { recordControlDay, resetControlHistory } from "../../server/controlService.js";
-import { concessionRecordForTests, petitionConcession, publicConcession, resetConcessions, reviewConcessions } from "../../server/concessions.js";
+import { concessionRecordForTests, petitionConcession, publicConcession, resetConcessions, reviewConcessions, setLeaseModifier } from "../../server/concessions.js";
 import { levyTotal, resetTariffs, setTariff, tariffSummary } from "../../server/tariffService.js";
 import { filePatent, patentTick, resetPatentsForTests } from "../../server/patents.js";
 import { contractRecord, settleContracts } from "../../server/mercenaries.js";
@@ -112,7 +112,7 @@ describe("mercenary-readiness rulings (AB#938)", () => {
 });
 
 describe("tariff-overcharge rulings (AB#938)", () => {
-  async function tariffCase(overcharge) {
+  async function tariffCase(overcharge, { discountChange = false } = {}) {
     const T = Date.now();
     const holder = await corp({ systemId: "alpha-centauri", stationId: "centauri-prime-station" });
     const rival = await corp({ systemId: "alpha-centauri", stationId: "centauri-prime-station" });
@@ -123,6 +123,8 @@ describe("tariff-overcharge rulings (AB#938)", () => {
     reviewConcessions(T - 78 * H);
     setTariff(holder.corp(), "alpha-centauri", 3, T - 77 * H);
     setTariff(holder.corp(), "alpha-centauri", 2, T - 2 * H);
+    // Bug #4854: the holder changes the discount on everyone's leases, as a holder may, before the sale
+    if (discountChange) expect(setLeaseModifier(holder.id, "alpha-centauri", 10, T - H).refused).toBeUndefined();
     const order = getState().market.npcBuyOrders.find((o) => o.item === "Silicates");
     const traded = (await seller.api.post(`/api/market/npc-orders/${order.id}/sell`).send({ quantity: 1_000 })).body.traded;
     // a settlement defect, staged: the record says 3% was charged when 2% was in force
@@ -144,6 +146,25 @@ describe("tariff-overcharge rulings (AB#938)", () => {
     expect(fromLevy + fromHolder).toBe(excess); // what the respondents lose is what the claimant gains
     expect(fromLevy).toBe(Math.round((excess * ruled.evidence.settlement.levy) / ruled.evidence.settlement.amount));
     expect(seller.credits()).toBe(s0 + excess + 1_000); // the award, and the fee back
+  });
+
+  it("dismissed: the lawful rate was charged, though the holder had changed its lease discount (Bug #4854)", async () => {
+    // A discount change is recorded in the concession's register; it changes nothing about whether the concession was
+    // granted, so the lawful rate is the rate in force and a lawful tariff stays lawful.
+    const { seller, c } = await tariffCase(false, { discountChange: true });
+    expect(c.evidence.lawfulPct).toBe(2);
+    expect(c.evidence.holders.map((h) => h.stateAt)).toEqual(["granted"]);
+    const [s0, sink0] = [seller.credits(), feeSink()];
+    arbitrationTick(decideAt(caseRecordForTests(c.ref)));
+    expect(caseRecordForTests(c.ref).ruling).toMatchObject({ outcome: "dismissed", amount: 0 });
+    expect([seller.credits(), feeSink()]).toEqual([s0, sink0 + 1_000]);
+  });
+
+  it("upheld after a discount change too, when the settlement really overcharged (Bug #4854)", async () => {
+    const { traded, c } = await tariffCase(true, { discountChange: true });
+    expect(c.evidence.lawfulPct).toBe(2);
+    arbitrationTick(decideAt(caseRecordForTests(c.ref)));
+    expect(caseRecordForTests(c.ref).ruling).toMatchObject({ outcome: "upheld", amount: Math.round(traded.total / 100) });
   });
 
   it("dismissed: the lawful rate was charged", async () => {

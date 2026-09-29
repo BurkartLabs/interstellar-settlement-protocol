@@ -56,6 +56,17 @@ export const dataStore = Object.freeze({
 const keyOf = (holder) => `${holder.type}:${holder.id}`;
 const recordFor = (systemId) => (store.systems[systemId] ||= { systemId, holders: [], petitions: [], register: [], cooldowns: {} });
 const no = (status, code, error) => ({ refused: { status, code, error } });
+/**
+ * Bug #4854: the register's events that change a holder's state, each with the state it leaves the holder in. Whoever
+ * reads a holder's state at a moment from the register (the Arbitration Council's tariff evidence) takes the last of
+ * these, never simply the last event: the register also records what happened around a concession without changing it
+ * (NOTE_EVENTS: petitions, failed petitions and challenges, a lease-discount change). A discount change once read as
+ * "not granted", so every tariff after it looked like an overcharge. tests/unit/concessionStateEvents.test.js holds
+ * every event this file writes to one list or the other.
+ */
+export const STATE_EVENTS = Object.freeze({ granted: "granted", renewed: "granted", "upkeep-paid": "granted", grace: "grace", lapsed: "lapsed" });
+export const NOTE_EVENTS = Object.freeze(["petitioned", "challenged", "petition-failed", "challenge-failed", "lease-modifier"]);
+
 function note(rec, at, event, holder, extra = {}) {
   rec.register.push({ at, event, holder: holder ? { type: holder.type, id: holder.id, name: holder.name } : null, ...extra });
   if (rec.register.length > REGISTER_KEPT) rec.register.splice(0, rec.register.length - REGISTER_KEPT);
