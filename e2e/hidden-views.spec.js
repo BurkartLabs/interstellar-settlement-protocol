@@ -79,6 +79,8 @@ test("the market and the finance charts draw only on their own tab, and on the s
     // On Overview: a full re-render leaves the hidden market alone, and no finance chart has been drawn at all.
     expect(await rerenderCountingMarket(page), "a re-render changed the hidden market tab").toBe(0);
     expect(await chartsDrawn(page), "a finance chart was drawn on a tab nobody opened").toEqual(CHARTS.map(() => null));
+    // Bug #4838: nor has Chart.js been fetched: the views that chart load it when they first draw
+    expect(await page.evaluate(() => typeof window.Chart), "Chart.js loaded on Overview").toBe("undefined");
 
     // Opening the Exchange draws it from the current state.
     await openTab(page, "market");
@@ -91,6 +93,8 @@ test("the market and the finance charts draw only on their own tab, and on the s
     // Opening Finance draws its charts; the ones on its Trends page (AB#2470) are sized as that page opens. Each has a
     // real size once its page is on screen (not the 0x0 of a canvas drawn while hidden).
     await openTab(page, "finance");
+    // Bug #4838: the first draw waits for Chart.js, which this switch fetches
+    await page.waitForFunction(() => typeof Chart !== "undefined" && Chart.getChart("cashflow-chart")?.width > 0);
     const summary = (await chartsDrawn(page))[0];
     expect(summary?.width, "the Summary page's cash chart").toBeGreaterThan(0);
     await page.locator('#finance-subnav [data-finance-sub="trends"]').click();
