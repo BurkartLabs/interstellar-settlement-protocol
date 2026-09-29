@@ -24,6 +24,7 @@ describe("the Industry group's protocol line, from the server (ISP-254, AB#950)"
     const res = await api.post(`/api/accounts/${accountId}/gameplay/queue-rnd`).send({ techId: queueable.id });
     expect(res.status).toBeGreaterThanOrEqual(400);
     expect(refusalMeaning(res.body.error), res.body.error).toBe("unfunded");
+    expect(res.body.error).toMatch(/Sell goods or finish an assignment to raise the credits, then queue it again\.$/); // Bug #4807
   });
 
   it("a queued research's notification carries Queued on the R&D screen, beside its plain title", async () => {

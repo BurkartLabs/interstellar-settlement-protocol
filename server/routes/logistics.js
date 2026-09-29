@@ -61,7 +61,7 @@ export function registerLogisticsRoutes(app) {
       const tariffBase = intoSystem ? transferBase(request.lines, now) : 0;
       const tariffDue = intoSystem ? tariffOn(tariffBase, tariffRateFor(corp, toStationId, now)) : 0;
       if (tariffDue > 0 && Number(corp.finances.credits) < plan.fee + tariffDue) {
-        refusal = `This shipment costs ${plan.fee.toLocaleString("en-US")} credits in fees and ${tariffDue.toLocaleString("en-US")} in the destination system's concession tariff; you have ${Math.floor(Number(corp.finances.credits)).toLocaleString("en-US")}.`;
+        refusal = `This shipment costs ${plan.fee.toLocaleString("en-US")} credits in fees and ${tariffDue.toLocaleString("en-US")} in the destination system's concession tariff; you have ${Math.floor(Number(corp.finances.credits)).toLocaleString("en-US")}. Move fewer units or sell goods first.`; // Bug #4807
         return;
       }
 
