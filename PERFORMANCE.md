@@ -156,3 +156,28 @@ origin/main; after is this change.
   - miningTick and financialSnapshotTick's per-mutation passes: Bug #4850.
   - Startup and shutdown work (loading and seeding the store, the save on SIGTERM) runs once and is not a request's
     cost.
+
+## The accounts snapshot write (Bug #4815, Bug #4852)
+
+Each account carried its own copy of the world catalog: 51 KB of every 85 KB account, identical in all of them, with
+every belt's contents in it (Bug #4852, a leak past Bug #2355's scout gate). The snapshot re-stringified it on every
+write, and every read deep-copied it. Accounts now keep no world. Old saves drop it at load, and a read attaches one
+shared, frozen public view (catalogView.js `publicWorld`). Write timing is unchanged: the same debounce, and the same
+crash window as above.
+
+**2026-09-29, 200 corporations, 5 minutes, 0.5 CPU, unprofiled, `/data` in memory** (bot numbers: cloned
+corporations, one machine, loopback):
+
+| | before | after |
+|---|---|---|
+| snapshot size per write | 16.6 MB | 6.9 MB |
+| snapshot write, p50 / p95 | 503 / 788 ms | 109 / 205 ms |
+| snapshot writes' share of the run | 28.1% | 5.5% |
+| all timers' share of the run | 43.7% | 15.6% |
+| event-loop delay, worst five-second p99 | 1,404 ms (23 of 59 windows over 100 ms) | 78 ms (none over) |
+| GET /api/accounts/:id, p50 / p95 | 872 / 3,402 ms | 123 / 596 ms |
+| bytes written per HTTP request | 1,014 KiB | 362 KiB |
+
+The write still happens about 0.44 times a second, because the tickers change every account every few seconds (Bug
+#4848). At 110 ms a write that is 5% of the server, so a longer interval (and a longer crash window) is not worth it
+now. HTTP p95 is still over its 500 ms budget, which is Bug #4849's deep copy on every read.
