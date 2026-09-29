@@ -5,6 +5,7 @@ import "./conglomerates.js";
 import "./warfare.js";
 import express from "express";
 import { staticOptions } from "./staticCache.js";
+import { registerPublicPages } from "./publicPages.js";
 import kanbanRouter from "./kanban.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -96,6 +97,8 @@ app.use(mutationLimits.address);
 app.use("/api/telemetry", express.json({ limit: "8kb" }));
 app.use(express.json());
 
+// AB#954 (ISP-258): the landing with its canonical and link-preview URLs filled from ISP_PUBLIC_URL, ahead of the static files
+registerPublicPages(app, path.join(__dirname, "..", "public"));
 // AB#964 (ISP-268): each file with a Cache-Control for what it is (server/staticCache.js)
 app.use(express.static(path.join(__dirname, "..", "public"), staticOptions(path.join(__dirname, "..", "public"))));
 // ISP-70 (AB#759): the style guide's static pages without their .html, so the token specimen is /styleguide/tokens.
