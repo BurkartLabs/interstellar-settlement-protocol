@@ -87,7 +87,8 @@ describe("recovering a defaulted player loan (AB#993)", () => {
     expect(loanOf(debtor, loanId).state).toBe("repaid");
     expect(debtor.corp().buildings.some((b) => b.name === "Headquarters")).toBe(true);
     expect(JSON.stringify({ offices: debtor.corp().offices, tech: debtor.corp().unlockedTech, level: debtor.corp().level })).toBe(keep);
-    expect(listAccountNotifications(lender.id).notifications.some((n) => n.title === "Debt recovered")).toBe(true);
+    expect(listAccountNotifications(lender.id).notifications.find((n) => n.title === "Debt recovered")?.protocol).toEqual({ meaning: "complete", screen: "loans-board" }); // ISP-255 (AB#4824)
+    expect(listAccountNotifications(debtor.id).notifications.find((n) => n.title === "Your assets will be sold in 24 hours")?.protocol).toEqual({ meaning: "pending", screen: "loans-board" });
   });
 
   it("sells nothing before the grace period ends, holds value in meanwhile, and a payment in time cancels the sale", async () => {

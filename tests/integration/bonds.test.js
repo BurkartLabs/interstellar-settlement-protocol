@@ -144,10 +144,12 @@ describe("ISP-154 subscribing", () => {
     const count = () => ledgerEntries().filter((e) => e.key.startsWith(`bond:${s.id}:`)).length;
     const over = await buyer.subscribe(s.id, 101);
     expect(over.status).toBe(409);
-    expect(over.body.error).toMatch(/Only 100 units/);
+    expect(over.body.error).toBe("Only 100 units of that series are left. Subscribe to 100 or fewer."); // AB#4824 (ISP-6)
     expect((await issuer.subscribe(s.id, 5)).body.error).toMatch(/its own bonds/);
     const poor = await corporation({ level: 1, credits: 4_999 });
-    expect((await poor.subscribe(s.id, 5)).body.error).toMatch(/takes 5,000 credits/);
+    const short = (await poor.subscribe(s.id, 5)).body;
+    expect(short.error).toBe("Subscribing takes 5,000 credits. Subscribe to fewer units, or sell goods to raise the credits first."); // AB#4824 (ISP-6)
+    expect(short.code).toBe("insufficient-credits"); // the page reads it as Unfunded
     expect((await buyer.subscribe("bond-nope", 5)).status).toBe(404);
     expect(count()).toBe(0);
     expect(stored(s.id).sold).toBe(0);

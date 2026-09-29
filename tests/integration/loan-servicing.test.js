@@ -57,7 +57,7 @@ describe("ISP-150 a full term, collected on schedule", () => {
     expect((settlementTotals().sinks["loan-interest"] ?? 0) - interestBefore).toBe(b.quote.totalInterest);
     expect(b.corp().finances.expensesByCategory["loan-interest-paid"]).toBe(b.quote.totalInterest);
     expect(b.corp().finances.expensesByCategory["loan-repayment-paid"]).toBe(63_000);
-    expect(listAccountNotifications(b.id).notifications.some((n) => n.title === "Loan repaid")).toBe(true);
+    expect(listAccountNotifications(b.id).notifications.find((n) => n.title === "Loan repaid")?.protocol).toEqual({ meaning: "complete", screen: "building-deep-space-development-bank" }); // ISP-255 (AB#4824): Concluded, at the Bank
   });
 
   it("a tick that comes late collects every day it missed, in order", async () => {
@@ -93,7 +93,9 @@ describe("ISP-150 a corporation that cannot pay: arrears, never seizure", () => 
     const missedPay = paymentParts(b.loan(), 1).amount;
     expect(b.loan()).toMatchObject({ state: "arrears", arrearsSince: b.T0 + DAY, paymentsMade: 1 });
     expect(b.loan().arrears).toBe(missedPay + Math.round((missedPay * LATE_FEE_PCT) / 100));
-    expect(listAccountNotifications(b.id).notifications.find((n) => n.title === "Loan payment missed")?.body).toMatch(/in arrears/);
+    const missed = listAccountNotifications(b.id).notifications.find((n) => n.title === "Loan payment missed");
+    expect(missed?.body).toMatch(/in arrears/);
+    expect(missed?.protocol).toEqual({ meaning: "owed", screen: "building-deep-space-development-bank" }); // ISP-255 (AB#4824): In arrears
     const statements = getStatements(b.id).statements;
     expect(computeCreditRating(b.corp(), b.T0 + 2 * DAY, statements).grade).toBe("CCC");
 
@@ -148,6 +150,9 @@ describe("ISP-150 early payoff", () => {
     b.setCredits(1_000);
     const r = await b.api.post(`/api/accounts/${b.id}/loans/${b.loan().id}/payoff`).send({});
     expect(r.status).toBe(409);
+    // ISP-255 (AB#4824): the code the page reads as Unfunded, and what to do instead (ISP-6)
+    expect(r.body.code).toBe("insufficient-credits");
+    expect(r.body.error).toMatch(/^Paying it off takes [\d,]+ credits; you have 1,000\. Keep paying daily, or raise the credits and pay it off then\.$/);
     expect(b.corp().finances.credits).toBe(1_000);
     expect(b.loan().state).toBe("active");
   });
