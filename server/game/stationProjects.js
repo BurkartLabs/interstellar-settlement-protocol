@@ -258,9 +258,10 @@ export function settleStationProject(c, now = Date.now(), catalog = CONGLOMERATE
   c.station = { id: station.id, builtAt: now, projectId: p.id, contributions: p.contributions, stakes: stakesFrom(contributedValues(p.contributions)), settings: { access: "open", listed: [] }, proposals: [] };
   c.stationProject = null;
   noteTreasury(c, { at: now, kind: "station-built", corp: null, by: "bureau", note: `${station.name} opened` });
+  ensureHangar(c, catalog); // ISP-212a (AB#4654): the hangar moves to the station now, with its goods, free
   saveAccountsNow();
   const system = SYSTEMS_BY_ID.get(station.systemId)?.name || station.systemId;
-  notifyMembers(c, `${station.name} is open`, `${c.name}'s station at ${station.body}, ${system}, is built and on the starmap.`, "complete");
+  notifyMembers(c, `${station.name} is open`, `${c.name}'s station at ${station.body}, ${system}, is built and on the starmap. The hangar is there now, with everything in it: deposit and withdraw goods at ${station.name}.`, "complete");
   roomEvent(c, "conglomerate:station-built", { station: { id: station.id, name: station.name, systemId: station.systemId, body: station.body } });
   return { station };
 }

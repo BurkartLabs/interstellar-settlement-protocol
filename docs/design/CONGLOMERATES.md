@@ -380,6 +380,11 @@ none. Stakes are per corporation, recorded in the ledger, and shown to every mem
 **What the station gives members**:
 
 - **The hangar moves there**: it becomes the home station, so pooled goods are where the members mine, not in Sol.
+  **As built (ISP-212a, AB#4654):** the goods move with it, free: nothing is added, taken or charged, and each item
+  held gets a ledger row of 0 units ("Moved to the station") dated when the station opened. `ensureHangar` moves it, so
+  every reader (the hangar's routes, the station project's hangar source, dissolution) sees the new home station, and
+  a station built before the move existed has its hangar moved on the next read. Deposits and withdrawals are then at
+  the station only; goods members hold at Earth Station Prime stay theirs, there.
 - **Offices at cost**: a member rents an office there at `stationMemberRentPct` (50%) of `office.rentPerDay`.
 - **Cheaper logistics**: moving goods between the station and any member's inventory in the same system is free, and to
   stations elsewhere costs the normal per-jump fee.
