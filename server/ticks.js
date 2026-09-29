@@ -242,7 +242,8 @@ function fabricationTick() {
       const notification = addAccountNotification(accountId, {
         type: "infrastructure",
         title: "Troops Trained",
-        body: `${job.quantity} squad${job.quantity === 1 ? "" : "s"} of ${unit.name} finished training${garrisoned}.`
+        body: `${job.quantity} squad${job.quantity === 1 ? "" : "s"} of ${unit.name} finished training${garrisoned}.`,
+        protocol: { meaning: "complete", screen: "fleet" } // ISP-254 (AB#4810)
       });
       if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
     }
@@ -250,7 +251,8 @@ function fabricationTick() {
       const notification = addAccountNotification(accountId, {
         type: "infrastructure",
         title: "Ships Delivered",
-        body: `${job.quantity} ${UNITS[job.unitId].name}${job.quantity === 1 ? "" : "s"} left the Orbital Shipyard and joined your fleet.`
+        body: `${job.quantity} ${UNITS[job.unitId].name}${job.quantity === 1 ? "" : "s"} left the Orbital Shipyard and joined your fleet.`,
+        protocol: { meaning: "complete", screen: "fleet" } // ISP-254 (AB#4810)
       });
       if (notification) emitToAccount(accountId, "notifications:new", { accountId, notification });
     }

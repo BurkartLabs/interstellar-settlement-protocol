@@ -15,15 +15,16 @@ import { PLAYER_BUILDING_CATALOGUE } from "../playerBuildings.js";
 import { CONSTRUCTIONS, construct } from "../construction.js";
 import { RESEARCH_LIBRARY } from "../game/catalog.js";
 
+export const FUNDING_NEXT_STEP = "Sell goods or finish an assignment to raise the credits, then try again.";
+
 function fundingRequirementMessage(actionLabel, corp, requiredCredits, extra = "") {
   const parts = [
     `${actionLabel} requires ${formatCredits(requiredCredits)}.`,
     `Current reserves: ${formatCredits(corp.finances.credits)}.` // Bug #1201: formatCredits already says "credits"
   ];
 
-  if (extra) {
-    parts.push(extra);
-  }
+  // Bug #4820 (ISP-6): a refusal says what to do next; a caller with a better next step passes it as `extra`
+  parts.push(extra || FUNDING_NEXT_STEP);
 
   return parts.join(" ");
 }
