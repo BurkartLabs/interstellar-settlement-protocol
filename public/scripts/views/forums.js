@@ -180,9 +180,9 @@ export function renderForums(data) {
                     ${forumPostBodyHtml(reply.content || "")}
                   </div>
                   <footer class="forums__post-actions">
-                    <button class="ui-button ui-button--ghost" type="button" data-action="reply" data-reply-id="${escapeHtml(reply.id)}">↩ Reply</button>
-                    <button class="ui-button ui-button--ghost" type="button" data-action="quote" data-reply-id="${escapeHtml(reply.id)}">❝ Quote</button>
-                    <button class="ui-button ui-button--ghost forums__like" type="button" data-action="like" data-target="reply" data-reply-id="${escapeHtml(reply.id)}" aria-pressed="${replyLiked}">▲ ${replyLiked ? "Liked" : "Like"} <span class="forums__like-count">${Number(reply.likes) || 0}</span></button>
+                    <button class="ui-button ui-button--ghost" type="button" data-action="reply" data-reply-id="${escapeHtml(reply.id)}">Reply</button>
+                    <button class="ui-button ui-button--ghost" type="button" data-action="quote" data-reply-id="${escapeHtml(reply.id)}">Quote</button>
+                    <button class="ui-button ui-button--ghost forums__like" type="button" data-action="like" data-target="reply" data-reply-id="${escapeHtml(reply.id)}" aria-pressed="${replyLiked}">${replyLiked ? "Liked" : "Like"} <span class="forums__like-count">${Number(reply.likes) || 0}</span></button>
                   </footer>
                 </article>
                 ${children.length ? `<ol class="forums__replies forums__replies--nested${depth + 1 >= INDENT_MAX_DEPTH ? " forums__replies--deep" : ""}">${children.map(nodeHtml).join("")}</ol>` : ""}
@@ -231,9 +231,9 @@ export function renderForums(data) {
               ${forumPostBodyHtml(opBody)}
             </div>
             <footer class="forums__post-actions">
-              <button class="ui-button ui-button--primary" type="button" data-action="reply">↩ Reply</button>
-              <button class="ui-button ui-button--ghost" type="button" data-action="quote">❝ Quote</button>
-              <button class="ui-button ui-button--ghost forums__like" type="button" data-action="like" data-target="thread" aria-pressed="${opLiked}">▲ ${opLiked ? "Liked" : "Like"} <span class="forums__like-count">${opLikes}</span></button>
+              <button class="ui-button ui-button--primary" type="button" data-action="reply">Reply</button>
+              <button class="ui-button ui-button--ghost" type="button" data-action="quote">Quote</button>
+              <button class="ui-button ui-button--ghost forums__like" type="button" data-action="like" data-target="thread" aria-pressed="${opLiked}">${opLiked ? "Liked" : "Like"} <span class="forums__like-count">${opLikes}</span></button>
             </footer>
           </article>
 
@@ -426,13 +426,13 @@ export function renderForums(data) {
           <button class="ui-card ui-card--interactive forums__thread-card" type="button" data-thread-id="${escapeHtml(thread.id)}">
             <span class="forums__thread-head">
               <span class="ui-badge">${escapeHtml(thread.category)}</span>
-              <span class="ui-card__meta" title="Likes">▲ ${Number(thread.likes) || 0}</span>
+              <span class="ui-card__meta">${Number(thread.likes) || 0} ${Number(thread.likes) === 1 ? "like" : "likes"}</span>
             </span>
             <span class="ui-card__title">${escapeHtml(thread.title)}</span>
             ${excerpt ? `<span class="ui-card__body forums__excerpt">${escapeHtml(excerpt)}</span>` : ""}
             <span class="ui-card__meta forums__thread-meta">
               <span>Started by <strong>${escapeHtml(thread.author)}</strong></span>
-              <span>💬 ${replyCount} ${replyCount === 1 ? "reply" : "replies"}</span>
+              <span>${replyCount} ${replyCount === 1 ? "reply" : "replies"}</span>
               ${lastActivity ? `<span class="forums__last">Last post · ${formatTime(lastActivity)}</span>` : ""}
             </span>
           </button>`;

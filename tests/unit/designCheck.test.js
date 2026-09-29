@@ -59,6 +59,16 @@ describe("each kind fails on a seeded violation (ISP-246, AB#942)", () => {
     expect(designCheck(src).violations.map((v) => v.key)).toEqual(["image: /images/seeded-missing.png"]);
   });
 
+  it("image: a data file's image named relative to public/images/ that is not there (AB#949)", () => {
+    const src = sources();
+    src.data["data/buildings.json"] += '\n{ "imageFile": "buildings/seeded-missing.png" }';
+    expect(keys(imageViolations(src)).filter((k) => k.includes("seeded"))).toEqual(["image image: images/buildings/seeded-missing.png"]);
+    expect(designCheck(src).violations.map((v) => v.key)).toEqual(["image: images/buildings/seeded-missing.png"]);
+    const present = sources();
+    present.data["data/buildings.json"] += '\n{ "imageFile": "planets/earth.jpg" }';
+    expect(designCheck(present).violations).toEqual([]);
+  });
+
   it("an allowlisted literal written a second time is a new violation, and a fixed one leaves a stale entry", () => {
     const [entry] = ALLOW.entries.filter((e) => e.key.startsWith("spacing:") && e.file === "public/styles.css");
     const twice = seeded({ css: `.ui-panel { ${entry.key.replace(/^spacing: /, "")}; }` });

@@ -176,7 +176,7 @@ export function openMissionModal(missionId, data) {
     const agentStation = appState.stationRegistry.find(s => s.id === agentStationId);
     const agentStationLabel = agentStation ? agentStation.name : "another station";
     locationSection.hidden = false;
-    locationWarning.innerHTML = `⚠ You must be docked at <strong>${escapeHtml(agentStationLabel)}</strong> to complete this contract.`;
+    locationWarning.innerHTML = `You must be docked at <strong>${escapeHtml(agentStationLabel)}</strong> to complete this contract.`;
   } else if (locationSection) {
     locationSection.hidden = true;
   }
@@ -413,10 +413,10 @@ export function renderMissions(data) {
             const locationTag = isSalvage
               ? ""
               : isRemote && stationObj
-                ? `<span class="ui-badge ui-badge--warn" data-location="remote" title="Agent is at ${escapeHtml(stationObj.name)}">⚠ ${escapeHtml(stationObj.body || stationObj.name)}</span>`
+                ? `<span class="ui-badge ui-badge--warn" data-location="remote" title="Agent is at ${escapeHtml(stationObj.name)}">${escapeHtml(stationObj.body || stationObj.name)}</span>`
                 : isRemote
-                  ? `<span class="ui-badge ui-badge--warn" data-location="remote">⚠ Remote</span>`
-                  : `<span class="ui-badge ui-badge--success" data-location="local">● Local</span>`;
+                  ? `<span class="ui-badge ui-badge--warn" data-location="remote">Remote</span>`
+                  : `<span class="ui-badge ui-badge--success" data-location="local">Local</span>`;
             // The Assignment is paid in time served, not a delivered quota, so its footer is a countdown until it
             // can be completed, and then a Complete button — never Abandon (ECONOMY.md: accepting, waiting and
             // completing are the only three actions).
@@ -463,7 +463,7 @@ export function renderMissions(data) {
         const agentLabel = agent ? agent.name : "Unknown Agent";
         return `
           <li class="missions__log-entry">
-            <span class="missions__log-title"><span class="ui-badge ui-badge--success">✓ ${escapeHtml(m.type || "Mission")}</span> ${escapeHtml(m.title)} ${protocolLineHtml(onAssignments("complete"))}</span>
+            <span class="missions__log-title"><span class="ui-badge ui-badge--success">${escapeHtml(m.type || "Mission")}</span> ${escapeHtml(m.title)} ${protocolLineHtml(onAssignments("complete"))}</span>
             <span class="missions__reward">${escapeHtml(m.reward)}</span>
             <span class="missions__hint">${escapeHtml(agentLabel)} &middot; ${formatTime(m.completedAt)}${m.ref ? ` &middot; ${refHtml(m.ref)}` : ""}</span>
           </li>`;
