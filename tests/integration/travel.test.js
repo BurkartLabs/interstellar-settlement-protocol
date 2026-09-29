@@ -5,6 +5,8 @@ import { mutateAccountState, getAccountById, listAccountNotifications } from "..
 import { vi } from "vitest";
 import { travelTick } from "../../server/ticks.js";
 import { allStations } from "../../server/game/stations.js";
+import { normalizeStateShape } from "../../server/game/shape.js";
+import { getSeedState } from "../../server/game/world.js";
 
 // Bug #976: POST /gameplay/travel refused a corporation at a near star the jump home to Sol unless it had
 // deep-star navigation, stranding anyone who had researched only Proxima navigation.
@@ -64,5 +66,24 @@ describe("the travel notices' protocol (AB#4831)", () => {
     vi.spyOn(Date, "now").mockReturnValue(arrives + 1000);
     try { travelTick(); } finally { vi.restoreAllMocks(); }
     expect(notes().find((n) => n.title === "Docking Complete")?.protocol).toEqual({ meaning: "complete", screen: "travel" });
+  });
+});
+
+// Bug #4856: after a jump, the sidebar's Location read the system's id ("sol") until the corporation docked; everywhere
+// else the game names a system by its name.
+describe("the Location after an interstellar jump (Bug #4856)", () => {
+  it("is the system's name, not its id", async () => {
+    const { travel, corp } = await corpAt("alpha-centauri", ["tt-proxima-navigation"]);
+    expect((await travel("sol")).status).toBe(200);
+    vi.spyOn(Date, "now").mockReturnValue(corp().travel.arrivesAt + 1000);
+    try { travelTick(); } finally { vi.restoreAllMocks(); }
+    expect(corp()).toMatchObject({ currentSystemId: "sol", currentStationId: null, travel: null, location: "Sol" });
+  });
+
+  it("a save that still holds an id reads the name; a body's name is left as it is", () => {
+    const shaped = (location) => { const s = getSeedState(); s.corp.location = location; return normalizeStateShape(s).corp.location; };
+    expect(shaped("epsilon-eridani")).toBe("Epsilon Eridani");
+    expect(shaped("sol")).toBe("Sol");
+    expect(shaped("Earth")).toBe("Earth");
   });
 });
