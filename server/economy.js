@@ -97,6 +97,18 @@ export function priceCeilingFor(item, economy = ECONOMY) {
   return Math.floor(base * economy.exchange.maxPriceMultipleOfBid);
 }
 
+/**
+ * Bug #4882: the most of one unit's price a sale books as trade: revenue, dominance and standing. It is the ISA's own
+ * ask for the item (the catalog standing bid x npcAsks.askMultiple): no buyer need pay more than the NPC sellers ask,
+ * so a price above it moves credits between two corporations rather than paying for goods. Like the ceiling above, it
+ * is the catalog price, which trading cannot move. Null for an item no NPC buys (then the whole price books).
+ */
+export function bookableUnitPriceFor(item, economy = ECONOMY) {
+  const base = Number(economy.npcBuyers.find((b) => b.item === item)?.unitPrice);
+  if (!(base > 0)) return null;
+  return Math.round(base * (Number(economy.npcAsks?.askMultiple) || 1));
+}
+
 /** What an extractor yard or refinery costs to build, with the Supply Forecast discount when it is researched. */
 export function buildCostFor(baseCost, hasSupplyForecast) {
   return hasSupplyForecast ? Math.round(baseCost * ECONOMY.buildings.supplyForecastCostMultiplier) : baseCost;
