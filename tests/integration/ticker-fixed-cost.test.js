@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { getApp } from "../helpers/app.js";
 import { registerAccount } from "../helpers/api.js";
 import { accountsStore } from "../../server/game/store.js";
-import { getAccountById } from "../../server/gameState.js";
 
 // Bug #4850: miningTick and financialSnapshotTick skip the passes their mutators cannot have given anything to do.
 // miningTick still evaluates the level, because what it mines moves it; this holds it to that.
@@ -20,7 +19,8 @@ describe("the tickers' fixed cost (Bug #4850)", () => {
     corp.mining.silicateExtractors = [{ id: "ex-1", buildingId: "b-yard", leaseId: "lease-1", active: false, minedByItem: { Silicates: 300 }, totalMined: 300 }];
     expect(corp.level).toBe(1);
     mod.miningTick();
-    expect(getAccountById(account.id).state.corp.level).toBeGreaterThanOrEqual(2);
+    // read as stored: getAccountById evaluates the level itself, and would hide a ticker that stopped doing it
+    expect(accountsStore.accounts[account.id].state.corp.level).toBeGreaterThanOrEqual(2);
   });
 
   it("financialSnapshotTick still takes its snapshot and rates the corporation", async () => {
