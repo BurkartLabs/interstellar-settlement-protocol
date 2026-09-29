@@ -247,7 +247,7 @@ export function resolveRaid(raid, now) {
   const outcome = battle.winner === "attacker" ? "won" : battle.winner === "defender" ? "was beaten off" : "ended in a draw";
   const lootText = Object.entries(loot.items).map(([i, q]) => `${q.toLocaleString("en-US")} ${i}`).join(", ") || "nothing";
   tell(attackerAccountId, "Raid resolved", `Your raid on ${raid.targetName ?? "the target"} at ${station} ${outcome}. Taken: ${lootText}. The report is in your raids.`, battle.winner === "attacker" ? "complete" : "failed");
-  tell(defenderAccountId, "Your holdings were raided", `${raid.attackerName ?? "A corporation"} raided your holdings at ${station}: the raid ${outcome}. Lost: ${lootText}. The report is in your raids.`, battle.winner === "attacker" ? "complete" : "failed");
+  tell(defenderAccountId, "Your holdings were raided", `${raid.attackerName ?? "A corporation"} raided your holdings at ${station}: the raid ${outcome}. Lost: ${lootText}. The report is in your raids.`, "complete"); // for the defender the raid is Concluded either way: "Unsuccessful" would read as their loss
 
   if (survivors === 0 && !raid.fleet.contractId) {
     // nobody flies home: the empty fleet is gone and the raid is over (no loot can have been taken: a win needs survivors)
