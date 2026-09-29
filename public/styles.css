@@ -3983,7 +3983,10 @@ img.station__body {
 /* A list of terms and their values, two columns wherever it fits. */
 .ui-kv {
   display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  /* Bug #4883: the label column is as wide as the longest label in the whole list, but never more than half; a longer
+     label wraps at its spaces. It was max-content, so one long label ("Market sectors opened") squeezed every value, and
+     the value's overflow-wrap broke plain words mid-word ("Advanc/ed Material/s") at 375. */
+  grid-template-columns: fit-content(50%) minmax(0, 1fr);
   gap: var(--space-1) var(--space-4);
   margin: 0;
   font-size: var(--font-size-2);
