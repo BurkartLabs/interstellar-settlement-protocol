@@ -279,48 +279,6 @@
     },
     {
       "file": "public/styles.css",
-      "key": "z-index: z-index: -1",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:271 #starfield-canvas"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "z-index: z-index: -2",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:280 .app-bg"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "z-index: z-index: 20",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:530 .app-header"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "z-index: z-index: 20",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1840 .app-nav"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "z-index: z-index: 40",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:4742 .app-header__panel"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "z-index: z-index: 55",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1157 #walkthrough-modal"
-    },
-    {
-      "file": "public/styles.css",
-      "key": "z-index: z-index: 60",
-      "story": "ISP-250 (AB#946)",
-      "where": "public/styles.css:1135 .modal-backdrop"
-    },
-    {
-      "file": "public/styles.css",
       "key": "spacing: gap: 2px",
       "story": "ISP-251 (AB#947)",
       "where": "public/styles.css:5050 #market .ui-table td::before"

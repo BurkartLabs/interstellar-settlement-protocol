@@ -136,7 +136,10 @@
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
 
-  /* Layers, lowest first. */
+  /* Layers, lowest first. The two below zero sit behind the page's own content: the background, then the starfield
+     over it (AB#2131). Bug #4886 named them; they were the literals -2 and -1. */
+  --z-backdrop: -2;
+  --z-starfield: -1;
   --z-base: 0;
   --z-raised: 10;
   --z-sticky: 100;
@@ -265,7 +268,7 @@ body {
   position: fixed;
   inset: 0;
   /* AB#2131: above .app-bg, which is opaque since the flat direction (AB#760), so the stars are not painted over. */
-  z-index: -1;
+  z-index: var(--z-starfield);
   display: block;
 }
 
@@ -274,7 +277,7 @@ body {
   position: fixed;
   /* AB#1453: a little larger than the screen, so the drift below never shows an edge. */
   inset: -4%;
-  z-index: -2;
+  z-index: var(--z-backdrop);
   background:
     var(--bg);
   /* AB#1453: moved with transform, which the compositor does alone. It animated background-position, which repainted
@@ -642,7 +645,7 @@ h1 {
   backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: var(--z-sticky);
 }
 
 #game-shell {
@@ -1235,7 +1238,7 @@ textarea {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: var(--z-modal);
   background: var(--scrim-modal);
   display: grid;
   place-items: center;
@@ -1254,10 +1257,10 @@ textarea {
 }
 
 /* AB#581: the briefing sits beside the game instead of over it. Its backdrop lets clicks through, so the player can do
-   what a step asks, and it sits below real dialogues (z-index 60), so it never covers a confirmation or its own target
+   what a step asks, and it sits below real dialogues (--z-modal), so it never covers a confirmation or its own target
    (Bug 1083). The highlighted control needs no z-index now that nothing dims the page, and must not rise above a dialogue. */
 #walkthrough-modal {
-  z-index: 55;
+  z-index: var(--z-overlay);
   background: none;
   pointer-events: none;
   place-items: end end;
@@ -1767,14 +1770,14 @@ body.walkthrough--open .layout-grid {
     right: var(--space-4);
     width: auto;
   }
-  /* The bar: each group as wide as its name, the space shared evenly, never scrolling; below every dialog (60) and
-     the briefing (55). Equal columns ran "Company" into "Station" at 375. */
+  /* The bar: each group as wide as its name, the space shared evenly, never scrolling; below every dialog (--z-modal)
+     and the briefing (--z-overlay). Equal columns ran "Company" into "Station" at 375. */
   .app-nav {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 20;
+    z-index: var(--z-sticky);
     display: flex;
     flex-direction: row;
     justify-content: space-evenly;
@@ -4890,7 +4893,7 @@ img.station__body {
   position: absolute;
   top: calc(100% + var(--space-2));
   right: 0;
-  z-index: 40;
+  z-index: var(--z-dropdown);
   width: min(420px, 86vw);
   box-shadow: var(--elevation-overlay);
 }
