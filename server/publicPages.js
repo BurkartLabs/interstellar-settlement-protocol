@@ -19,7 +19,7 @@ export function fillPublicUrl(html, base = publicBaseUrl()) {
 export function registerPublicPages(app, publicDir) {
   const file = path.join(publicDir, "index.html");
   let cached = null; // read once: the server restarts when public/ changes in development (npm run dev)
-  app.get(["/", "/index.html"], (_req, res, next) => {
+  const landing = (_req, res, next) => {
     try {
       cached ??= fs.readFileSync(file, "utf8");
     } catch (error) {
@@ -28,5 +28,8 @@ export function registerPublicPages(app, publicDir) {
     }
     res.set("Cache-Control", CACHE_REVALIDATE);
     res.type("html").send(fillPublicUrl(cached));
-  });
+  };
+  // two routes, not one with an array, so each is its own entry in tests/security/public-surface.js
+  app.get("/", landing);
+  app.get("/index.html", landing);
 }

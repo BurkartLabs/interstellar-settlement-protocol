@@ -15,6 +15,8 @@ export const PUBLIC_ROUTES = {
   "POST /api/auth/reset-password": "spending a reset token, which is itself the credential (AB#988)",
   "GET /healthz": "the container platform's health probe (AB#735)",
   "GET /how-to-start": "the playtest briefing, a static page for people who have not registered yet (AB#748)",
+  "GET /": "the landing page, public by design; served by a route only to fill its canonical and link-preview URLs from ISP_PUBLIC_URL (AB#954)",
+  "GET /index.html": "the same landing page under its file name, as express.static served it before (AB#954)",
   "GET /api/bootstrap": "the global game state shown before login",
   "POST /api/telemetry": "the page's minimum telemetry (ISP-256, AB#952): an event names no account, so none is asked for; only the listed events, 20 and 8 KB a request, its own rate-limit group, no address stored (SECURITY.md, Telemetry)",
   "GET /api/stations": "a static catalog",
