@@ -26,7 +26,7 @@ export function buyConglomerateLevel(accountId, conglomerateId, requested, now =
     return no(409, "not-at-bureau", "Levels are bought at the Conglomerate Affairs Bureau on Earth Station Prime. Travel there, then buy it.");
   }
   const status = levelStatus(c, now);
-  if (status.refusal) return no(503, "level-unavailable", `${status.refusal} The Bureau cannot sell this level just now.`);
+  if (status.refusal) return no(503, "level-unavailable", `${status.refusal} The Bureau cannot sell this level just now. Try again later.`); // Bug #4814
   if (status.top) return no(409, "top-level", `${c.name} is at the highest level, ${c.level}.`);
   const unmet = status.requirements.filter((r) => !r.met);
   if (unmet.length) {

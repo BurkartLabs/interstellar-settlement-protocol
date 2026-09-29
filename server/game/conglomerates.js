@@ -79,7 +79,7 @@ const REFUSALS = {
   "founder-too-young": ({ from }) => ({ status: 409, error: `A corporation can found a conglomerate ${CONGLOMERATE_CATALOG.minFounderAgeDays} days after it was registered. Yours can from ${utcTime(from, { withDate: true })}.` }),
   "join-cooldown": ({ until }) => ({ status: 409, error: `Your corporation left a conglomerate recently and cannot found or join one until ${utcTime(until, { withDate: true })}.` }),
   "not-at-bureau": () => ({ status: 409, error: "Charters are filed at the Conglomerate Affairs Bureau on Earth Station Prime. Travel there, then file." }),
-  "insufficient-credits": ({ needed, held }) => ({ status: 409, error: `The charter costs ${needed.toLocaleString("en-US")} credits (a ${CONGLOMERATE_CATALOG.charterFee.toLocaleString("en-US")} fee and a ${CONGLOMERATE_CATALOG.charterDeposit.toLocaleString("en-US")} deposit into the new treasury). Your corporation holds ${held.toLocaleString("en-US")}.` }),
+  "insufficient-credits": ({ needed, held }) => ({ status: 409, error: `The charter costs ${needed.toLocaleString("en-US")} credits (a ${CONGLOMERATE_CATALOG.charterFee.toLocaleString("en-US")} fee and a ${CONGLOMERATE_CATALOG.charterDeposit.toLocaleString("en-US")} deposit into the new treasury). Your corporation holds ${held.toLocaleString("en-US")}. Sell goods or finish an assignment to raise the credits, then file.` }), // Bug #4814
   "invalid-emblem": () => ({ status: 400, error: `Choose an emblem from the Bureau's ${CONGLOMERATE_CATALOG.emblems}.` }),
   "invalid-colour": () => ({ status: 400, error: `Choose a colour from the Bureau's ${CONGLOMERATE_CATALOG.colours}.` })
 };
