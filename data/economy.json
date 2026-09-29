@@ -73,7 +73,8 @@
     "compositionJitter": 0.25
   },
   "exchange": {
-    "salesTaxPct": 8
+    "salesTaxPct": 8,
+    "maxPriceMultipleOfBid": 5
   },
   "npcAsks": {
     "askMultiple": 1.5,
