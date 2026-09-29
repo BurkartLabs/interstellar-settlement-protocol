@@ -6,6 +6,11 @@ import { applyMiningOperations, getStationInventory } from "./gameState.js";
 import { applyAsteroidExpeditions, EXPEDITION_DURATIONS, PROBE_ASSET_VALUE } from "./gameState.js";
 // Bug #1097: payroll is settled on this same 5-second tick, for every account, online or not.
 import { settleAccountPayroll } from "./gameState.js";
+// Bug #4848: each ticker skips an account with nothing due, read without a mutation (miningTick still settles every one)
+import { peekCorp } from "./gameState.js";
+import { accountsStore } from "./game/store.js";
+const peekState = (accountId) => accountsStore.accounts?.[accountId]?.state ?? null; // the queues live beside the corporation
+import { ceoDue, expeditionsActive, fabricationDue, refineryDue, rndDue, scoutedAnyOf, shipmentsDue, travelDue } from "./game/tickDue.js";
 import { settleAccountUpkeep } from "./upkeep.js"; // ISP-173 (AB#867)
 // The R&D schedule lives in public/scripts/rndQueue.js, which the R&D panel reads too; imported here beside its use
 // (Bug #1258), away from the import block other branches edit.
@@ -94,6 +99,7 @@ function miningTick() {
 function refineryTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
+    if (!refineryDue(peekCorp(accountId), now)) continue; // Bug #4848
     mutateAccountState(accountId, (state) => {
       if (state && state.corp) {
         applyRefineryOperations(state.corp, now);
@@ -128,9 +134,10 @@ function asteroidExpeditionTick(now = Date.now()) {
   mutateState((world) => {
     ensureBeltState(world, now);
     const present = Object.keys(world.belts).filter((k) => isBeltPresent(world.belts[k]));
-    for (const accountId of getAllAccountIds()) settle(accountId, world, null);
+    // Bug #4848: only a corporation with an expedition out has anything to settle; after a belt empties, those too that scouted it
+    for (const accountId of getAllAccountIds()) if (expeditionsActive(peekCorp(accountId))) settle(accountId, world, null);
     emptied = present.filter((k) => !isBeltPresent(world.belts[k]));
-    if (emptied.length) for (const accountId of getAllAccountIds()) settle(accountId, world, emptied);
+    if (emptied.length) for (const accountId of getAllAccountIds()) { const c = peekCorp(accountId); if (expeditionsActive(c) || scoutedAnyOf(c, emptied)) settle(accountId, world, emptied); }
   });
   emitBeltsChanged(emptied); // AB#2331: an open belt panel shows the slot empty without a reload
 
@@ -203,6 +210,7 @@ function fabricationTick() {
   settleStationProjects(now); // ISP-210 (AB#905): a station whose build time is over opens with nobody watching
   settleAllStationGovernance(now); // ISP-211 (AB#906): votes that ran out close, and stake buyouts pay what is due
   for (const accountId of getAllAccountIds()) {
+    if (!fabricationDue(peekCorp(accountId), now)) continue; // Bug #4848
     let completed = false;
     const shipsDone = [];
     const troopsDone = [];
@@ -265,6 +273,7 @@ function fabricationTick() {
 function travelTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
+    if (!travelDue(peekCorp(accountId), now)) continue; // Bug #4848
     let arrived = false;
     let travelResult = null;
 
@@ -325,6 +334,7 @@ function travelTick() {
 function processRndCompletions() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
+    if (!rndDue(peekState(accountId), now)) continue; // Bug #4848
     let completedItems = [];
 
     mutateAccountState(accountId, (state) => {
@@ -374,6 +384,7 @@ function processRndCompletions() {
 function processCeoInsightCompletions() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
+    if (!ceoDue(peekState(accountId), now)) continue; // Bug #4848
     let completedItems = [];
 
     mutateAccountState(accountId, (state) => {
@@ -467,6 +478,7 @@ function beltTick(now = Date.now()) {
 function shipmentTick() {
   const now = Date.now();
   for (const accountId of getAllAccountIds()) {
+    if (!shipmentsDue(peekCorp(accountId), now)) continue; // Bug #4848
     const outcomes = []; // { shipment, delivered }
 
     mutateAccountState(accountId, (state) => {
