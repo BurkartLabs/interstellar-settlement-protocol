@@ -35,6 +35,21 @@ Second number, once there are enough players for it to mean anything: **orders f
 than by an NPC anchor**. A player-driven economy where players only ever trade with NPCs is a single-player game
 with extra steps.
 
+## Telemetry store (ISP-256, AB#952; process/TELEMETRY.md)
+
+**A tiny self-hosted endpoint, on the game's own server.** The page sends process/TELEMETRY.md's minimum events to
+`POST /api/telemetry` on the same Container App. The server writes them to its own data volume, one file a day
+(`/data/telemetry/YYYY-MM-DD.jsonl`), and deletes each file after **90 days**. No third party receives anything; a
+hosted store is a data-sharing choice for Decision D-1.0-1.
+
+- **Events:** `app_open` (the game entered), `verb_first` and `verb_repeat` (a committing action the server confirmed
+  with a receipt: an Allocate), `session_end` (the page hidden or left), `error` (an uncaught error),
+  `funnel_step` (a walkthrough step shown) and `rank_up` (the corporation's level rose).
+- **Identity:** a random id the browser keeps in localStorage, never the account id or the email. Also a session id,
+  the app version and `web-desktop` or `web-mobile`. No IP address, user agent or account is stored.
+- **The first number:** `npm run telemetry:d3` prints D3 return by first-seen cohort from the stored rows
+  (scripts/telemetry-d3.mjs documents the query). A player is one browser, so two browsers count twice.
+
 ## Monetization
 
 **None yet, and none before 1.0.** No pricing decision has been made and none should be made while the game is

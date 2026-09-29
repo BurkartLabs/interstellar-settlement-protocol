@@ -78,6 +78,7 @@ import { registerConversationRoutes } from "./routes/conversations.js"; // AB#91
 import { migrateLegacyMailOnce } from "./game/conversations.js"; // AB#911
 import { registerForumRoutes } from "./routes/forums.js";
 import { registerChatRoutes } from "./routes/chat.js"; // AB#995
+import { registerTelemetryRoutes } from "./routes/telemetry.js"; // ISP-256 (AB#952)
 import { registerMarketRoutes } from "./routes/market.js";
 
 process.on("uncaughtException", (error) => {
@@ -90,6 +91,8 @@ process.on("unhandledRejection", (reason) => {
 
 // AB#958: every mutating route is limited per address, by its cost group, before anything else reads the request.
 app.use(mutationLimits.address);
+// ISP-256 (AB#952): the telemetry endpoint's body is read here, at most 8 KB; the parser below then leaves it alone.
+app.use("/api/telemetry", express.json({ limit: "8kb" }));
 app.use(express.json());
 
 app.use(express.static(path.join(__dirname, "..", "public")));
@@ -273,6 +276,7 @@ try {
 
 registerForumRoutes(app);
 registerChatRoutes(app);
+registerTelemetryRoutes(app);
 
 registerMarketRoutes(app);
 

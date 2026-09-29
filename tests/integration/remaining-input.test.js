@@ -19,6 +19,7 @@ const OUT_OF_SCOPE = {
   "POST /api/auth/register": "validates its own body (email, password, names: Bug #433)",
   "POST /api/auth/login": "validates its own body; answers only yes or no",
   "GET /api/chat/:channel/history": "resolves its channel as chat:send does; server/game/chatHistory.js refuses a bad cursor with 400 (AB#995)",
+  "POST /api/telemetry": "validates every event against server/telemetry.js's own schema, dropping any that does not match; 400 for a body that is not a list of 1 to 20 (AB#952)",
   "POST /api/auth/refresh": "reads only the isp_refresh cookie; the body is not read (AB#757)",
   "POST /api/auth/logout": "reads only the isp_refresh cookie; the body is not read (AB#757)",
   "GET /api/auth/session": "no input",
