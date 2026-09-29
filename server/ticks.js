@@ -92,7 +92,10 @@ function miningTick() {
           credits: state.corp.finances?.credits ?? 0
         });
       }
-    }, { sanitize: false, settleMining: false });
+      // Bug #4850: mining changes extractors, inventory, credits and what was mined: no building, unit, lease or model shape,
+      // so the normalising passes have nothing to do (a read refreshes the contract offers). The level still moves with
+      // what was mined, so it is evaluated.
+    }, { sanitize: false, settleMining: false, normalize: false });
   }
 }
 
@@ -455,7 +458,9 @@ function financialSnapshotTick() {
       refreshCreditRating(state.corp, now, () => getStatements(accountId, RATING.windowStatements, now)?.statements, { statementsVersion: statementsVersion(accountId), bonds: bondsIssuedBy(accountId) }); // AB#848: and its bonds
       finances = state.corp.finances;
       creditRating = state.corp.creditRating ?? null; // AB#842: the Finance tab's rating card rides on this event
-    }, { sanitize: false, settleMining: false });
+      // Bug #4850: a snapshot changes the finances and the rating only, which neither the normalising passes nor any level
+      // metric reads (data/milestones.json), so both are skipped.
+    }, { sanitize: false, settleMining: false, normalize: false, evaluateLevel: false });
     if (finances) {
       // Reuse the existing finance:updated channel so clients refresh their snapshot-driven dashboard. Only this
       // account's sockets get it, with the account id so the client can check it (Bug #1021).
