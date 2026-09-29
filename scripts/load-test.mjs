@@ -3,6 +3,11 @@
 //   npm run load:test                                   200 corporations for 10 minutes
 //   npm run load:test -- --corps 500 --minutes 5
 //   npm run load:test -- --json out.json                also write the numbers as JSON
+//   npm run load:test -- --profile                      also a CPU profile of the server, read as store queries (AB#963)
+//   npm run load:test -- --data tmpfs                   /data in memory rather than a bind mount (AB#963): a write then
+//                                                       costs its CPU time, not the host's file sharing, which on a
+//                                                       Windows host with the temp directory on a non-system drive
+//                                                       took about a minute per snapshot write
 //
 // How: bench-ticks' template corporation (office, five staff, a lease mining, research and a CEO program queued, a full
 // finance history) is cloned N times into a scratch data directory. The image is built from this checkout and run
@@ -27,6 +32,7 @@ import { performance } from "node:perf_hooks";
 import jwt from "jsonwebtoken";
 import { io } from "socket.io-client";
 import { cloneTemplate } from "./bench-ticks.mjs";
+import { renderQueries, summarizeProfile } from "./profile-store.mjs"; // AB#963 (ISP-267)
 
 const HERE = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(HERE), "..");
@@ -35,7 +41,7 @@ const ROOT = path.resolve(path.dirname(HERE), "..");
 export const BUDGET = { tickerShareOfInterval: 0.5, eventLoopP99Ms: 100, memoryShareOfLimit: 0.8, httpP95Ms: 500 };
 
 export function parseArgs(argv) {
-  const opts = { corps: 200, minutes: 10, cpus: "0.5", memory: "1g", json: null, keep: false };
+  const opts = { corps: 200, minutes: 10, cpus: "0.5", memory: "1g", json: null, keep: false, profile: false, data: "bind" };
   for (let i = 0; i < argv.length; i++) {
     const [flag, value] = [argv[i], argv[i + 1]];
     if (flag === "--corps") { opts.corps = Math.max(1, Number(value) || opts.corps); i++; }
@@ -44,6 +50,8 @@ export function parseArgs(argv) {
     else if (flag === "--memory") { opts.memory = String(value); i++; }
     else if (flag === "--json") { opts.json = value; i++; }
     else if (flag === "--keep") opts.keep = true;
+    else if (flag === "--profile") opts.profile = true;
+    else if (flag === "--data") { opts.data = value === "tmpfs" ? "tmpfs" : "bind"; i++; }
   }
   return opts;
 }
@@ -95,7 +103,17 @@ export function summarize({ probeLines, clientWindows, httpTimes, dockerSamples,
   const totalSeconds = clientWindows.reduce((s, w) => s + w.seconds, 0) || 1;
   const cpu = dockerSamples.map((d) => d.cpuPercent).filter(Number.isFinite);
   const dmem = dockerSamples.map((d) => d.memBytes).filter(Number.isFinite);
+  // AB#963: every file the server wrote, how often, how much and how long the write held the loop; and per request
+  const byFile = new Map();
+  for (const l of probeLines) for (const [file, w] of Object.entries(l.writes || {})) {
+    const cur = byFile.get(file) || { file, count: 0, bytes: 0, ms: 0 };
+    cur.count += w.count; cur.bytes += w.bytes; cur.ms += w.ms;
+    byFile.set(file, cur);
+  }
+  const writes = [...byFile.values()].sort((a, b) => b.bytes - a.bytes);
+  const writtenBytes = writes.reduce((sum, w) => sum + w.bytes, 0);
   return {
+    writes, writtenBytes, writtenBytesPerRequest: httpTimes.length ? writtenBytes / httpTimes.length : 0,
     tickers,
     eventLoop: { p50OfWindows: percentile(eld.map((e) => e.p50), 50), worstP99: Math.max(0, ...eld.map((e) => e.p99)), worstMax: Math.max(0, ...eld.map((e) => e.max)), windowsOverBudget: eld.filter((e) => e.p99 > BUDGET.eventLoopP99Ms).length, windows: eld.length },
     memory: { rssStart: rss[0] || 0, rssMax: Math.max(0, ...rss), rssEnd: rss.at(-1) || 0, heapMax: Math.max(0, ...heap), containerMax: Math.max(0, ...dmem), limit: memoryLimitBytes },
@@ -112,7 +130,7 @@ const mb = (b) => `${Math.round(b / 1024 / 1024)} MB`;
 /** The report as text, with the budget lines that fail marked OVER. */
 export function renderReport(s, opts, machine) {
   const out = [];
-  out.push(`${opts.corps} corporations, ${opts.minutes} min, production image at --cpus ${opts.cpus} --memory ${opts.memory}. ${machine}`);
+  out.push(`${opts.corps} corporations, ${opts.minutes} min, production image at --cpus ${opts.cpus} --memory ${opts.memory}, /data ${opts.data === "tmpfs" ? "in memory (tmpfs)" : "a bind mount"}. ${machine}`);
   out.push(`Clients connected: ${s.connectedMin} to ${s.connectedMax} of ${opts.corps}. Times are the synchronous part of each run (what holds the event loop), in ms.`);
   out.push("");
   out.push(`${"timer".padEnd(44)} | ${"every".padStart(6)} | ${"runs".padStart(5)} | ${"p50".padStart(8)} | ${"p95".padStart(8)} | ${"max".padStart(8)} | busy`);
@@ -128,6 +146,12 @@ export function renderReport(s, opts, machine) {
   out.push(`Socket fan-out received by the clients: mean ${f(s.fanOut.meanPerSecond)} events/s, peak ${f(s.fanOut.peakPerSecond)}/s, ${f(s.fanOut.bytesPerSecond / 1024)} KiB/s of payload.`);
   out.push(`  by event (per second): ${Object.entries(s.fanOut.byEvent).slice(0, 8).map(([k, v]) => `${k} ${f(v)}`).join(", ")}`);
   out.push(`HTTP GET /api/accounts/:id: ${s.http.requests} requests, p50 ${f(s.http.p50)} ms, p95 ${f(s.http.p95)} ms, ${s.http.errors} errors.`);
+  // AB#963: write amplification. Every byte written in the run, against the requests the clients made (their only writes
+  // are chat lines; the rest is the tickers' work and whatever the reads schedule).
+  if (s.writes?.length) {
+    out.push(`Files written: ${mb(s.writtenBytes)} in the run, ${f(s.writtenBytesPerRequest / 1024)} KiB per HTTP request.`);
+    for (const w of s.writes.slice(0, 6)) out.push(`  ${w.file}: ${w.count} writes, ${mb(w.bytes)}, ${f(w.ms)} ms writing (${f(w.count / (opts.minutes * 60))}/s)`);
+  }
   out.push("");
   const over = [];
   for (const t of s.tickers) if (t.kind === "interval" && t.everyMs && t.p95 > t.everyMs * BUDGET.tickerShareOfInterval) over.push(`OVER  ${t.name}: p95 ${f(t.p95)} ms against half its ${t.everyMs / 1000}s interval`);
@@ -183,14 +207,20 @@ async function main() {
     for (const id of ids) snap.accounts[id].emailVerifiedAt = snap.accounts[id].emailVerifiedAt || new Date().toISOString();
     fs.writeFileSync(snapPath, JSON.stringify(snap));
     fs.copyFileSync(path.join(ROOT, "scripts", "load-probe.mjs"), path.join(probeDir, "load-probe.mjs"));
+    if (opts.profile) fs.mkdirSync(path.join(probeDir, "prof"), { recursive: true, mode: 0o777 });
 
     // 2. The production image, built from this checkout (never a working tree's data: Bug #4806), run at production's size.
     process.stderr.write(`building the image...\n`);
     docker(["build", "-q", "-t", "isp-load:local", ROOT], { timeout: 15 * 60_000 });
+    // --data tmpfs: the seed is mounted read-only and copied into an in-memory /data first; exec keeps node PID 1 for SIGTERM
+    const dataArgs = opts.data === "tmpfs"
+      ? ["--tmpfs", "/data:uid=1000,gid=1000,mode=0755", "-v", `${dataDir}:/seed:ro`]
+      : ["-v", `${dataDir}:/data`];
+    const command = opts.data === "tmpfs" ? ["sh", "-c", "cp -R /seed/. /data/ && exec node server/index.js"] : [];
     docker(["run", "-d", "--rm", "--name", name, "--cpus", opts.cpus, "--memory", opts.memory, "-p", "127.0.0.1::3000",
-      "-v", `${dataDir}:/data`, "-v", `${probeDir}:/probe`,
-      "-e", `JWT_SECRET=${secret}`, "-e", "NODE_OPTIONS=--import=/probe/load-probe.mjs", "-e", "ISP_LOAD_METRICS=/probe/metrics.jsonl",
-      "isp-load:local"]);
+      ...dataArgs, "-v", `${probeDir}:/probe`,
+      "-e", `JWT_SECRET=${secret}`, "-e", `NODE_OPTIONS=--import=/probe/load-probe.mjs${opts.profile ? " --cpu-prof --cpu-prof-dir=/probe/prof" : ""}`, "-e", "ISP_LOAD_METRICS=/probe/metrics.jsonl",
+      "isp-load:local", ...command]);
     started = true;
     const port = docker(["port", name, "3000/tcp"]).split("\n")[0].split(":").pop();
     const base = `http://127.0.0.1:${port}`;
@@ -262,7 +292,18 @@ async function main() {
     const cpu = os.cpus()[0]?.model?.trim();
     const machine = `Host: ${cpu} (${os.cpus().length} logical cores), ${Math.round(os.totalmem() / 1024 ** 3)} GB, ${os.type()}.`;
     console.log(renderReport(summary, opts, machine));
-    if (opts.json) fs.writeFileSync(opts.json, JSON.stringify({ opts, summary }, null, 2));
+    let queries = null;
+    if (opts.profile) {
+      docker(["stop", "-t", "60", name]); // a graceful stop: the server exits, and V8 writes the profile as it does
+      started = false;
+      const profDir = path.join(probeDir, "prof");
+      const file = fs.readdirSync(profDir).find((f) => f.endsWith(".cpuprofile"));
+      if (!file) throw new Error("--profile: no .cpuprofile was written (did the server exit cleanly?)");
+      queries = summarizeProfile(JSON.parse(fs.readFileSync(path.join(profDir, file), "utf8")));
+      console.log("");
+      console.log(renderQueries(queries));
+    }
+    if (opts.json) fs.writeFileSync(opts.json, JSON.stringify({ opts, summary, queries }, null, 2));
   } finally {
     if (started) { try { docker(["stop", "-t", "20", name]); } catch { /* already gone */ } }
     if (!opts.keep) fs.rmSync(work, { recursive: true, force: true });

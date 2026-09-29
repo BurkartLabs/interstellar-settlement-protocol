@@ -19,7 +19,7 @@
 // destroys it (section 7). Idempotency keys name the issuer, the period and the holder, so a tick that runs twice pays
 // once. Time is passed in (P-TEST-TIME).
 
-import { getAccountById, getAllAccountIds, getStatements, mutateAccountState } from "./gameState.js";
+import { getAccountById, getAllAccountIds, getStatements, mutateAccountState, peekCorp } from "./gameState.js"; // peekCorp: Bug #4816
 import { saveAccountsNow } from "./game/store.js";
 import { settleTransfer } from "./settlement.js";
 import { SHARE_TERMS } from "./shareRegistry.js";
@@ -120,7 +120,7 @@ export function payDividends(accountId, now) {
 /** The dividend tick: every listed corporation's ended periods. `now` is passed in (the server passes Date.now()). */
 export function dividendTick(now) {
   for (const id of getAllAccountIds()) {
-    const r = getAccountById(id)?.state?.corp?.shareRegistry;
+    const r = peekCorp(id)?.shareRegistry; // Bug #4816: a look; payDividends reads and changes the few that are due
     if (r?.state === "listed" && r.listedAt && (r.lastDividendAt ?? r.listedAt) + PERIOD_DAYS * DAY <= now) payDividends(id, now);
   }
 }

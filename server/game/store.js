@@ -151,6 +151,8 @@ if (migrateShareRegistries(accountsStore.accounts)) scheduleAccountsSave();
 rebuildHoldingIndexes(accountsStore.accounts);
 // AB#2288: accounts from before email verification are asked to verify at login, not refused; set once, here.
 if (backfillVerificationPolicy(accountsStore.accounts)) scheduleAccountsSave();
+// ISP-249 (AB#945), AB#963: every record's reference, at load, so reads never have to write one
+if (Object.values(accountsStore.accounts || {}).map((a) => ensureCorpRefs(a?.state?.corp)).some(Boolean)) scheduleAccountsSave();
 // Bug #1480: statements saved inside the snapshot by the first version of AB#713 move to their own files.
 {
   let moved = 0;
@@ -254,8 +256,10 @@ export function appendChatMessage(channel, message) {
 
 
 export function sanitizeAccount(account) {
-  // ISP-249 (AB#945): records from a save made before reference numbers get theirs the first time they are read, kept
-  if (ensureCorpRefs(account?.state?.corp)) scheduleAccountsSave();
+  // ISP-249 (AB#945): records from a save made before reference numbers get theirs the first time they are read. A read
+  // schedules no write (AB#963): a reference is an HMAC of the record's id under the stored salt, so the next read gives
+  // the same one, and the next write keeps it. Saves from before references get them all at load (below the imports).
+  ensureCorpRefs(account?.state?.corp);
   // The daily statements (AB#713) stay out: up to 90 days of them would ride on every response and socket event. They
   // are served on their own by GET /finances/statements.
   const { statements: _statements, ...state } = account.state || {};
@@ -317,8 +321,7 @@ export function closeFinancialDays(account, now = Date.now()) {
 export function getStatements(accountId, days = MAX_STATEMENTS, now = Date.now()) {
   const account = accountsStore.accounts?.[accountId];
   if (!account) return null;
-  closeFinancialDays(account, now);
-  scheduleAccountsSave();
+  closeFinancialDays(account, now); // a day that closed files its own statements (fileStatements); nothing else to write
   const count = Math.max(1, Math.min(MAX_STATEMENTS, Math.floor(Number(days) || MAX_STATEMENTS)));
   const all = readStatements(accountId);
   const book = account.state.corp?.finances?.dayBook || null;
@@ -351,7 +354,9 @@ export function getAccountById(accountId) {
   applyMiningOperations(account.state.corp);
   refreshContractOfferings(account.state.corp);
   evaluateAccountLevel(accountId, account); // a read can raise the level too: mining settles here (Bug #1260)
-  scheduleAccountsSave();
+  // Bug #4815 (AB#963): a read schedules no write. What it settled above (mining, offers, the level) is time-derived: the
+  // next read settles it the same way, and the next change or ticker (mining's runs every 5 s) writes it. Scheduling here
+  // rewrote the whole snapshot about once a second under traffic, 40% of the server's time at 200 corporations.
   return sanitizeAccount(account);
 }
 
@@ -631,6 +636,16 @@ export function accountExists(accountId) {
 
 export function getAllAccountIds() {
   return Object.keys(accountsStore.accounts || {});
+}
+
+/**
+ * Bug #4816 (AB#963): a corporation as held, for a scan that only looks for something: no settling, no copy, nothing
+ * scheduled. getAccountById settles mining and deep-copies the whole account, about 3 ms at release scale, so a ticker
+ * that called it for every account to find a rare loan, raid move or listing spent seconds finding none. Read only:
+ * never change what it returns; settle and change the few it finds through getAccountById or mutateAccountState.
+ */
+export function peekCorp(accountId) {
+  return accountsStore.accounts?.[accountId]?.state?.corp ?? null;
 }
 
 // Bug #1765: a refresh token is a bearer credential good for up to 30 days, and account.refreshTokens is

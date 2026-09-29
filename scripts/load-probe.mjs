@@ -46,6 +46,26 @@ if (OUT) {
   globalThis.setInterval = wrap(realSetInterval, "interval");
   globalThis.setTimeout = wrap(realSetTimeout, "timeout");
 
+  // AB#963 (ISP-267): every synchronous file write the server makes, by file: how many, how many bytes, and how long the
+  // write itself held the event loop (the JSON.stringify before it is in the calling timer's time, not here). The store
+  // writes through fs.writeFileSync on the default fs object, then renames the ".tmp" into place.
+  const writes = new Map(); // file -> { count, bytes, ms }
+  const fileKey = (p) => String(p).replace(/\\/g, "/").replace(/\.tmp$/, "").replace(/^.*\/data\//, "").replace(/^statements\/.*$/, "statements/*.json");
+  const realWriteFileSync = fs.writeFileSync;
+  fs.writeFileSync = function (file, data, ...rest) {
+    const start = performance.now();
+    try { return realWriteFileSync.call(this, file, data, ...rest); } finally {
+      if (typeof file === "string" && file !== OUT) {
+        const key = fileKey(file);
+        const w = writes.get(key) || { count: 0, bytes: 0, ms: 0 };
+        w.count += 1;
+        w.bytes += typeof data === "string" ? Buffer.byteLength(data) : (data?.byteLength || 0);
+        w.ms += performance.now() - start;
+        writes.set(key, w);
+      }
+    }
+  };
+
   const eld = monitorEventLoopDelay({ resolution: 2 });
   eld.enable();
   const ms = (ns) => Math.round((ns / 1e6) * 100) / 100;
@@ -57,8 +77,10 @@ if (OUT) {
       at: Date.now(),
       timers,
       eventLoopDelay: { p50: ms(eld.percentile(50)), p95: ms(eld.percentile(95)), p99: ms(eld.percentile(99)), max: ms(eld.max) },
-      memory: { rss: mem.rss, heapUsed: mem.heapUsed, heapTotal: mem.heapTotal, external: mem.external }
+      memory: { rss: mem.rss, heapUsed: mem.heapUsed, heapTotal: mem.heapTotal, external: mem.external },
+      writes: Object.fromEntries([...writes].map(([k, w]) => [k, { count: w.count, bytes: w.bytes, ms: Math.round(w.ms * 100) / 100 }]))
     };
+    writes.clear();
     eld.reset();
     try { fs.appendFileSync(OUT, JSON.stringify(line) + "\n"); } catch { /* measuring never breaks the server */ }
   };
