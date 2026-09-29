@@ -35,6 +35,7 @@ describe("chat and forum posting limits (AB#995)", () => {
     const refusal = await refused;
     expect(refusal.error).toMatch(/more than 3 lines in 10 seconds/);
     expect(refusal.retryAfterSeconds).toBeGreaterThan(0);
+    expect(refusal.code).toBe("rate-limited"); // ISP-255c1 (AB#4830): the page reads it as Denied
     await new Promise((r) => setTimeout(r, 200));
     expect(heard.filter((c) => c.startsWith("burst"))).toEqual(["burst 0", "burst 1", "burst 2"]);
     expect((getState().chatLog.global || []).map((m) => m.content)).not.toContain("burst 3");
