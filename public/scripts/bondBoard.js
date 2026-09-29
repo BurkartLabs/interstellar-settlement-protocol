@@ -8,6 +8,7 @@
 import { escapeHtml } from "./html.js";
 import { bankTime, cr } from "./devBank.js";
 import { refHtml } from "./html.js"; // ISP-249 (AB#945)
+import { protocolLineHtml } from "./protocol.js"; // ISP-255 (AB#4824)
 
 const pct = (n) => `${Number(n).toFixed(2).replace(/\.?0+$/, "")}%`;
 
@@ -25,7 +26,10 @@ export function seriesBadge(s) {
     subscribing: ["Subscribing", "open"], closing: ["Closing", "open"], live: ["Current", "ok"], arrears: ["In arrears", "late"],
     defaulted: ["Defaulted", "late"], redeemed: ["Redeemed", "done"], lapsed: ["Lapsed", "done"]
   }[s.state] ?? [s.state, "done"];
-  return `<span class="ui-badge bond-badge bond-badge--${mod}" data-state="${escapeHtml(s.state)}">${label}</span>`;
+  // ISP-255 (AB#4824): the phrase after the badge; "In arrears" and "Lapsed" are already the guide's words
+  const meaning = { subscribing: "queued", closing: "queued", live: "active", defaulted: "failed", redeemed: "complete" }[s.state];
+  const badge = `<span class="ui-badge bond-badge bond-badge--${mod}" data-state="${escapeHtml(s.state)}">${label}</span>`;
+  return meaning ? `<span>${badge} ${protocolLineHtml({ meaning, screen: "building-deep-space-development-bank" })}</span>` : badge; // one span: the header is a flex row
 }
 
 /** The series open for subscribing: issuer, grade, coupon against its grade's yield, maturity, units left, time left. */

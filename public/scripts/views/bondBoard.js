@@ -8,6 +8,11 @@ import { deepClone } from "../helpers.js";
 import { appState } from "../state.js";
 import { showActionReceipt } from "./receiptModal.js";
 import { showTradeConfirmation, updateAllViews } from "./shared.js";
+import { escapeHtml } from "../html.js";
+import { protocolLineHtml, refusalMeaning } from "../protocol.js"; // ISP-255 (AB#4824)
+
+/** A line's plain words, then the protocol phrase and the Bank's code (the Bond Board is the Bank's). */
+const said = (text, meaning) => `${escapeHtml(text)} ${protocolLineHtml({ meaning, screen: "building-deep-space-development-bank" })}`;
 
 // Survives a redraw: the board as last read, what the issue form holds, and the server's preview of it.
 const board = { accountId: null, data: null, loading: false, form: {}, preview: null, previewError: null, previewSeq: 0 };
@@ -48,7 +53,7 @@ async function load() {
     board.data = await parseJsonResponse(await apiFetch(base()));
   } catch (error) {
     const el = root();
-    if (el) el.innerHTML = `<p class="station__note">${error?.message || "The Bank's bond listings could not be read."}</p>`;
+    if (el) el.innerHTML = `<p class="station__note">${said(error?.message || "The Bank's bond listings could not be read.", "failed")}</p>`; // escaped now, as every other line
     return;
   } finally {
     board.loading = false;
@@ -108,7 +113,7 @@ async function issue(form) {
     showActionReceipt(account, { returnFocusTo: () => document.querySelector('[data-role="bond-board"] h3') });
     await load();
   } catch (error) {
-    if (status) status.textContent = error?.message || "The Bank refused the series.";
+    if (status) status.innerHTML = said(error?.message || "The Bank refused the series.", refusalMeaning(error));
   }
 }
 
@@ -117,7 +122,7 @@ async function subscribe(form) {
   const units = Number(form.units.value);
   const status = form.querySelector('[data-role="bond-status"]');
   if (!s) return;
-  if (!Number.isInteger(units) || units < 1 || units > s.left) { status.textContent = `Enter 1 to ${s.left} units.`; return; }
+  if (!Number.isInteger(units) || units < 1 || units > s.left) { status.innerHTML = said(`Enter 1 to ${s.left} units.`, "refused"); return; }
   const confirmed = await showTradeConfirmation({
     heading: "Deep Space Development Bank",
     title: `Buy ${cr(units)} unit${units === 1 ? "" : "s"} of ${s.issuerName ? `${s.issuerName}'s` : "this"} series?`,
@@ -137,7 +142,7 @@ async function subscribe(form) {
     showActionReceipt(account, { returnFocusTo: () => document.querySelector('[data-role="bond-board"] h3') });
     await load();
   } catch (error) {
-    status.textContent = error?.message || "The Bank refused to sell those units.";
+    status.innerHTML = said(error?.message || "The Bank refused to sell those units.", refusalMeaning(error));
   }
 }
 

@@ -86,7 +86,7 @@ export function registerBondRoutes(app) {
 
   app.post("/api/accounts/:accountId/bonds/:seriesId/subscribe", (req, res) => {
     const r = subscribeBond(req.params.accountId, { seriesId: req.params.seriesId, units: num(req.body?.units) });
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    if (!r.ok) return res.status(r.status).json({ error: r.error, ...(r.code ? { code: r.code } : {}) }); // ISP-255 (AB#4824)
     res.json(answer(req.params.accountId, { series: publicSeries(r.series), units: r.units, paid: r.paid, receipt: subscribeReceipt(r.series, r.units, r.paid) }));
   });
 }

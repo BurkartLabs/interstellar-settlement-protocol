@@ -62,7 +62,7 @@ export function registerLoanRoutes(app) {
   // ISP-150 (AB#844): repay a loan early: the principal still owed, the arrears and a 1% fee, all at once.
   app.post("/api/accounts/:accountId/loans/:loanId/payoff", (req, res) => {
     const r = payOffLoan(req.params.accountId, req.params.loanId, Date.now());
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    if (!r.ok) return res.status(r.status).json({ error: r.error, ...(r.code ? { code: r.code } : {}) }); // ISP-255 (AB#4824)
     res.json(answer(req.params.accountId, { loan: r.loan, paid: r.paid, receipt: payoffReceipt(r.loan, r.paid) }));
   });
 
@@ -86,19 +86,19 @@ export function registerLoanRoutes(app) {
       termDays: bodyNumber(req.body?.termDays, { fallback: NaN }),
       minGrade: typeof req.body?.minGrade === "string" ? req.body.minGrade : ""
     }, Date.now());
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    if (!r.ok) return res.status(r.status).json({ error: r.error, ...(r.code ? { code: r.code } : {}) }); // ISP-255 (AB#4824)
     res.status(201).json({ offer: r.offer });
   });
 
   app.post("/api/accounts/:accountId/loan-offers/:offerId/cancel", (req, res) => {
     const r = cancelLoanOffer(req.params.accountId, req.params.offerId, Date.now());
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    if (!r.ok) return res.status(r.status).json({ error: r.error, ...(r.code ? { code: r.code } : {}) }); // ISP-255 (AB#4824)
     res.json({ offer: r.offer });
   });
 
   app.post("/api/accounts/:accountId/loan-offers/:offerId/accept", (req, res) => {
     const r = acceptLoanOffer(req.params.accountId, req.params.offerId, Date.now());
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    if (!r.ok) return res.status(r.status).json({ error: r.error, ...(r.code ? { code: r.code } : {}) }); // ISP-255 (AB#4824)
     res.json({ loan: r.loan });
   });
 }

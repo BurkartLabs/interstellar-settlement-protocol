@@ -42,8 +42,10 @@ export const SALVAGE_PCT = 40;
 const corpOf = (accountId) => getAccountById(accountId)?.state?.corp ?? null;
 const fmt = (n) => Math.round(n).toLocaleString("en-US");
 
-function tell(accountId, title, body) {
-  const n = accountId ? addAccountNotification(accountId, { type: "finance", title, body }) : null;
+// ISP-255 (AB#4824): a recovery notice's protocol: the sale scheduled (Filed, awaiting review), called off (Withdrawn)
+// or done (Concluded), on the Loan Board for a player loan and at the Bank for a bond series
+function tell(accountId, title, body, meaning, screen) {
+  const n = accountId ? addAccountNotification(accountId, { type: "finance", title, body, protocol: { meaning, screen } }) : null;
   if (n) emitToAccount(accountId, "notifications:new", { accountId, notification: n });
 }
 
@@ -252,22 +254,22 @@ export function defaultRecoveryTick(now) {
         if (loan.state !== "arrears") continue;
         const recovery = { id, loanId: loan.id, creditorCorpId: loan.lender.corpId, warnedAt: now, saleAt: now + GRACE_HOURS * HOUR, state: "grace" };
         save(accountId, loan, recovery);
-        tell(accountId, "Your assets will be sold in 24 hours", `Your loan from ${corpOf(lenderAccountId)?.corporationName || "another corporation"} is in default: ${fmt(owedOnDefault(loan))} credits are owed. In 24 hours your credits, then your station goods at the exchange's bid, then your buildings at ${SALVAGE_PCT}% of what you paid will be taken until it is covered. Paying the ${fmt(loan.arrears)} credits in arrears before then cancels the sale. Your office, research, level and Headquarters are never taken.`);
-        tell(lenderAccountId, "Recovery begins in 24 hours", `${corp.corporationName || "Your borrower"} is in default on your loan. If the arrears are not paid within 24 hours, what is owed will be recovered from its credits, goods and buildings.`);
+        tell(accountId, "Your assets will be sold in 24 hours", `Your loan from ${corpOf(lenderAccountId)?.corporationName || "another corporation"} is in default: ${fmt(owedOnDefault(loan))} credits are owed. In 24 hours your credits, then your station goods at the exchange's bid, then your buildings at ${SALVAGE_PCT}% of what you paid will be taken until it is covered. Paying the ${fmt(loan.arrears)} credits in arrears before then cancels the sale. Your office, research, level and Headquarters are never taken.`, "pending", "loans-board");
+        tell(lenderAccountId, "Recovery begins in 24 hours", `${corp.corporationName || "Your borrower"} is in default on your loan. If the arrears are not paid within 24 hours, what is owed will be recovered from its credits, goods and buildings.`, "pending", "loans-board");
         continue;
       }
       if (existing.state !== "grace" || existing.saleAt > now) continue;
       if (loan.state !== "arrears") { // paid in the grace period: the sale is cancelled
         save(accountId, { ...loan, defaultedAt: loan.state === "repaid" ? loan.defaultedAt : null }, { ...existing, state: "cancelled", closedAt: now });
-        tell(accountId, "Sale cancelled", "Your arrears were paid in time: nothing will be sold.");
-        tell(lenderAccountId, "Recovery cancelled", `${corp.corporationName || "Your borrower"} paid its arrears in time.`);
+        tell(accountId, "Sale cancelled", "Your arrears were paid in time: nothing will be sold.", "cancelled", "loans-board");
+        tell(lenderAccountId, "Recovery cancelled", `${corp.corporationName || "Your borrower"} paid its arrears in time.`, "cancelled", "loans-board");
         continue;
       }
       const r = recoverDefault(accountId, loan.id, now);
       const result = { collected: r.collected, shortfall: r.shortfall, applied: r.applied, sold: r.sold.map((s) => ({ kind: s.kind, name: s.name || s.item, credits: s.credits })) };
       save(accountId, r.loan, { ...existing, state: "done", closedAt: now, result });
-      tell(accountId, "Debt recovered", `${fmt(r.collected)} credits were taken for your defaulted loan${r.sold.length ? `, selling ${r.sold.map((s) => s.name || `${s.units} ${s.item}`).join(", ")}` : ""}.${r.shortfall ? ` ${fmt(r.shortfall)} credits are still owed and are collected as your credits allow.` : " The loan is closed."}`);
-      tell(lenderAccountId, "Debt recovered", `${fmt(r.collected)} credits were recovered from ${corp.corporationName || "your borrower"}.${r.shortfall ? ` ${fmt(r.shortfall)} could not be recovered yet and is collected as its credits allow.` : " The loan is closed."}`);
+      tell(accountId, "Debt recovered", `${fmt(r.collected)} credits were taken for your defaulted loan${r.sold.length ? `, selling ${r.sold.map((s) => s.name || `${s.units} ${s.item}`).join(", ")}` : ""}.${r.shortfall ? ` ${fmt(r.shortfall)} credits are still owed and are collected as your credits allow.` : " The loan is closed."}`, "complete", "loans-board");
+      tell(lenderAccountId, "Debt recovered", `${fmt(r.collected)} credits were recovered from ${corp.corporationName || "your borrower"}.${r.shortfall ? ` ${fmt(r.shortfall)} could not be recovered yet and is collected as its credits allow.` : " The loan is closed."}`, "complete", "loans-board");
     }
   }
   bondRecoveryTick(now);
@@ -290,21 +292,21 @@ export function bondRecoveryTick(now) {
     if (!existing) {
       if (s.state !== "defaulted") continue;
       saveRecovery(s.issuerAccountId, { id, seriesId: s.id, warnedAt: now, saleAt: now + GRACE_HOURS * HOUR, state: "grace" });
-      tell(s.issuerAccountId, "Your assets will be sold in 24 hours", `Your ${name} is in default: ${fmt(bondOwedOnDefault(s))} credits are owed to its holders, its whole face included. In 24 hours your credits, then your station goods at the exchange's bid, then your bond holdings at 90% of face, then your buildings at ${SALVAGE_PCT}% of what you paid will be taken until it is covered. Paying the ${fmt(s.arrears)} credits in arrears before then cancels the sale. Your office, research, level and Headquarters are never taken.`);
-      for (const h of holders) tell(h, "Bond recovery begins in 24 hours", `${s.issuerName || "The issuer"} is in default on its ${name}. If the arrears are not paid within 24 hours, what it owes will be recovered from its credits, goods, bonds and buildings and paid to holders by what each is owed.`);
+      tell(s.issuerAccountId, "Your assets will be sold in 24 hours", `Your ${name} is in default: ${fmt(bondOwedOnDefault(s))} credits are owed to its holders, its whole face included. In 24 hours your credits, then your station goods at the exchange's bid, then your bond holdings at 90% of face, then your buildings at ${SALVAGE_PCT}% of what you paid will be taken until it is covered. Paying the ${fmt(s.arrears)} credits in arrears before then cancels the sale. Your office, research, level and Headquarters are never taken.`, "pending", "building-deep-space-development-bank");
+      for (const h of holders) tell(h, "Bond recovery begins in 24 hours", `${s.issuerName || "The issuer"} is in default on its ${name}. If the arrears are not paid within 24 hours, what it owes will be recovered from its credits, goods, bonds and buildings and paid to holders by what each is owed.`, "pending", "building-deep-space-development-bank");
       continue;
     }
     if (existing.state !== "grace" || existing.saleAt > now) continue;
     if (s.state !== "defaulted") { // brought back out of default in the grace period: the sale is cancelled
       saveRecovery(s.issuerAccountId, { ...existing, state: "cancelled", closedAt: now });
-      tell(s.issuerAccountId, "Sale cancelled", "Your bond arrears were paid in time: nothing will be sold.");
-      for (const h of holders) tell(h, "Bond recovery cancelled", `${s.issuerName || "The issuer"} paid its bond arrears in time.`);
+      tell(s.issuerAccountId, "Sale cancelled", "Your bond arrears were paid in time: nothing will be sold.", "cancelled", "building-deep-space-development-bank");
+      for (const h of holders) tell(h, "Bond recovery cancelled", `${s.issuerName || "The issuer"} paid its bond arrears in time.`, "cancelled", "building-deep-space-development-bank");
       continue;
     }
     const r = recoverBondDefault(s.id, now);
     const result = { collected: r.collected, shortfall: r.shortfall, sold: r.sold.map((x) => ({ kind: x.kind, name: x.name || x.item, credits: x.credits })) };
     saveRecovery(s.issuerAccountId, { ...existing, state: "done", closedAt: now, result });
-    tell(s.issuerAccountId, "Debt recovered", `${fmt(r.collected)} credits were taken for your defaulted ${name}${r.sold.length ? `, selling ${r.sold.map((x) => x.name || `${x.units} ${x.item}`).join(", ")}` : ""}.${r.shortfall ? ` ${fmt(r.shortfall)} credits are still owed to its holders and are collected as your credits allow.` : " The series is repaid and closed."}`);
-    for (const h of holders) tell(h, "Bond recovery", `${fmt(r.collected)} credits were recovered from ${s.issuerName || "the issuer"} for its ${name} and paid to holders by what each was owed.${r.shortfall ? ` ${fmt(r.shortfall)} is still owed and is collected as its credits allow.` : " The series is closed."}`);
+    tell(s.issuerAccountId, "Debt recovered", `${fmt(r.collected)} credits were taken for your defaulted ${name}${r.sold.length ? `, selling ${r.sold.map((x) => x.name || `${x.units} ${x.item}`).join(", ")}` : ""}.${r.shortfall ? ` ${fmt(r.shortfall)} credits are still owed to its holders and are collected as your credits allow.` : " The series is repaid and closed."}`, "complete", "building-deep-space-development-bank");
+    for (const h of holders) tell(h, "Bond recovery", `${fmt(r.collected)} credits were recovered from ${s.issuerName || "the issuer"} for its ${name} and paid to holders by what each was owed.${r.shortfall ? ` ${fmt(r.shortfall)} is still owed and is collected as its credits allow.` : " The series is closed."}`, "complete", "building-deep-space-development-bank");
   }
 }
