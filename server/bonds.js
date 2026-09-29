@@ -246,7 +246,7 @@ export function subscribeBond(accountId, { seriesId, units } = {}, now = Date.no
  *   - pairCapFace (100,000) of one issuer's bonds at face, across its series not yet redeemed or lapsed, as the loan
  *     board caps a pair at 100,000 of principal: the issuer sets a series' size and may issue again as soon as one
  *     closes, so a share of each series alone would not bound what moves between two corporations.
- * The refusal says how many more units the holder may take. Null when the subscription fits both.
+ * The refusal says how many more units the holder may take. Null when the units asked for fit both.
  */
 function holderCapRefusal(accountId, series, units) {
   const holdings = getAccountById(accountId)?.state?.corp?.bondHoldings || [];
