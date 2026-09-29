@@ -47,6 +47,8 @@ for (const [width, height] of [[1280, 800], [375, 812]]) {
       await page.fill("#login-password", PASSWORD);
       await page.click("#credential-login-btn");
       await page.waitForURL(/\/\?account=/);
+      // Bug #4836: the game loads after the page, so its session (the token apiClient sends) is ready only once it is drawn
+      await page.locator("#logout-btn").waitFor({ state: "visible", timeout: 20_000 });
 
       // A thread of 60 replies, and 70 lines on the trade channel, through the page's own API and socket
       await page.evaluate(async () => {

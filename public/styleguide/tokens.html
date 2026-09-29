@@ -13,6 +13,7 @@
     <title>Design tokens · ISP style guide</title>
     <link rel="preload" href="/vendor/inter-5.3.0/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/styles.css" />
+    <script src="/scripts/displayStyles.js"></script>
     <script type="module" src="/scripts/styleguideTokens.js"></script>
   </head>
   <body class="sg">
@@ -56,14 +57,14 @@
       <section class="sg-section" aria-labelledby="sg-type">
         <h2 class="sg-heading" id="sg-type">Type</h2>
         <p class="sg-note">Inter only. Six sizes; weight and size make the hierarchy. Numbers are tabular everywhere, so columns line up.</p>
-        <div class="sg-type" data-type-scale="--font-size-6 --font-size-5 --font-size-4 --font-size-3 --font-size-2 --font-size-1"></div>
+        <div data-type-scale="--font-size-6 --font-size-5 --font-size-4 --font-size-3 --font-size-2 --font-size-1"></div>
         <p class="sg-note" data-phone-floor>The phone floor (ISP-250): inside a screen, on a phone, sizes 1 and 2 are 14px, so no text on a screen is under 14px there. Narrow the window below 600px and the specimen below grows to 14px.</p>
         <div class="ui-screen"><p style="font-size: var(--font-size-1); margin: 0;">Size 1 inside a screen</p><p style="font-size: var(--font-size-2); margin: 0;">Size 2 inside a screen</p></div>
       </section>
 
       <section class="sg-section" aria-labelledby="sg-space">
         <h2 class="sg-heading" id="sg-space">Spacing, radii and elevation</h2>
-        <div class="sg-space" data-space="--space-1 --space-2 --space-3 --space-4 --space-5 --space-6 --space-8 --space-10 --space-12 --space-16"></div>
+        <div data-space="--space-1 --space-2 --space-3 --space-4 --space-5 --space-6 --space-8 --space-10 --space-12 --space-16"></div>
         <div class="sg-radii" data-radii="--radius-sm --radius-md --radius-lg --radius-pill"></div>
         <div class="sg-elevation">
           <div class="sg-elevation-card">A card: surface-2 on surface-1, no shadow</div>

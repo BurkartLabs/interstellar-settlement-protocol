@@ -29,6 +29,10 @@ describe("the design-system check passes on the repository (ISP-246, AB#942)", (
   it("every allowlisted violation names the v1.0 story that removes it", () => {
     for (const e of ALLOW.entries) expect(STORIES, `${e.file} ${e.key}`).toContain(e.story);
   });
+
+  it("the allowlist is empty, as the 1.0 release gate requires (Bug #4886, AB#971): a new drift is fixed, not excused", () => {
+    expect(ALLOW.entries.map((e) => `${e.file} ${e.key}`)).toEqual([]);
+  });
 });
 
 describe("each kind fails on a seeded violation (ISP-246, AB#942)", () => {
@@ -70,9 +74,11 @@ describe("each kind fails on a seeded violation (ISP-246, AB#942)", () => {
   });
 
   it("an allowlisted literal written a second time is a new violation, and a fixed one leaves a stale entry", () => {
-    const [entry] = ALLOW.entries.filter((e) => e.key.startsWith("spacing:") && e.file === "public/styles.css");
-    const twice = seeded({ css: `.ui-panel { ${entry.key.replace(/^spacing: /, "")}; }` });
-    expect(designCheck(twice).violations.map((v) => v.key)).toEqual([entry.key]);
+    // Bug #4886: its own allowlist, since the repository's is empty now
+    const allow = { entries: [{ file: "public/styles.css", key: "spacing: margin: 0.7rem", story: STORIES[0] }] };
+    expect(designCheck(seeded({ css: ".seeded-a { margin: 0.7rem; }" }), allow).violations).toEqual([]);
+    const twice = seeded({ css: ".seeded-a { margin: 0.7rem; }\n.seeded-b { margin: 0.7rem; }" });
+    expect(designCheck(twice, allow).violations.map((v) => v.key)).toEqual(["spacing: margin: 0.7rem"]);
     const fixedOne = { ...ALLOW, entries: [...ALLOW.entries, { file: "public/styles.css", key: "radius: border-radius: 3px", story: STORIES[0] }] };
     expect(designCheck(sources(), fixedOne).stale.map((e) => e.key)).toEqual(["radius: border-radius: 3px"]);
   });

@@ -95,6 +95,8 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --z-backdrop: -2;
+  --z-starfield: -1;
   --z-base: 0;
   --z-raised: 10;
   --z-sticky: 100;
@@ -143,13 +145,13 @@ body {
 #starfield-canvas {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: var(--z-starfield);
   display: block;
 }
 .app-bg {
   position: fixed;
   inset: -4%;
-  z-index: -2;
+  z-index: var(--z-backdrop);
   background:
   var(--bg);
   animation: nebulaDrift 90s ease-in-out infinite alternate;
@@ -378,14 +380,14 @@ h1 {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: var(--z-modal);
   background: var(--scrim-modal);
   display: grid;
   place-items: center;
   padding: var(--space-4);
 }
 #walkthrough-modal {
-  z-index: 55;
+  z-index: var(--z-overlay);
   background: none;
   pointer-events: none;
   place-items: end end;

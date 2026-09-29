@@ -124,6 +124,7 @@ const HOSTILE = [
 const BASELINE = {
   "/api/accounts/:accountId": {
     "POST /notifications/:notificationId/read": { params: { notificationId: "n-732" } },
+    "POST /walkthrough-complete": { body: { answer: "declined" } }, // Bug #4885: the one answer it takes
     "GET /corporations": { query: { name: "Frontier" } },
     "POST /delete-account": { body: { password: "not-the-baseline-password", confirm: "DELETE" } }, // ISP-264 (AB#960): a wrong password: 400, nothing deleted
     "POST /conglomerates": { body: { name: "Baseline Frontier Group", emblem: 1, colour: 1 } },

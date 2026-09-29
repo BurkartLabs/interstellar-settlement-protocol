@@ -1,0 +1,1072 @@
+{
+ "startedAt": "2026-09-29T18:20:17.707Z",
+ "commit": "f39c9ce0",
+ "steps": [
+  {
+   "id": "public-landing",
+   "what": "the public page /",
+   "ok": true,
+   "shot": "001-public-landing.png",
+   "ms": 1319
+  },
+  {
+   "id": "public-how-to-start",
+   "what": "the public page /how-to-start.html",
+   "ok": true,
+   "shot": "002-public-how-to-start.png",
+   "ms": 1155
+  },
+  {
+   "id": "public-login",
+   "what": "the public page /login.html",
+   "ok": true,
+   "shot": "003-public-login.png",
+   "ms": 1044
+  },
+  {
+   "id": "public-register",
+   "what": "the public page /register.html",
+   "ok": true,
+   "shot": "004-public-register.png",
+   "ms": 1036
+  },
+  {
+   "id": "a-register",
+   "what": "A registers; the site says to check the mail",
+   "ok": true,
+   "shot": "005-a-register.png",
+   "ms": 1362
+  },
+  {
+   "id": "a-verified",
+   "what": "A opens the emailed link, verifies, and signs in",
+   "ok": true,
+   "shot": "007-a-verified.png",
+   "ms": 6704
+  },
+  {
+   "id": "a-inbox",
+   "what": "the inbox: the licence letter",
+   "ok": true,
+   "shot": "008-a-inbox.png",
+   "ms": 656
+  },
+  {
+   "id": "a-office",
+   "what": "rent an office for 7 days",
+   "ok": true,
+   "shot": "009-a-office.png",
+   "ms": 978
+  },
+  {
+   "id": "a-hire",
+   "what": "hire five",
+   "ok": true,
+   "shot": "010-a-hire.png",
+   "ms": 814
+  },
+  {
+   "id": "a-lease",
+   "what": "file the Earth claim",
+   "ok": true,
+   "shot": "011-a-lease.png",
+   "ms": 882
+  },
+  {
+   "id": "a-yard",
+   "what": "commission a yard",
+   "ok": true,
+   "shot": "012-a-yard.png",
+   "ms": 885
+  },
+  {
+   "id": "a-cycle",
+   "what": "start a cycle, and wait for the first tonnes",
+   "ok": true,
+   "shot": "013-a-cycle.png",
+   "ms": 18931
+  },
+  {
+   "id": "a-sell",
+   "what": "sell to the standing order",
+   "ok": true,
+   "shot": "014-a-sell.png",
+   "ms": 1084
+  },
+  {
+   "id": "a-research",
+   "what": "queue research",
+   "ok": true,
+   "shot": "015-a-research.png",
+   "ms": 1241
+  },
+  {
+   "id": "a-contract",
+   "what": "accept a contract",
+   "ok": true,
+   "shot": "016-a-contract.png",
+   "ms": 914
+  },
+  {
+   "id": "b-register",
+   "what": "B registers",
+   "ok": true,
+   "shot": "067-b-register.png",
+   "ms": 1473
+  },
+  {
+   "id": "b-verified",
+   "what": "B verifies from the emailed link and signs in",
+   "ok": true,
+   "shot": "069-b-verified.png",
+   "ms": 7030
+  },
+  {
+   "id": "a-lists",
+   "what": "A lists 200 Silicates on the Exchange at 30",
+   "ok": true,
+   "shot": "070-a-lists.png",
+   "ms": 6591
+  },
+  {
+   "id": "b-buys",
+   "what": "B buys 150 of A's Silicates",
+   "ok": true,
+   "shot": "071-b-buys.png",
+   "ms": 6856
+  },
+  {
+   "id": "a-sold",
+   "what": "A sees the sale in its trade history",
+   "ok": true,
+   "shot": "072-a-sold.png",
+   "ms": 1759
+  },
+  {
+   "id": "b-fleet",
+   "what": "B forms a fleet from its reserve: 6 destroyers and 12 attack troops",
+   "ok": true,
+   "shot": "073-b-fleet.png",
+   "ms": 16055
+  },
+  {
+   "id": "b-raid",
+   "what": "B declares a raid on A's holdings at Earth",
+   "ok": true,
+   "shot": "074-b-raid.png",
+   "ms": 1154
+  },
+  {
+   "id": "a-warned",
+   "what": "A is warned of the raid coming",
+   "ok": true,
+   "shot": "075-a-warned.png",
+   "ms": 1816
+  },
+  {
+   "id": "b-report",
+   "what": "B reads its raid report",
+   "ok": true,
+   "shot": "076-b-report.png",
+   "ms": 6271
+  },
+  {
+   "id": "a-phone-raid-report",
+   "what": "A, on a phone, reads the defender's report",
+   "ok": true,
+   "shot": "077-a-phone-raid-report.png",
+   "ms": 5909
+  },
+  {
+   "id": "a-return",
+   "what": "A returns: the page opens on its saved session (or asks to sign in)",
+   "ok": true,
+   "shot": "128-a-return.png",
+   "ms": 2852
+  },
+  {
+   "id": "a-return-notifications",
+   "what": "A's notifications after the return",
+   "ok": true,
+   "shot": "129-a-return-notifications.png",
+   "ms": 645
+  }
+ ],
+ "screens": [
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "shell",
+   "shot": "017-a1280-shell.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "building-orbital-executive-suites",
+   "shot": "018-a1280-building-orbital-executive-suites.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "building-isa-claims-leases",
+   "shot": "019-a1280-building-isa-claims-leases.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "building-earth-assembly",
+   "shot": "020-a1280-building-earth-assembly.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "building-galactic-arbitration-council",
+   "shot": "021-a1280-building-galactic-arbitration-council.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "building-corporate-registry-charters",
+   "shot": "022-a1280-building-corporate-registry-charters.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "building-interplanetary-trade-commission",
+   "shot": "023-a1280-building-interplanetary-trade-commission.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "building-conglomerate-affairs-bureau",
+   "shot": "024-a1280-building-conglomerate-affairs-bureau.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "building-deep-space-development-bank",
+   "shot": "025-a1280-building-deep-space-development-bank.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "building-intergalactic-stock-exchange",
+   "shot": "026-a1280-building-intergalactic-stock-exchange.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "overview",
+   "shot": "027-a1280-overview.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "inbox",
+   "shot": "028-a1280-inbox.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "inbox--outbox",
+   "shot": "029-a1280-inbox--outbox.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "inbox--drafts",
+   "shot": "030-a1280-inbox--drafts.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "inbox--archive",
+   "shot": "031-a1280-inbox--archive.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "inbox--trash",
+   "shot": "032-a1280-inbox--trash.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "finance",
+   "shot": "033-a1280-finance.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "finance--trends",
+   "shot": "034-a1280-finance--trends.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "finance--statements",
+   "shot": "035-a1280-finance--statements.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "finance--daily",
+   "shot": "036-a1280-finance--daily.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "ceo",
+   "shot": "037-a1280-ceo.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "missions",
+   "shot": "038-a1280-missions.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "conglomerate",
+   "shot": "039-a1280-conglomerate.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "station",
+   "shot": "040-a1280-station.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "station--offices",
+   "shot": "041-a1280-station--offices.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "station--construction",
+   "shot": "042-a1280-station--construction.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "station--holdings",
+   "shot": "043-a1280-station--holdings.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "operations",
+   "shot": "044-a1280-operations.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "operations--mining-cycles",
+   "shot": "045-a1280-operations--mining-cycles.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "fleet",
+   "shot": "046-a1280-fleet.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "rnd",
+   "shot": "047-a1280-rnd.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "refinery",
+   "shot": "048-a1280-refinery.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "logistics",
+   "shot": "049-a1280-logistics.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "market",
+   "shot": "050-a1280-market.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "market--player-orders",
+   "shot": "051-a1280-market--player-orders.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "market--my-listings",
+   "shot": "052-a1280-market--my-listings.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "market--mercenary-rentals",
+   "shot": "053-a1280-market--mercenary-rentals.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "market--trade-history",
+   "shot": "054-a1280-market--trade-history.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "assets",
+   "shot": "055-a1280-assets.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "assets--infrastructure",
+   "shot": "056-a1280-assets--infrastructure.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "chat",
+   "shot": "057-a1280-chat.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "chat--local-sol",
+   "shot": "058-a1280-chat--local-sol.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "chat--trade",
+   "shot": "059-a1280-chat--trade.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "forums",
+   "shot": "060-a1280-forums.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "forums--general",
+   "shot": "061-a1280-forums--general.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "forums--trade-exchange",
+   "shot": "062-a1280-forums--trade-exchange.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "forums--mining-industry",
+   "shot": "063-a1280-forums--mining-industry.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "forums--conglomerates-diplomacy",
+   "shot": "064-a1280-forums--conglomerates-diplomacy.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "forums--help-guides",
+   "shot": "065-a1280-forums--help-guides.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a1280",
+   "width": 1280,
+   "name": "starmap",
+   "shot": "066-a1280-starmap.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "shell",
+   "shot": "078-a375-shell.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "building-orbital-executive-suites",
+   "shot": "079-a375-building-orbital-executive-suites.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "building-isa-claims-leases",
+   "shot": "080-a375-building-isa-claims-leases.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "building-earth-assembly",
+   "shot": "081-a375-building-earth-assembly.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "building-galactic-arbitration-council",
+   "shot": "082-a375-building-galactic-arbitration-council.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "building-corporate-registry-charters",
+   "shot": "083-a375-building-corporate-registry-charters.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "building-interplanetary-trade-commission",
+   "shot": "084-a375-building-interplanetary-trade-commission.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "building-conglomerate-affairs-bureau",
+   "shot": "085-a375-building-conglomerate-affairs-bureau.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "building-deep-space-development-bank",
+   "shot": "086-a375-building-deep-space-development-bank.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "building-intergalactic-stock-exchange",
+   "shot": "087-a375-building-intergalactic-stock-exchange.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "overview",
+   "shot": "088-a375-overview.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "inbox",
+   "shot": "089-a375-inbox.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "inbox--outbox",
+   "shot": "090-a375-inbox--outbox.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "inbox--drafts",
+   "shot": "091-a375-inbox--drafts.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "inbox--archive",
+   "shot": "092-a375-inbox--archive.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "inbox--trash",
+   "shot": "093-a375-inbox--trash.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "finance",
+   "shot": "094-a375-finance.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "finance--trends",
+   "shot": "095-a375-finance--trends.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "finance--statements",
+   "shot": "096-a375-finance--statements.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "finance--daily",
+   "shot": "097-a375-finance--daily.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "ceo",
+   "shot": "098-a375-ceo.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "missions",
+   "shot": "099-a375-missions.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "conglomerate",
+   "shot": "100-a375-conglomerate.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "station",
+   "shot": "101-a375-station.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "station--offices",
+   "shot": "102-a375-station--offices.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "station--construction",
+   "shot": "103-a375-station--construction.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "station--holdings",
+   "shot": "104-a375-station--holdings.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "operations",
+   "shot": "105-a375-operations.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "operations--mining-cycles",
+   "shot": "106-a375-operations--mining-cycles.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "fleet",
+   "shot": "107-a375-fleet.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "rnd",
+   "shot": "108-a375-rnd.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "refinery",
+   "shot": "109-a375-refinery.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "logistics",
+   "shot": "110-a375-logistics.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "market",
+   "shot": "111-a375-market.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "market--player-orders",
+   "shot": "112-a375-market--player-orders.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "market--my-listings",
+   "shot": "113-a375-market--my-listings.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "market--mercenary-rentals",
+   "shot": "114-a375-market--mercenary-rentals.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "market--trade-history",
+   "shot": "115-a375-market--trade-history.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "assets",
+   "shot": "116-a375-assets.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "assets--infrastructure",
+   "shot": "117-a375-assets--infrastructure.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "chat",
+   "shot": "118-a375-chat.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "chat--local-sol",
+   "shot": "119-a375-chat--local-sol.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "chat--trade",
+   "shot": "120-a375-chat--trade.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "forums",
+   "shot": "121-a375-forums.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "forums--general",
+   "shot": "122-a375-forums--general.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "forums--trade-exchange",
+   "shot": "123-a375-forums--trade-exchange.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "forums--mining-industry",
+   "shot": "124-a375-forums--mining-industry.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "forums--conglomerates-diplomacy",
+   "shot": "125-a375-forums--conglomerates-diplomacy.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "forums--help-guides",
+   "shot": "126-a375-forums--help-guides.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  },
+  {
+   "label": "a375",
+   "width": 375,
+   "name": "starmap",
+   "shot": "127-a375-starmap.png",
+   "sidewaysPx": 0,
+   "nearlyEmpty": false
+  }
+ ],
+ "pageErrors": [],
+ "sideways": [],
+ "fastForwards": [
+  {
+   "step": "weeks",
+   "args": {
+    "a": "gate-a-mun04m96@isp-gate.example",
+    "b": "gate-b-mun04m96@isp-gate.example"
+   },
+   "result": {
+    "a": {
+     "id": "acc-1790706029803-wm2ta1ks",
+     "level": 12
+    },
+    "b": {
+     "id": "acc-1790706110787-9algh3x5",
+     "level": 12
+    }
+   }
+  },
+  {
+   "step": "arrive",
+   "args": {},
+   "result": {
+    "raid": "raid-mun07kad-1",
+    "inbound": 1
+   }
+  }
+ ],
+ "checks": {
+  "briefingReoffered": [
+   "gate-a-mun04m96",
+   "gate-b-mun04m96",
+   "gate-b-mun04m96",
+   "gate-a-mun04m96"
+  ],
+  "returnVisit": {
+   "url": "http://127.0.0.1:40613/",
+   "signedIn": true
+  },
+  "telemetry": {
+   "rows": 22,
+   "byEvent": {
+    "app_open": 9,
+    "verb_first": 3,
+    "rank_up": 1,
+    "verb_repeat": 7,
+    "session_end": 2
+   },
+   "sample": [
+    "at",
+    "event",
+    "distinct_id",
+    "session_id",
+    "app_version",
+    "platform",
+    "props"
+   ]
+  },
+  "designAllowlist": {
+   "entries": 76
+  },
+  "mails": 2
+ },
+ "appLogTail": [
+  "[conversations] old player mail copied: 0 written, 0 already there, 0 skipped",
+  "ISP server listening on port 3000",
+  "[conversations] old player mail copied: 0 written, 0 already there, 0 skipped",
+  "ISP server listening on port 3000",
+  "[conversations] old player mail copied: 0 written, 0 already there, 0 skipped",
+  "ISP server listening on port 3000",
+  "[conversations] old player mail copied: 0 written, 0 already there, 0 skipped",
+  "ISP server listening on port 3000"
+ ],
+ "endedAt": "2026-09-29T18:24:32.148Z"
+}

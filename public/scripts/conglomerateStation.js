@@ -65,7 +65,7 @@ export function noStationHtml(sp, { may = [], level = 0, atBureau = false, syste
       </form>`;
   }
   return `
-    <section class="ui-panel station__panel cong-panel cong-station" data-role="cong-station-none">
+    <section class="ui-panel station__panel cong-panel" data-role="cong-station-none">
       <h3>${codeSlotHtml("cong-station-none")}A station of your own</h3>
       <p class="cong-panel__lede">A conglomerate can build a station. Members fund it together, each contribution becomes that corporation's stake, and the stakes govern it. Members rent offices there at ${n(sp.memberRentPct)}% and move goods within its system for nothing.</p>
       <dl class="ui-kv cong-terms"><dt>It costs</dt><dd>${cost}</dd><dt>It takes</dt><dd>${n(sp.buildDays)} days to build once fully funded</dd><dt>It needs</dt><dd>A level ${n(sp.minLevel)} conglomerate</dd></dl>
@@ -126,7 +126,7 @@ export function projectHtml(p, { may = [], systems = [], own = {}, hangar = {}, 
       ${pooled ? `<li class="ui-card cong-item"><div class="cong-item__text"><p class="ui-card__title">The pool</p><p class="ui-card__meta">${n(pooled)} credits of value from the treasury and hangar, nobody's stake</p></div></li>` : ""}
     </ul>` : `<div class="ui-state" role="status"><p class="ui-state__title">Nothing put in yet</p><p class="ui-state__why">The first contribution appears here, with who made it.</p></div>`;
   return `
-    <section class="ui-panel station__panel cong-panel cong-station" data-role="cong-station-project">
+    <section class="ui-panel station__panel cong-panel" data-role="cong-station-project">
       <div class="cong-station__head">${artFor(p, systems)}<div>
         <p class="station__overline">${p.state === "building" ? "Under construction" : "Station project"} · ${escapeHtml(systemName(systems, p.systemId))} ${protocolLineHtml({ meaning: p.state === "building" ? "active" : "queued", screen: "conglomerate" })}</p>
         <h3>${codeSlotHtml("cong-station-project")}${escapeHtml(p.name)}</h3>
@@ -146,7 +146,7 @@ export function projectHtml(p, { may = [], systems = [], own = {}, hangar = {}, 
 export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], stations = [], memberStation = null, memberRentPct = null, directory = [], standardRent = 0, conglomerateId = null, status = {} } = {}) {
   const st = stations.find((s) => s.id === gov.station.id) || gov.station;
   const mine = gov.stakes.find((s) => s.corp === me);
-  const stakes = gov.stakes.length ? `<div class="ui-table-wrap"><table class="ui-table cong-station__stakes">
+  const stakes = gov.stakes.length ? `<div class="ui-table-wrap"><table class="ui-table">
       <caption class="ui-table__caption">Stakes, from what each corporation put in</caption>
       <thead><tr><th scope="col">Corporation</th><th scope="col" class="ui-table__num">Stake</th><th scope="col" class="ui-table__num">Put in</th></tr></thead>
       <tbody>${gov.stakes.map((s) => `<tr data-role="cong-stake" data-corp="${escapeHtml(s.corp)}"><td data-label="Corporation">${escapeHtml(s.corpName || "A corporation")}${s.corp === me ? " (you)" : ""}</td><td data-label="Stake" class="ui-table__num">${s.pct.toFixed(2)}%</td><td data-label="Put in" class="ui-table__num">${n(s.value)}</td></tr>`).join("")}</tbody>
@@ -189,7 +189,7 @@ export function coOwnedStationHtml(gov, { may = [], me = null, systems = [], sta
     </form>` : "";
   const buyouts = gov.buyouts.length ? `<h4 class="cong-subhead">Stakes being bought out</h4><ul class="cong-list">${gov.buyouts.map((b) => `<li class="ui-card cong-item"><div class="cong-item__text"><p class="ui-card__title">${escapeHtml(b.corpName || "A former member")}: ${n(b.paid)} of ${n(b.total)} credits paid</p><p class="ui-card__meta">${b.how === "removed" ? "Removed: its whole stake" : "Left: half its stake"}, over ${n(b.days)} days from ${bureauTime(b.startsAt)}</p></div></li>`).join("")}</ul>` : "";
   return `
-    <section class="ui-panel station__panel cong-panel cong-station" data-role="cong-station-built">
+    <section class="ui-panel station__panel cong-panel" data-role="cong-station-built">
       <div class="cong-station__head">${stationArtHtml(st, systems)}<div>
         <p class="station__overline">${escapeHtml(st.designation || "")} · ${escapeHtml(systemName(systems, st.systemId))}</p>
         <h3>${codeSlotHtml("cong-station-built")}${escapeHtml(st.name)}</h3>

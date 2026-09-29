@@ -33,7 +33,8 @@
     "design:prune": "node scripts/design-allowlist-prune.mjs",
     "probe:tariffs": "node scripts/probe-tariffs.mjs",
     "probe:tournament": "node scripts/probe-tournament.mjs",
-    "probe:warfare": "node scripts/probe-warfare.mjs"
+    "probe:warfare": "node scripts/probe-warfare.mjs",
+    "gate:rc": "node scripts/rc-gate.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

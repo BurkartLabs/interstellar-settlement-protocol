@@ -1,0 +1,679 @@
+/* Display style "annual-report" (AB#4880): International Typographic Style as a dark corporate report.
+   Black and off-white, one cobalt accent, red only for the deficit. Hairline rules, flush-left, very large numerals
+   for key figures, tiny uppercase captions. Navigation is a left index column that reads as a table of contents.
+   Structure and style only; every selector is scoped to data-theme="annual-report". */
+
+:root[data-theme="annual-report"] {
+  --bg: #0b0b0c;
+  --surface-1: #111113;
+  --surface-2: #17171a;
+  --surface-3: #232329;
+  --surface-hover: #1a1a1e;
+  --surface-pressed: #26262d;
+  --border: #3a3a40;
+
+  --text: #f2f0eb;
+  --text-soft: #cfcdc6;
+  --muted: #a5a39d;
+
+  /* cobalt: the text-safe tone is the token; the deep #3e5bff is the report's fill, in --ar-cobalt */
+  --accent: #7b91ff;
+  --accent-hover: #9aabff;
+  --accent-pressed: #6178f0;
+  --on-accent: #0b0b0c;
+  --warn: #e3b552;
+  --warn-hover: #ecc574;
+  --warn-pressed: #d3a340;
+  --on-warn: #1a1303;
+  --danger: #ff5a4a;
+  --danger-hover: #ff7a6d;
+  --danger-pressed: #f04636;
+  --on-danger: #1a0503;
+  --success: #6fd3a0;
+  --success-hover: #92e0b9;
+  --success-pressed: #58c08b;
+  --on-success: #04180d;
+  --station-owned: #b3a4ff;
+
+  --ar-cobalt: #3e5bff;
+  --ar-cobalt-dim: rgba(62, 91, 255, 0.18);
+  --ar-hair: rgba(242, 240, 235, 0.16);
+  --ar-hair-strong: rgba(242, 240, 235, 0.34);
+  --ar-index-w: 232px;
+
+  --scrim-hero: linear-gradient(90deg, rgb(11 11 12 / 0.94) 0%, rgb(11 11 12 / 0.82) 55%, rgb(11 11 12 / 0.5) 100%);
+  --scrim-modal: rgb(11 11 12 / 0.8);
+  --scrim-caption: linear-gradient(0deg, rgb(11 11 12 / 0.92) 0%, rgb(11 11 12 / 0.6) 40%, rgb(11 11 12 / 0) 75%);
+  --focus-ring: 2px solid var(--accent);
+
+  --series-1: #7b91ff;
+  --series-2: #f2f0eb;
+  --series-3: #e3b552;
+  --series-4: #ff5a4a;
+  --series-5: #8b8a86;
+
+  --font-sans: "Schibsted Grotesk", "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-wordmark: var(--font-sans);
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --font-size-display: clamp(1.1rem, 2vw, 1.4rem);
+  --letter-spacing-caps: 0.1em;
+
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --elevation-overlay: none;
+}
+
+[data-theme="annual-report"] body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+[data-theme="annual-report"] #starfield-canvas,
+[data-theme="annual-report"] .app-bg {
+  display: none;
+}
+
+/* ─── masthead ─── */
+[data-theme="annual-report"] .app-header {
+  align-items: flex-end;
+  padding: 14px 28px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--ar-hair-strong);
+  backdrop-filter: none;
+}
+[data-theme="annual-report"] .app-header__brand {
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+[data-theme="annual-report"] .app-header__title {
+  order: 1;
+  font-size: var(--font-size-display);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+[data-theme="annual-report"] .app-header__overline {
+  order: 2;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+[data-theme="annual-report"] .app-header__actions {
+  gap: 6px 14px;
+}
+[data-theme="annual-report"] .app-header .ui-button {
+  min-height: 28px;
+  padding: 0 2px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  color: var(--text-soft);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-theme="annual-report"] .app-header .ui-button:hover:not(:disabled) {
+  background: transparent;
+  color: var(--text);
+  border-bottom-color: var(--ar-hair-strong);
+}
+[data-theme="annual-report"] .app-header__style-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+[data-theme="annual-report"] .app-header__style-select {
+  min-width: 9rem;
+  min-height: 28px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+[data-theme="annual-report"] .app-header .ui-badge {
+  min-height: 0;
+  padding: 0 0 0 4px;
+  background: transparent;
+  border: 0;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+[data-theme="annual-report"] .app-header__panel {
+  background: var(--surface-1);
+  border: 1px solid var(--ar-hair-strong);
+  box-shadow: none;
+}
+
+/* ─── layout: an index column and the report ─── */
+[data-theme="annual-report"] .tab-panel {
+  background-color: var(--bg);
+  border: 0;
+  border-radius: 0;
+  backdrop-filter: none;
+  padding: 26px 20px 60px;
+}
+[data-theme="annual-report"] .tab-panel.active {
+  background-image: repeating-linear-gradient(90deg, rgba(242, 240, 235, 0.045) 0 1px, transparent 1px calc(100% / 12));
+}
+
+@media (min-width: 768px) {
+  [data-theme="annual-report"] .layout-grid {
+    grid-template-columns: var(--ar-index-w) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "nav main" "side main";
+    gap: 0;
+    padding: 0;
+    background-image: linear-gradient(90deg, transparent calc(var(--ar-index-w) - 1px), var(--ar-hair-strong) calc(var(--ar-index-w) - 1px) var(--ar-index-w), transparent var(--ar-index-w));
+  }
+  [data-theme="annual-report"] .main-panel {
+    padding: 0 20px;
+  }
+
+  /* the contents list */
+  [data-theme="annual-report"] .app-nav {
+    gap: 22px;
+    padding: 22px 0 8px;
+    background: transparent;
+    border: 0;
+  }
+  [data-theme="annual-report"] .nav-group {
+    gap: 2px;
+  }
+  [data-theme="annual-report"] .nav-group__button {
+    min-height: 22px;
+    padding: 0 24px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+  }
+  [data-theme="annual-report"] .nav-group__button[aria-expanded] {
+    padding-right: 36px;
+  }
+  [data-theme="annual-report"] .nav-group__button[aria-expanded]::after {
+    right: 22px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  [data-theme="annual-report"] .nav-group__button:hover:not(:disabled) {
+    color: var(--accent-hover);
+  }
+  [data-theme="annual-report"] .nav-group__tabs {
+    gap: 0;
+  }
+  [data-theme="annual-report"] .nav-tab {
+    min-height: 30px;
+    padding: 5px 24px 5px 21px;
+    border-left: 3px solid transparent;
+    border-radius: 0;
+    color: var(--text-soft);
+    font-size: 13.5px;
+    font-weight: 500;
+  }
+  [data-theme="annual-report"] .nav-tab:hover:not(:disabled) {
+    background: transparent;
+    color: var(--text);
+  }
+  [data-theme="annual-report"] .nav-tab.active {
+    background: linear-gradient(90deg, var(--ar-cobalt-dim), transparent 75%);
+    border-left-color: var(--ar-cobalt);
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  /* the side panel is the index's foot: captions and hairlines */
+  [data-theme="annual-report"] .side-panel {
+    gap: 0;
+    padding: 6px 0 24px;
+    max-height: none;
+    overflow: visible;
+  }
+  [data-theme="annual-report"] .side-panel__block {
+    border-top: 1px solid var(--ar-hair);
+  }
+  [data-theme="annual-report"] .side-panel__block:first-child {
+    border-top: 1px solid var(--ar-hair-strong);
+  }
+  [data-theme="annual-report"] .side-panel__block .ui-panel__body {
+    padding: 4px 24px 14px;
+  }
+}
+
+[data-theme="annual-report"] .side-panel__toggle {
+  padding: 12px 24px 8px;
+}
+[data-theme="annual-report"] .side-panel__toggle[aria-expanded="true"] {
+  border-bottom: 0;
+}
+[data-theme="annual-report"] .side-panel__toggle .ui-panel__title {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+[data-theme="annual-report"] .side-panel__arrow {
+  font-size: 11px;
+}
+
+/* ─── screens ─── */
+[data-theme="annual-report"] .ui-screen__header {
+  gap: 8px;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--ar-hair-strong);
+}
+[data-theme="annual-report"] .ui-screen__title {
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+[data-theme="annual-report"] .ui-screen__title .ui-code {
+  display: block;
+  margin: 0 0 8px;
+}
+[data-theme="annual-report"] .ui-code {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-theme="annual-report"] .ui-panel__title .ui-code {
+  margin-inline-end: 10px;
+}
+[data-theme="annual-report"] .ui-screen__lede {
+  color: var(--text-soft);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+[data-theme="annual-report"] .ui-screen__meta,
+[data-theme="annual-report"] .ui-panel__meta,
+[data-theme="annual-report"] .ui-card__meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* ─── panels and cards: a hairline, not a box ─── */
+[data-theme="annual-report"] .ui-panel {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--ar-hair-strong);
+  border-radius: 0;
+}
+[data-theme="annual-report"] .ui-panel__header {
+  padding: 12px 0 10px;
+  border-bottom: 1px solid var(--ar-hair);
+}
+[data-theme="annual-report"] .ui-panel__title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+[data-theme="annual-report"] .ui-panel__body {
+  padding: 14px 0;
+}
+[data-theme="annual-report"] .ui-card {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--ar-hair);
+  border-radius: 0;
+  padding: 12px 0;
+}
+[data-theme="annual-report"] .ui-card__title {
+  font-size: 14px;
+  font-weight: 700;
+}
+[data-theme="annual-report"] .ui-card--interactive:hover {
+  background: var(--surface-1);
+  border-top-color: var(--ar-cobalt);
+}
+[data-theme="annual-report"] .ui-grid {
+  column-gap: 20px;
+}
+[data-theme="annual-report"] .ui-kv dt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-theme="annual-report"] .ui-kv dd {
+  font-family: var(--font-mono);
+}
+
+/* ─── key figures ─── */
+[data-theme="annual-report"] .kpi-strip {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+[data-theme="annual-report"] .kpi-tile,
+[data-theme="annual-report"] .kpi-tile--primary {
+  padding: 8px 0 0;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--ar-hair-strong);
+  border-radius: 0;
+  overflow: visible;
+}
+[data-theme="annual-report"] .kpi-tile--primary {
+  border-top: 2px solid var(--ar-cobalt);
+  grid-column: span 2;
+}
+[data-theme="annual-report"] .kpi-tile__label {
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+}
+[data-theme="annual-report"] .kpi-tile__value {
+  font-size: clamp(2rem, 3.4vw, 3rem);
+  font-weight: 700;
+  line-height: 0.96;
+  letter-spacing: -0.02em;
+}
+[data-theme="annual-report"] .kpi-tile--primary .kpi-tile__value:not([data-tone]) {
+  color: var(--text);
+}
+[data-theme="annual-report"] .kpi-tile--primary .kpi-tile__value {
+  font-size: clamp(2.6rem, 6vw, 5.5rem);
+  overflow-wrap: anywhere;
+}
+[data-theme="annual-report"] .kpi-tile__sub,
+[data-theme="annual-report"] .kpi-tile__trend {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 767px) {
+  [data-theme="annual-report"] .kpi-tile--primary {
+    grid-column: auto;
+  }
+}
+
+/* ─── controls ─── */
+[data-theme="annual-report"] .ui-button {
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+[data-theme="annual-report"] .ui-button--primary {
+  background: var(--ar-cobalt);
+  border-color: var(--ar-cobalt);
+  color: #fff;
+}
+[data-theme="annual-report"] .ui-button--primary:hover:not(:disabled),
+[data-theme="annual-report"] .ui-button--primary.is-hover {
+  background: #2f49e0;
+  border-color: #2f49e0;
+}
+[data-theme="annual-report"] .ui-button--primary:active:not(:disabled),
+[data-theme="annual-report"] .ui-button--primary.is-active {
+  background: #2739bd;
+  border-color: #2739bd;
+}
+[data-theme="annual-report"] .ui-button--secondary {
+  background: transparent;
+  border-color: var(--ar-hair-strong);
+  color: var(--text);
+}
+[data-theme="annual-report"] .ui-button--secondary:hover:not(:disabled),
+[data-theme="annual-report"] .ui-button--secondary.is-hover {
+  background: transparent;
+  border-color: var(--accent);
+}
+[data-theme="annual-report"] .ui-button--ghost {
+  color: var(--accent);
+}
+[data-theme="annual-report"] .ui-button--ghost:hover:not(:disabled) {
+  background: transparent;
+  color: var(--text);
+}
+[data-theme="annual-report"] .ui-button--danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+[data-theme="annual-report"] .ui-button--danger:hover:not(:disabled),
+[data-theme="annual-report"] .ui-button--danger.is-hover {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+[data-theme="annual-report"] .ui-input,
+[data-theme="annual-report"] .ui-select,
+[data-theme="annual-report"] .ui-textarea {
+  background: var(--bg);
+  border: 1px solid var(--ar-hair-strong);
+  border-radius: 0;
+}
+[data-theme="annual-report"] .ui-input:focus-visible,
+[data-theme="annual-report"] .ui-select:focus-visible {
+  border-color: var(--ar-cobalt);
+}
+[data-theme="annual-report"] .ui-field__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* sub-tabs */
+[data-theme="annual-report"] .ui-tabs {
+  gap: 4px 18px;
+  border-bottom: 1px solid var(--ar-hair-strong);
+}
+[data-theme="annual-report"] .ui-tab {
+  padding: 0 2px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-theme="annual-report"] .ui-tab[aria-selected="true"] {
+  border-bottom: 3px solid var(--ar-cobalt);
+}
+
+/* ─── data ─── */
+[data-theme="annual-report"] .ui-table th {
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid var(--ar-hair-strong);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+[data-theme="annual-report"] .ui-table td {
+  padding: 9px 12px 9px 0;
+  border-bottom: 1px solid var(--ar-hair);
+}
+[data-theme="annual-report"] .ui-table .ui-table__num,
+[data-theme="annual-report"] .ui-table td.ui-table__num {
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+[data-theme="annual-report"] .ui-table tbody tr:hover {
+  background: var(--surface-1);
+}
+[data-theme="annual-report"] .ui-badge {
+  min-height: 20px;
+  padding: 0 8px;
+  background: transparent;
+  border-radius: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-theme="annual-report"] .ui-badge--accent {
+  background: var(--ar-cobalt-dim);
+}
+[data-theme="annual-report"] .ui-badge--danger {
+  background: rgba(255, 90, 74, 0.14);
+}
+[data-theme="annual-report"] .progress-wrap {
+  height: 4px;
+  background: var(--ar-hair);
+  border-radius: 0;
+}
+[data-theme="annual-report"] .progress-bar {
+  background: var(--ar-cobalt);
+}
+[data-theme="annual-report"] .progress-bar.is-complete {
+  background: var(--text);
+}
+[data-theme="annual-report"] .ui-list {
+  padding-left: 0;
+  list-style: none;
+}
+[data-theme="annual-report"] .ui-list > li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--ar-hair);
+}
+[data-theme="annual-report"] .ui-toast {
+  border-radius: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--ar-hair-strong);
+  box-shadow: none;
+}
+[data-theme="annual-report"] .modal-card {
+  border-radius: 0;
+  box-shadow: none;
+  border: 1px solid var(--ar-hair-strong);
+  border-top: 2px solid var(--ar-cobalt);
+}
+
+/* ─── before play ─── */
+[data-theme="annual-report"] .landing {
+  max-width: 1120px;
+}
+[data-theme="annual-report"] .landing__intro {
+  align-items: flex-start;
+  text-align: left;
+  border-bottom: 1px solid var(--ar-hair-strong);
+}
+[data-theme="annual-report"] .landing__hero {
+  border-bottom: 1px solid var(--ar-hair-strong);
+}
+[data-theme="annual-report"] .landing__wordmark {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+[data-theme="annual-report"] .landing__title {
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  max-width: 20ch;
+}
+[data-theme="annual-report"] .landing__overline,
+[data-theme="annual-report"] .auth-page__overline {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  letter-spacing: 0.12em;
+}
+[data-theme="annual-report"] .landing__emblem-orbit,
+[data-theme="annual-report"] .landing__emblem-world {
+  stroke: var(--ar-cobalt);
+}
+[data-theme="annual-report"] .auth-page__card {
+  border-top: 2px solid var(--ar-cobalt);
+}
+[data-theme="annual-report"] .auth-page__title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* ─── the phone's bottom bar, restyled ─── */
+@media (max-width: 767px) {
+  [data-theme="annual-report"] .app-header {
+    padding: 12px 16px;
+    align-items: stretch;
+  }
+  [data-theme="annual-report"] .tab-panel {
+    padding: 20px 4px 40px;
+  }
+  [data-theme="annual-report"] .app-nav {
+    background: var(--bg);
+    border: 0;
+    border-top: 1px solid var(--ar-hair-strong);
+  }
+  [data-theme="annual-report"] .nav-group__button {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: var(--text-soft);
+  }
+  [data-theme="annual-report"] .nav-group__button.active {
+    border-top-color: var(--ar-cobalt);
+    color: var(--text);
+  }
+  [data-theme="annual-report"] .nav-group.is-open .nav-group__tabs:has(> .nav-tab:not([hidden]) ~ .nav-tab:not([hidden])) {
+    background: var(--surface-1);
+    border-top: 1px solid var(--ar-hair-strong);
+  }
+  [data-theme="annual-report"] .nav-tab {
+    border-radius: 0;
+    color: var(--text-soft);
+  }
+  [data-theme="annual-report"] .nav-tab.active {
+    background: transparent;
+    border-bottom-color: var(--ar-cobalt);
+    color: var(--text);
+  }
+  [data-theme="annual-report"] .side-panel__block {
+    border-top: 1px solid var(--ar-hair-strong);
+  }
+}
+
+/* the identity list in the index column: name over value, so a long licence stays inside the column */
+[data-theme="annual-report"] .side-panel .ui-kv {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+[data-theme="annual-report"] .side-panel .ui-kv dt {
+  margin-top: 8px;
+  font-size: 10px;
+}
+[data-theme="annual-report"] .side-panel .ui-kv dd {
+  font-size: 12px;
+}
+
+/* phone: nothing under the game's own small sizes, and thumb-high controls */
+@media (max-width: 767px) {
+  [data-theme="annual-report"] .ui-code,
+  [data-theme="annual-report"] .ui-kv dt,
+  [data-theme="annual-report"] .ui-field__label,
+  [data-theme="annual-report"] .kpi-tile__label,
+  [data-theme="annual-report"] .ui-badge {
+    font-size: 14px;
+  }
+  [data-theme="annual-report"] .ui-table th {
+    font-size: 12px;
+  }
+  [data-theme="annual-report"] .ui-button {
+    min-height: 44px;
+  }
+}
+
+/* the Exchange's photograph is a decoration that competes with the figures: a report has none */
+[data-theme="annual-report"] #market {
+  background: var(--bg) repeating-linear-gradient(90deg, rgba(242, 240, 235, 0.045) 0 1px, transparent 1px calc(100% / 12));
+  border-radius: 0;
+  padding: 26px 20px 60px;
+}
+[data-theme="annual-report"] #market::before {
+  display: none;
+}

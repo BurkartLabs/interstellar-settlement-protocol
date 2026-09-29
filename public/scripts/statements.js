@@ -56,7 +56,7 @@ function row(label, figure, value, { sign = "none", strong = false, muted = fals
 const heading = (text, tone) => `<tr class="ui-table__group ui-table__group--${tone}"><th colspan="2" scope="rowgroup">${escapeHtml(text)}</th></tr>`;
 
 function table(title, sub, body) {
-  return `<section class="ui-panel finance__statement">
+  return `<section class="ui-panel" data-role="finance-statement">
   <header class="ui-panel__header"><div><h4 class="ui-panel__title">${escapeHtml(title)}</h4><p class="ui-panel__meta">${escapeHtml(sub)}</p></div></header>
   <div class="ui-panel__body ui-table-wrap"><table class="ui-table"><tbody>${body}</tbody></table></div>
 </section>`;
