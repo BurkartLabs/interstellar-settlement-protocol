@@ -12,6 +12,9 @@ import { newShareRegistry } from "../shareRegistry.js"; // ISP-157 (AB#851)
 /* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 export function createStarterCorporationState(baseState, ceoName, corpName) {
   const next = deepClone(baseState);
+  // Bug #4852: an account keeps no world. The seed's is the whole catalog, belts' contents included; a read attaches the
+  // shared public view instead (store.js sanitizeAccount), and the snapshot no longer carries 51 KB of it per account.
+  delete next.world;
 
   next.corp = {
     ...next.corp,

@@ -66,6 +66,18 @@ describe("a belt's contents go only to a player who scouted it (Bug #2355, AB#83
         expect(systems.find((s) => s.id === "sol").bodies.find((x) => x.type === "Field")).toMatchObject({ id: "belt", name: "Asteroid Belt", type: "Field" });
       }
     }
+
+    // Bug #4852: nor does a player's own account, which kept a copy of the whole catalog: the world it is read with is
+    // the public one, and the store holds no world in any account.
+    for (const [who, p] of [["A", a], ["B", b]]) {
+      const res = await p.api.get(`/api/accounts/${p.id}`);
+      expect(res.status, who).toBe(200);
+      expect(beltSecrets(res.body.state), `${who} GET /api/accounts/:id`).toEqual([]);
+      expect(res.body.state.world.systems.find((s) => s.id === "sol").bodies.find((x) => x.type === "Field")).toMatchObject({ id: "belt", type: "Field" });
+      expect(res.body.state.world.refineryChains.length).toBeGreaterThan(0); // what the Refinery screen reads
+    }
+    const { accountsStore } = await import("../../server/game/store.js");
+    expect(Object.values(accountsStore.accounts).filter((acct) => acct?.state && "world" in acct.state).map((acct) => acct.id)).toEqual([]);
   });
 
   it("a planet's or moon's profile stays public: it is what a lease yields, shown before one is bought (AB#829)", async () => {
