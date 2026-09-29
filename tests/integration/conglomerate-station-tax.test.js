@@ -26,6 +26,7 @@ async function player({ leases = 0 } = {}) {
   const { app } = await getApp();
   const reg = await registerAccount(app);
   const raw = accountsStore.accounts[reg.account.id];
+  raw.createdAt = Date.now() - (C.minMemberAgeDays + 1) * DAY; // Bug #4801: registered long enough ago to join a conglomerate
   Object.assign(raw.state.corp, { currentStationId: C.charterStationId, completedInsights: [] });
   raw.state.corp.finances.credits = 3_000_000;
   raw.state.corp.miningLeases = Array.from({ length: leases }, (_, i) => ({ id: `lease-st-${reg.account.id}-${i}`, body: "Earth" }));
