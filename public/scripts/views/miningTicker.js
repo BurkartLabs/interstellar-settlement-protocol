@@ -3,6 +3,7 @@
 
 import { formatDurationHours, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
+import { protocolLineHtml } from "../protocol.js"; // ISP-254 Bd (AB#4819)
 import { appState } from "../state.js";
 import { renderMissions } from "./assignments.js";
 import { renderLogistics } from "./logistics.js";
@@ -132,7 +133,7 @@ export function renderMiningCyclePanel(data) {
       return `
         <article class="ui-card">
           <h4 class="ui-card__title">${escapeHtml(extractor.name || extractor.id || "Extractor Yard")}</h4>
-          <p class="station__note">Status: ${active ? "Active" : "Idle"}</p>
+          <p class="station__note">Status: ${active ? `Active ${protocolLineHtml({ meaning: "active", screen: "station-active-mining-cycles" })}` : "Idle"}</p>
           <p class="station__note">Total mined: ${Number(extractor.totalMined || 0).toLocaleString()} | Total spent: ${toCurrency(Number(extractor.totalSpent || 0))}</p>
           ${
             active

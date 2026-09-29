@@ -359,6 +359,7 @@ export function registerCorporationRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "administration",
+      protocol: { meaning: "active", screen: "building-isa-claims-leases" }, // ISP-254 Bd (AB#4819)
       title: "Mining Lease Approved",
       body: `ISA Claims & Leases has approved your extraction rights application for ${requestedBody}. Two building slots have been allocated to your lease.`
     });

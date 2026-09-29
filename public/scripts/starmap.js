@@ -5,6 +5,7 @@ import { unrecoveredItemsHtml } from "./researchLinks.js"; // AB#885: a gated sh
 import { systemName } from "./displayNames.js"; // AB#1336
 import { drawProceduralBody, isProcedural } from "./bodyRender.js"; // AB#742
 import { PLANET_IMAGE_PATHS } from "./planetImages.js";
+import { protocolLineHtml } from "./protocol.js"; // ISP-254 Bd (AB#4819)
 import { officeLeaseCost } from "./ceoEffects.js"; // Bug #2340: the one office rate (Bug #1032)
 import { isMemberStation, memberOfficeCost } from "./memberRates.js"; // ISP-212 (AB#907)
 import { isConglomerateStation, isNeutralStation } from "./stationMarkers.js";
@@ -133,9 +134,14 @@ export function emptyBeltHtml(view, chancePerHour) {
           </div>`;
 }
 
-/** Bug #2339: a refused scout or launch, said in the belt panel beside the button that met it. */
-export function beltNoticeHtml(message) {
-  return message ? `<div class="ui-state ui-state--error starmap__notice" role="alert"><p class="ui-state__why">${escBelt(message)}</p></div>` : "";
+/**
+ * Bug #2339: a refused scout or launch, said in the belt panel beside the button that met it. ISP-254 Bd (AB#4819): its
+ * protocol line (Denied, or Unfunded) follows the plain words when the notice carries one.
+ */
+export function beltNoticeHtml(message, protocol = null) {
+  if (!message) return "";
+  const line = protocol ? ` ${protocolLineHtml(protocol)}` : "";
+  return `<div class="ui-state ui-state--error starmap__notice" role="alert"><p class="ui-state__why">${escBelt(message)}${line}</p></div>`;
 }
 
 /** A scouted belt whose composition has not reached the page yet (Bug #1264): say so rather than show nothing. */
@@ -1692,7 +1698,7 @@ export function createStarmapController({
         const isEmptySlot = slot ? !slot.present : false;
         const isBeltScouted = slot ? slot.scouted : scoutedBelts.includes(beltKey);
         if (state.beltNotice && state.beltNotice.beltKey !== beltKey) state.beltNotice = null; // Bug #2339: this belt's only
-        const noticeHtml = beltNoticeHtml(state.beltNotice?.message);
+        const noticeHtml = beltNoticeHtml(state.beltNotice?.message, state.beltNotice?.protocol);
         const hasProspecting = state.unlockedTech.has("tt-asteroid-prospecting");
         const hasAssemblyTech = state.unlockedTech.has("tt-assembly-fabrication");
         const inSameSystem = (state.currentSystemId || "sol") === system.id;

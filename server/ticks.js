@@ -138,6 +138,7 @@ function asteroidExpeditionTick(now = Date.now()) {
     for (const exp of completedExpeditions) {
       const notification = addAccountNotification(accountId, {
         type: "mining",
+        protocol: { meaning: "complete", screen: "expedition-panel" }, // ISP-254 Bd (AB#4819)
         title: exp.endedEarly ? "Expedition Ended Early" : "Expedition Complete", // AB#2330
         body: expeditionNotificationBody(exp) // AB#1295: names, not the belt key's suffix and the station id
       });
@@ -230,6 +231,7 @@ function fabricationTick() {
     if (completed) {
       const notification = addAccountNotification(accountId, {
         type: "infrastructure",
+        protocol: { meaning: "complete", screen: "building-assembly-facility" }, // ISP-254 Bd (AB#4819)
         title: "Mining Probe Fabricated",
         body: "A new Mining Probe has been manufactured and is ready for deployment."
       });

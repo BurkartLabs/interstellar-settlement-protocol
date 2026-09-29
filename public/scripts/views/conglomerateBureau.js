@@ -185,8 +185,11 @@ async function loadMoney(which) {
 /** Parse a typed amount: digits, with or without thousands commas; anything else is null. */
 const typedWhole = (value) => (/^\s*\d{1,3}(,?\d{3})*\s*$|^\s*\d+\s*$/.test(String(value)) ? Number(String(value).replace(/[\s,]/g, "")) : null);
 
+/** ISP-254 (AB#4821): a refusal's protocol, Denied, or Unfunded when the server's code says credits were short. */
+const refusedLine = (error = null) => ({ meaning: error ? refusalMeaning(error) : "refused", screen: "conglomerate" });
+
 /** Move money or goods: ask, reload the register and the ledgers, then say what happened on the form's own line. */
-async function moveMoney(kind, op, body, { confirm, done } = {}) {
+async function moveMoney(kind, op, body, { confirm, done, meaning = () => "complete" } = {}) {
   const key = op === "withdrawal-block" ? "withdraw" : op;
   bureau.money[kind] = {};
   if (confirm && !(await showTradeConfirmation(confirm))) return;
@@ -194,11 +197,11 @@ async function moveMoney(kind, op, body, { confirm, done } = {}) {
   const path = op === "withdrawal-block" ? `treasury/withdrawals/${encodeURIComponent(body.id)}/block` : `${kind}/${op}`;
   try {
     const answer = await parseJsonResponse(await apiFetch(`${cong(bureau.view.conglomerate.id)}/${path}`, { method: "POST", headers: json, body: JSON.stringify(body) }));
-    bureau.money[kind] = { [key]: { text: done ? done(answer) : "Done.", ok: true } };
+    bureau.money[kind] = { [key]: { text: done ? done(answer) : "Done.", ok: true, protocol: { meaning: meaning(answer), screen: "conglomerate" } } }; // ISP-254 (AB#4821)
     bureau.pages[kind] = 0; // the new row is the newest
     await refreshAccount();
   } catch (error) {
-    bureau.money[kind] = { [key]: { text: error?.message || "The Bureau refused that." } };
+    bureau.money[kind] = { [key]: { text: error?.message || "The Bureau refused that.", protocol: refusedLine(error) } };
     giveBack(held);
   }
   await loadConglomerate();
@@ -349,7 +352,8 @@ function bind(contentEl) {
       case "cong-withdrawal-block":
         moveMoney("treasury", "withdrawal-block", { id: d.withdrawal }, {
           confirm: { heading: "Conglomerate treasury", title: "Block this withdrawal?", confirmLabel: "Block it", rows: [{ label: "Then", value: "It is stopped once a second director blocks it too, or at once if you are the founder and a director made it." }] },
-          done: (a) => (a.withdrawal.state === "blocked" ? "Blocked: the withdrawal will not be paid." : "Your block is recorded. A second director's block stops it.")
+          done: (a) => (a.withdrawal.state === "blocked" ? "Blocked: the withdrawal will not be paid." : "Your block is recorded. A second director's block stops it."),
+          meaning: (a) => (a.withdrawal.state === "blocked" ? "refused" : "pending") // the withdrawal Denied, or still awaiting review
         });
         break;
       case "cong-goto-directory": scrollTo("cong-directory"); break;
@@ -443,7 +447,7 @@ function selectTab(tab) {
 
 async function depositCredits(form) {
   const amount = typedWhole(form.amount.value);
-  if (!amount) { bureau.money.treasury = { deposit: { text: "Enter a whole number of credits, at least 1." } }; redraw(); return; }
+  if (!amount) { bureau.money.treasury = { deposit: { text: "Enter a whole number of credits, at least 1.", protocol: refusedLine() } }; redraw(); return; }
   const t = bureau.treasury;
   const fee = Math.round((amount * (t?.custodyFeePct ?? 2)) / 100);
   await moveMoney("treasury", "deposit", { amount }, {
@@ -463,7 +467,7 @@ async function depositCredits(form) {
 
 async function withdrawCredits(form) {
   const amount = typedWhole(form.amount.value);
-  if (!amount) { bureau.money.treasury = { withdraw: { text: "Enter a whole number of credits, at least 1." } }; redraw(); return; }
+  if (!amount) { bureau.money.treasury = { withdraw: { text: "Enter a whole number of credits, at least 1.", protocol: refusedLine() } }; redraw(); return; }
   const t = bureau.treasury;
   const announced = t && amount > (t.balance * (t.noticePct ?? 10)) / 100;
   await moveMoney("treasury", "withdraw", { amount }, {
@@ -476,14 +480,15 @@ async function withdrawCredits(form) {
         { label: "Then", value: "Every member is told; it is paid in 24 hours unless two directors block it" }
       ]
     } : null,
-    done: (a) => (a.withdrawal.state === "pending" ? `Announced. It is paid ${deadline(a.withdrawal.completesAt)} unless blocked.` : `Withdrawn: ${a.withdrawal.amount.toLocaleString("en-US")} credits are in your corporation's account.`)
+    done: (a) => (a.withdrawal.state === "pending" ? `Announced. It is paid ${deadline(a.withdrawal.completesAt)} unless blocked.` : `Withdrawn: ${a.withdrawal.amount.toLocaleString("en-US")} credits are in your corporation's account.`),
+    meaning: (a) => (a.withdrawal.state === "pending" ? "pending" : "complete")
   });
 }
 
 async function moveGoods(form) {
   const op = form.matches('[data-role="cong-hangar-deposit"]') ? "deposit" : "withdraw";
   const quantity = typedWhole(form.quantity.value);
-  if (!quantity) { bureau.money.hangar = { [op]: { text: "Enter a whole number of units, at least 1." } }; redraw(); return; }
+  if (!quantity) { bureau.money.hangar = { [op]: { text: "Enter a whole number of units, at least 1.", protocol: refusedLine() } }; redraw(); return; }
   await moveMoney("hangar", op, { stationId: bureau.hangar?.stationId, item: form.item.value, quantity }, {
     done: (a) => (op === "deposit" ? `Deposited ${a.deposited.quantity.toLocaleString("en-US")} ${a.deposited.item}.` : `Withdrew ${a.withdrawn.quantity.toLocaleString("en-US")} ${a.withdrawn.item} into your stock.`)
   });
@@ -523,17 +528,17 @@ export async function refreshStations() {
 }
 
 /** Post a Station-tab order; the line under its form says what happened. Reads everything again after. */
-async function stationOrder(path, body, { line, confirm, done, form = null }) {
+async function stationOrder(path, body, { line, confirm, done, meaning = () => "complete", form = null }) {
   const ids = idsOf(form);
   bureau.stationStatus = {};
   if (confirm && !(await showTradeConfirmation(confirm))) return;
   const held = takeFields(ids);
   try {
     const answer = await parseJsonResponse(await apiFetch(`${cong(bureau.view.conglomerate.id)}/${path}`, { method: "POST", headers: json, body: JSON.stringify(body || {}) }));
-    bureau.stationStatus = { [line]: { text: done(answer), ok: true } };
+    bureau.stationStatus = { [line]: { text: done(answer), ok: true, protocol: { meaning: meaning(answer), screen: "conglomerate" } } }; // ISP-254 (AB#4821)
     await refreshAccount();
   } catch (error) {
-    bureau.stationStatus = { [line]: { text: error?.message || "The Bureau refused that." } };
+    bureau.stationStatus = { [line]: { text: error?.message || "The Bureau refused that.", protocol: refusedLine(error) } };
     giveBack(held); // refused: what was typed is still there to correct
   }
   await loadConglomerate();
@@ -554,7 +559,8 @@ async function startStation(form) {
         { label: "Nothing is paid now", value: "Members fund it from here; you can cancel it until it is funded, and everything goes back" }
       ]
     },
-    done: (a) => `${a.project.name} is filed. Members can fund it now.`
+    done: (a) => `${a.project.name} is filed. Members can fund it now.`,
+    meaning: () => "queued"
   });
 }
 
@@ -564,7 +570,7 @@ async function giveToStation(form) {
   const item = form.item?.value || "";
   const quantity = form.quantity && String(form.quantity.value).trim() ? typedWhole(form.quantity.value) : null;
   const line = pool ? "pool" : "own";
-  const say = (text) => { bureau.stationStatus = { [line]: { text } }; redraw(); };
+  const say = (text) => { bureau.stationStatus = { [line]: { text, protocol: refusedLine() } }; redraw(); };
   if (credits && item) return say("Put in credits or goods, one at a time.");
   if (!credits && !item) return say("Enter a whole number of credits, or choose goods and a number of units.");
   if (item && !quantity) return say("Enter a whole number of units, at least 1.");
@@ -578,7 +584,8 @@ async function giveToStation(form) {
         ? [{ label: "From", value: credits ? "The treasury" : "The hangar" }, { label: "Stake", value: "None: pooled value is nobody's stake" }]
         : [{ label: "From", value: credits ? "Your corporation's credits" : "Your stock at the hangar's station" }, { label: "Stake", value: "Its value becomes your stake in the station" }, { label: "If the project is cancelled", value: "It comes back in full" }]
     },
-    done: (a) => (a.project.state === "building" ? `Put in. ${a.project.name} is fully funded and under construction.` : `Put in: ${what}.`)
+    done: (a) => (a.project.state === "building" ? `Put in. ${a.project.name} is fully funded and under construction.` : `Put in: ${what}.`),
+    meaning: (a) => (a.project.state === "building" ? "active" : "complete")
   });
 }
 
@@ -587,7 +594,8 @@ async function cancelStation() {
   await stationOrder("station-project/cancel", {}, {
     line: "cancel",
     confirm: { heading: "Station project", title: `Cancel ${name}?`, confirmLabel: "Cancel the project", rows: [{ label: "What happens", value: "Every contribution goes back where it came from, in full: members' own credits and goods, the treasury, the hangar." }] },
-    done: () => `${name} is cancelled; everything has gone back.`
+    done: () => `${name} is cancelled; everything has gone back.`,
+    meaning: () => "cancelled"
   });
 }
 
@@ -596,14 +604,16 @@ async function proposeSetting(form) {
   const body = setting === "access" ? { setting, value } : { setting, conglomerateId: value };
   await stationOrder("station/proposals", body, {
     line: "propose", form,
-    done: (a) => (a.proposal.state === "passed" ? `Passed at once: docking is now ${ACCESS_LABELS[a.settings.access] || a.settings.access}.` : `Put to the vote: ${a.proposal.text}.`)
+    done: (a) => (a.proposal.state === "passed" ? `Passed at once: docking is now ${ACCESS_LABELS[a.settings.access] || a.settings.access}.` : `Put to the vote: ${a.proposal.text}.`),
+    meaning: (a) => (a.proposal.state === "passed" ? "active" : "pending")
   });
 }
 
 async function voteOn(proposalId, vote) {
   await stationOrder(`station/proposals/${encodeURIComponent(proposalId)}/vote`, { vote }, {
     line: "vote",
-    done: (a) => (a.proposal.state === "passed" ? `Your vote carried it: ${a.proposal.text}, in force now.` : a.proposal.state === "rejected" ? "Your vote decided it: voted down." : `Your ${vote} is counted: yes ${a.proposal.yesPct}%, no ${a.proposal.noPct}% of all stake.`)
+    done: (a) => (a.proposal.state === "passed" ? `Your vote carried it: ${a.proposal.text}, in force now.` : a.proposal.state === "rejected" ? "Your vote decided it: voted down." : `Your ${vote} is counted: yes ${a.proposal.yesPct}%, no ${a.proposal.noPct}% of all stake.`),
+    meaning: (a) => ({ passed: "active", rejected: "refused" })[a.proposal.state] || "pending"
   });
 }
 

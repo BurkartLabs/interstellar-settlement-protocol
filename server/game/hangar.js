@@ -82,7 +82,7 @@ export function depositGoods(accountId, conglomerateId, { stationId, item: rawIt
   if (hangarQuantity(quantity) === null) return no(400, "invalid-quantity", "Enter a whole number of units, at least 1.");
   const stock = corp.inventory?.[at.stationId] || {};
   const held = Math.floor(Number(stock[at.item]) || 0);
-  if (held < quantity) return no(409, "insufficient-stock", `Your corporation holds ${plain(held)} ${at.item} at ${stationName(at.stationId)}; it cannot deposit ${plain(quantity)}.`);
+  if (held < quantity) return no(409, "insufficient-stock", `Your corporation holds ${plain(held)} ${at.item} at ${stationName(at.stationId)}; it cannot deposit ${plain(quantity)}. Deposit ${plain(held)} or fewer.`); // AB#4821 (ISP-6)
   // One step: out of the corporation's stock, into the hangar, one row.
   if (held === quantity) delete stock[at.item];
   else stock[at.item] = held - quantity;
@@ -110,10 +110,10 @@ export function withdrawGoods(accountId, conglomerateId, { stationId, item: rawI
       const pct = { founder: catalog.founderWithdrawPct, director: catalog.directorWithdrawPct, member: catalog.memberGoodsWithdrawPct }[role];
       return no(409, "over-daily-cap", `Your role may take ${plain(allowance.cap)} ${at.item} today (${pct}% of the ${plain(allowance.opening)} the hangar held at 00:00 UTC); ${plain(allowance.remaining)} remain. The cap resets at 00:00 UTC.`);
     }
-    if (quantity > (c.hangar.items[at.item] || 0)) return no(409, "insufficient-hangar", `The hangar holds ${plain(c.hangar.items[at.item] || 0)} ${at.item}.`);
+    if (quantity > (c.hangar.items[at.item] || 0)) return no(409, "insufficient-hangar", `The hangar holds ${plain(c.hangar.items[at.item] || 0)} ${at.item}. Withdraw ${plain(c.hangar.items[at.item] || 0)} or fewer.`); // AB#4821 (ISP-6)
   } catch (error) {
     console.error("[hangar] a withdrawal check could not run:", error?.message || error);
-    return no(503, "hangar-unavailable", "The Bureau cannot check this withdrawal just now; nothing was moved.");
+    return no(503, "hangar-unavailable", "The Bureau cannot check this withdrawal just now; nothing was moved. Try again later."); // AB#4821 (ISP-6)
   }
   moveHangar(c, { at: now, kind: "withdrawal", corp: corp.publicId, item: at.item, quantity: -quantity, by: corp.publicId });
   const stock = ((corp.inventory ||= {})[at.stationId] ||= {});

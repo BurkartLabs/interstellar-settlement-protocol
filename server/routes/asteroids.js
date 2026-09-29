@@ -113,6 +113,7 @@ export function registerAsteroidRoutes(app) {
 
     const notification = addAccountNotification(req.params.accountId, {
       type: "infrastructure",
+      protocol: { meaning: "queued", screen: "building-assembly-facility" }, // ISP-254 Bd (AB#4819)
       title: "Probe Fabrication Started",
       body: `Mining Probe fabrication has begun. Estimated completion: ${fabricationMs >= 60000 ? Math.round(fabricationMs / 60000) + " minute(s)" : Math.round(fabricationMs / 1000) + " second(s)"}.`
     });
@@ -352,6 +353,7 @@ export function registerAsteroidRoutes(app) {
     const durationLabel = EXPEDITION_DURATIONS[duration]?.label || duration;
     const notification = addAccountNotification(req.params.accountId, {
       type: "mining",
+      protocol: { meaning: "active", screen: "expedition-panel" }, // ISP-254 Bd (AB#4819)
       title: "Expedition Launched",
       body: `Mining probe deployed to ${beltPhrase(SYSTEMS_CATALOG, beltKey)} on a ${durationLabel} mission. Resources will be deposited upon return.` // AB#1336
     });

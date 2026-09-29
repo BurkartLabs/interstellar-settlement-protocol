@@ -85,9 +85,11 @@ function decide(c, p, now) {
   else if (now >= p.closesAt) Object.assign(p, { state: "expired", closedAt: now });
   else return false;
   const title = p.state === "passed" ? "A station change passed" : "A station change did not pass";
+  // ISP-254 (AB#4821): passed is In force, voted down is Denied, closed without a majority is Lapsed
+  const RESULT_MEANING = { passed: "active", rejected: "refused", expired: "expired" };
   for (const m of c.members) {
     const account = accountByCorp(m.corp);
-    if (account) pushSystemNotification(account, { type: "system", title, body: `${describe(p)}: ${p.state === "passed" ? "passed by stake, and is in force" : p.state === "expired" ? "the vote closed without a majority" : "voted down by stake"}.` });
+    if (account) pushSystemNotification(account, { type: "system", protocol: { meaning: RESULT_MEANING[p.state], screen: "conglomerate" }, title, body: `${describe(p)}: ${p.state === "passed" ? "passed by stake, and is in force" : p.state === "expired" ? "the vote closed without a majority" : "voted down by stake"}.` });
   }
   roomEvent(c, "conglomerate:station-vote", { proposal: proposalView(c, p), settings: settingsView(c) });
   return true;
@@ -159,7 +161,7 @@ export function proposeStationSetting(accountId, conglomerateId, { setting, valu
   saveAccountsNow();
   for (const m of c.members) {
     const account = accountByCorp(m.corp);
-    if (account && m.corp !== corp.publicId && p.state === "open") pushSystemNotification(account, { type: "system", title: "A station vote is open", body: `${corpName(corp.publicId)} proposed: ${describe(p)}. Stakeholders have ${catalog.stationVoteHours} hours to vote.` });
+    if (account && m.corp !== corp.publicId && p.state === "open") pushSystemNotification(account, { type: "system", protocol: { meaning: "pending", screen: "conglomerate" }, title: "A station vote is open", body: `${corpName(corp.publicId)} proposed: ${describe(p)}. Stakeholders have ${catalog.stationVoteHours} hours to vote.` });
   }
   if (p.state === "open") roomEvent(c, "conglomerate:station-vote", { proposal: proposalView(c, p), settings: settingsView(c) });
   return { proposal: proposalView(c, p), settings: settingsView(c) };
@@ -178,7 +180,7 @@ export function voteOnStationProposal(accountId, conglomerateId, proposalId, vot
   if (vote !== "yes" && vote !== "no") return no(400, "unknown-vote", "Vote yes or no.");
   if (p.state !== "open") return no(409, "vote-closed", "That vote has closed.");
   let w;
-  try { w = weights(c); } catch { return no(503, "vote-unavailable", "The stakes cannot be read just now; no vote was recorded."); }
+  try { w = weights(c); } catch { return no(503, "vote-unavailable", "The stakes cannot be read just now; no vote was recorded. Try again later."); } // AB#4821 (ISP-6)
   if (!(corp.publicId in w)) return no(403, "no-stake", "Only a corporation with a stake in the station votes on it.");
   if (p.votes[corp.publicId]) return no(409, "already-voted", `Your corporation has already voted ${p.votes[corp.publicId]}.`);
   p.votes[corp.publicId] = vote;

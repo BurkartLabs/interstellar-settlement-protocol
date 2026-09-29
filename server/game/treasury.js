@@ -59,8 +59,8 @@ export function depositToTreasury(accountId, conglomerateId, amount, now = Date.
   if (!can(role, "contribute")) return no(403, "not-permitted", "Your role cannot contribute to the treasury.");
   if (treasuryAmount(amount) === null) return no(400, "invalid-amount", "Enter a whole number of credits, at least 1.");
   const held = Number(corp.finances?.credits);
-  if (!Number.isFinite(held)) return no(503, "treasury-unavailable", "The Bureau cannot read your corporation's credits just now; nothing was moved.");
-  if (held < amount) return no(409, "insufficient-credits", `Your corporation holds ${plain(held)} credits; it cannot deposit ${plain(amount)}.`);
+  if (!Number.isFinite(held)) return no(503, "treasury-unavailable", "The Bureau cannot read your corporation's credits just now; nothing was moved. Try again later."); // AB#4821 (ISP-6)
+  if (held < amount) return no(409, "insufficient-credits", `Your corporation holds ${plain(held)} credits; it cannot deposit ${plain(amount)}. Deposit ${plain(held)} or less.`); // AB#4821 (ISP-6)
   const fee = Math.round((amount * catalog.poolingFeePct) / 100);
   applyCredits(corp, -amount, "conglomerate-contribution", now);
   moveTreasury(c, { at: now, kind: "deposit", corp: corp.publicId, amount, by: corp.publicId });
@@ -86,12 +86,12 @@ export function withdrawFromTreasury(accountId, conglomerateId, amount, now = Da
     if (amount > allowance.remaining) {
       return no(409, "over-daily-cap", `Your role may withdraw ${plain(allowance.cap)} credits today (${role === "founder" ? catalog.founderWithdrawPct : catalog.directorWithdrawPct}% of the ${plain(allowance.opening)} the treasury held at 00:00 UTC${role === "director" ? `, at most ${plain(catalog.directorWithdrawMax)}` : ""}); ${plain(allowance.remaining)} remain. The cap resets at 00:00 UTC.`);
     }
-    if (amount > c.treasury.credits) return no(409, "insufficient-treasury", `The treasury holds ${plain(c.treasury.credits)} credits.`);
+    if (amount > c.treasury.credits) return no(409, "insufficient-treasury", `The treasury holds ${plain(c.treasury.credits)} credits. Withdraw ${plain(c.treasury.credits)} or less.`); // AB#4821 (ISP-6)
     announce = amount > (c.treasury.credits * catalog.withdrawalNoticePct) / 100;
   } catch (error) {
     // Fails closed: a check that cannot run refuses the withdrawal, and nothing is written.
     console.error("[treasury] a withdrawal check could not run:", error?.message || error);
-    return no(503, "treasury-unavailable", "The Bureau cannot check this withdrawal just now; nothing was moved.");
+    return no(503, "treasury-unavailable", "The Bureau cannot check this withdrawal just now; nothing was moved. Try again later."); // AB#4821 (ISP-6)
   }
   const w = { id: createId("cwd"), corp: corp.publicId, amount, at: now, state: announce ? "pending" : "paid", completesAt: announce ? now + catalog.withdrawalDelayHours * HOUR_MS : now, blockedBy: [] };
   if (announce) {
@@ -101,7 +101,8 @@ export function withdrawFromTreasury(accountId, conglomerateId, amount, now = Da
     for (const m of c.members) {
       const account = accountByCorp(m.corp);
       if (account && m.corp !== corp.publicId) {
-        pushSystemNotification(account, { type: "system", title: `A large withdrawal from ${c.name}`, body: `${corp.corporationName} asked to withdraw ${plain(amount)} credits, more than ${catalog.withdrawalNoticePct}% of the treasury. It completes in ${catalog.withdrawalDelayHours} hours unless two directors block it${corpRoleOf(c, corp.publicId) === "director" ? ", or the founder" : ""}.` });
+        pushSystemNotification(account, { type: "system", protocol: { meaning: "pending", screen: "conglomerate" }, title: `A large withdrawal from ${c.name}`, // ISP-254 (AB#4821): Filed, awaiting review
+        body: `${corp.corporationName} asked to withdraw ${plain(amount)} credits, more than ${catalog.withdrawalNoticePct}% of the treasury. It completes in ${catalog.withdrawalDelayHours} hours unless two directors block it${corpRoleOf(c, corp.publicId) === "director" ? ", or the founder" : ""}.` });
       }
     }
     roomEvent(c, "conglomerate:treasury", { kind: "withdrawal-announced", corp: corp.publicId, corpName: corp.corporationName, amount, withdrawal: withdrawalView(w) });
