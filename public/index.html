@@ -34,151 +34,61 @@
         <p class="landing__tagline">"Humanity did not conquer space. It privatized it."</p>
       </section>
 
+      <!-- ISP-257 (AB#953): the landing for a stranger. The verb and who it is for above the fold, one call to action,
+           a real screen beside them, then three screens from a corporation at work. The Board's description
+           (AB#2462) stays under the actions. -->
       <header class="landing__hero">
-        <p class="landing__overline">Earth Assembly Act 2147</p>
-        <h1 id="landing-title" class="landing__title">The Interstellar Settlement Protocol</h1>
-        <div class="landing__actions">
-          <a href="/register.html" id="show-register-btn" class="ui-button ui-button--primary">Register Corporation</a>
-          <a href="/login.html" class="ui-button ui-button--secondary">Log In</a>
+        <div class="landing__pitch">
+          <p class="landing__overline">Earth Assembly Act 2147</p>
+          <h1 id="landing-title" class="landing__title">The Interstellar Settlement Protocol</h1>
+          <p class="landing__verb">
+            <strong>Allocate</strong> your corporation's credits, crews and building slots across Sol: lease a world, refine
+            what it yields, and sell it on an exchange where the buyer is another corporation.
+          </p>
+          <p class="landing__audience">
+            For players who would rather run the market than fight the war. A text-first strategy game in the browser,
+            played over months, not minutes.
+          </p>
+          <div class="landing__actions">
+            <a href="/register.html" id="show-register-btn" class="ui-button ui-button--primary">Register Corporation</a>
+            <a href="/login.html" class="ui-button ui-button--secondary">Log In</a>
+          </div>
+          <p class="landing__aside">New to the Protocol? Read <a href="/how-to-start">how to start</a>.</p>
+          <!-- AB#2462: the Board's own words (review 2026-09-26, item 2). -->
+          <p class="landing__lede">
+            ISP is a long-term online strategy simulation where you operate as the CEO of a corporation colonizing the local
+            galaxy while navigating industrial logistics, legal conflict, interstellar finance, and deterministic warfare at a
+            civilizational scale. A true slow-burn universe. Level Progression is milestone-based and full corporate maturity
+            unfolds over years of real-world play.
+          </p>
         </div>
-        <p class="landing__aside">New to the Protocol? Read <a href="/how-to-start">how to start</a>.</p>
-        <!-- AB#2462: the Board's own words (review 2026-09-26, item 2). -->
-        <p class="landing__lede">
-          ISP is a long-term online strategy simulation where you operate as the CEO of a corporation colonizing the local
-          galaxy while navigating industrial logistics, legal conflict, interstellar finance, and deterministic warfare at a
-          civilizational scale. A true slow-burn universe. Level Progression is milestone-based and full corporate maturity
-          unfolds over years of real-world play.
-        </p>
+        <figure class="landing__shot">
+          <img src="/images/landing/starmap.webp" width="1200" height="617" fetchpriority="high"
+            alt="The Interstellar Starmap: Sol, marked You are here, and the nearby star systems it connects to, among them Alpha Centauri, Sirius and Tau Ceti." />
+          <figcaption class="landing__caption">The Interstellar Starmap. Every licence begins at Sol.</figcaption>
+        </figure>
       </header>
 
-      <section class="landing__section">
-        <h2 class="landing__heading">What ISP Is</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">Persistent Economic Civilization</h3>
-            <p class="ui-card__body">Every resource chain, market order, and investment contributes to a persistent economy.</p>
+      <section class="landing__section" aria-labelledby="landing-proof-title">
+        <h2 id="landing-proof-title" class="landing__heading">On file: a corporation at work</h2>
+        <div class="landing__proofs">
+          <article class="ui-card landing__proof">
+            <img class="landing__proof-shot" src="/images/landing/refinery-run.webp" width="800" height="212" loading="lazy"
+              alt="A refinery run: 100 Silicates becoming 40 Aerogel and 15 Quantum Insulators, a quarter done, 2 hours 59 minutes remaining." />
+            <h3 class="ui-card__title">Refine, then wait for it</h3>
+            <p class="ui-card__body">Ore goes in and goods come out hours later. Every run is a decision you live with until it delivers.</p>
           </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Corporate Power Strategy</h3>
-            <p class="ui-card__body">Scale your corporation through hiring, infrastructure, R&D, and sector expansion.</p>
+          <article class="ui-card landing__proof">
+            <img class="landing__proof-shot" src="/images/landing/exchange-orders.webp" width="800" height="357" loading="lazy"
+              alt="The Galactic Exchange's sell orders: Carbon, Titanium, Nickel and Silicates, each listed by another corporation at its own price." />
+            <h3 class="ui-card__title">The other side of the order is a corporation</h3>
+            <p class="ui-card__body">Every listing on the Galactic Exchange was lodged by a corporation like yours. When you buy, another player is paid.</p>
           </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Hybrid Conflict Layer</h3>
-            <p class="ui-card__body">Compete militarily, politically, and financially across multiple star systems.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="landing__section">
-        <h2 class="landing__heading">Core Gameplay Pillars</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">Milestone Progression</h3>
-            <p class="ui-card__body">Corporation Level 1-40 is unlocked through business milestones: first refined output, first off-world mining, employee targets, R&D completions, and strategic expansion checkpoints.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Industrial Refinement Chains</h3>
-            <p class="ui-card__body">Raw materials become strategic products through multi-step pipelines gated by Corporate R&D. Supply chain planning and throughput optimization become long-term differentiators.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Financial Command</h3>
-            <p class="ui-card__body">Run full corporate finance: cash flow, liabilities, valuation, debt instruments, bond strategy, and inter-corporate investment plays driven by performance and risk.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Conglomerate Politics</h3>
-            <p class="ui-card__body">Join or build alliances with expanding membership caps, pooled resources, shared intel, station co-ownership, and coordinated policy pressure.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="landing__section">
-        <h2 class="landing__heading">Map, Warfare, And Discovery</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">System-Scale Starmap</h3>
-            <p class="ui-card__body">Navigate from cluster view to system and body-level detail for strategic planning.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Deterministic Combat Core</h3>
-            <p class="ui-card__body">Outcomes are numbers-driven with counters, modifiers, and doctrine effects.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Scouting Intelligence</h3>
-            <p class="ui-card__body">Resource composition is unknown until surveyed, creating real exploration pressure.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="landing__section">
-        <h2 class="landing__heading">Economic Engine In Detail</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">Raw Resource Genesis</h3>
-            <p class="ui-card__body">Every new corporation begins in a raw-material economy. Silicates, metals, isotopes, and volatile compounds become the industrial substrate for every advanced product in the game.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Refining As Competitive Edge</h3>
-            <p class="ui-card__body">Refineries are not decoration. Throughput, downtime control, and process sequencing determine your cost basis and export strength as regional demand shifts.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Market Signals And Arbitrage</h3>
-            <p class="ui-card__body">Use local scarcity and congestion to set pricing, absorb volatility, and arbitrage between systems while balancing freight risk and liquidity windows.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Capital And Leverage</h3>
-            <p class="ui-card__body">Scale by issuing debt, taking strategic loans, and investing in rival corporations. Your capital strategy can outperform brute extraction alone.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="landing__section">
-        <h2 class="landing__heading">Long-Horizon Campaign Structure</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">Phase I: Establishment</h3>
-            <p class="ui-card__body">Build initial facilities, stabilize payroll, and secure first extraction contracts.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Phase II: Industrial Scale</h3>
-            <p class="ui-card__body">Expand refining chains, automate logistics, and begin controlled fleet growth.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Phase III: Sector Influence</h3>
-            <p class="ui-card__body">Enter legal and political contests for tariff regimes, patent constraints, and territorial leverage.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Phase IV: Conglomerate Politics</h3>
-            <p class="ui-card__body">Coordinate with allied corporations to project force, protect trade lanes, and co-own key stations.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Phase V: Interstellar Governance</h3>
-            <p class="ui-card__body">Compete in system-wide influence wars where law, capital, and fleet math decide civilization-scale outcomes.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Designed For Years, Not Weeks</h3>
-            <p class="ui-card__body">ISP intentionally resists short-loop progression so strategic planning and institutional momentum matter.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="landing__section">
-        <h2 class="landing__heading">Why This Prototype Exists</h2>
-        <div class="landing__grid">
-          <article class="ui-card">
-            <h3 class="ui-card__title">Accessible, Text-First Core</h3>
-            <p class="ui-card__body">Gameplay systems are intentionally text-dominant for readability, speed, and accessibility with or without heavy visuals.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Expandable Architecture</h3>
-            <p class="ui-card__body">Current modules are structured so economy, warfare, diplomacy, and missions can be expanded into full production domains.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Real-Time Multiplayer Backbone</h3>
-            <p class="ui-card__body">Market, communication, and conflict signals are already shaped for live state synchronization and persistent world updates.</p>
-          </article>
-          <article class="ui-card">
-            <h3 class="ui-card__title">Strategic Depth Over Flash</h3>
-            <p class="ui-card__body">The prototype prioritizes decision quality and long-term outcomes over superficial visual noise.</p>
+          <article class="ui-card landing__proof">
+            <img class="landing__proof-shot" src="/images/landing/milestones.webp" width="800" height="401" loading="lazy"
+              alt="Level 5 of 30: research a technology, build an Assembly Facility and hire 25 employees to reach Level 6, which opens more staff, building slots and a new market sector." />
+            <h3 class="ui-card__title">Levels are built, not ground</h3>
+            <p class="ui-card__body">Research, construction and hiring move a corporation through thirty levels, and each one opens more staff, slots and markets.</p>
           </article>
         </div>
       </section>
