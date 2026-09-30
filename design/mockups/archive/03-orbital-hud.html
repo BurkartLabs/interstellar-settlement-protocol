@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 03 — Orbital HUD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Exo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg0:#04060a;
+    --bg1:#070c14;
+    --ice0:#e8f4ff;
+    --ice1:#cfe8ff;
+    --ice2:#7fb6ff;
+    --ice3:#4d7fb0;
+    --ice-dim:#2c4560;
+    --line-dim:rgba(127,182,255,.16);
+    --line-mid:rgba(127,182,255,.40);
+    --line-bright:rgba(207,232,255,.85);
+    --warn:#ff5a3c;
+    --warn-glow:rgba(255,90,60,.55);
+    --panel-bg:rgba(8,14,23,.58);
+    --panel-bg2:rgba(11,19,30,.74);
+    --font-label:'Rajdhani','Segoe UI',sans-serif;
+    --font-num:'Exo 2','Segoe UI',sans-serif;
+    --stage:820px;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:var(--bg0);
+    color:var(--ice1);
+    font-family:var(--font-label);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  #bg{position:fixed; inset:0; z-index:0; display:block;}
+  .vignette{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 46%, transparent 40%, rgba(2,4,7,.55) 78%, rgba(1,2,4,.88) 100%);
+  }
+  .scan-overlay{
+    position:fixed; inset:0; z-index:6; pointer-events:none; opacity:.05; mix-blend-mode:overlay;
+    background:repeating-linear-gradient(to bottom, rgba(255,255,255,.9) 0px, rgba(255,255,255,.9) 1px, transparent 1px, transparent 3px);
+  }
+  .mockup-badge{
+    position:fixed; left:50%; bottom:8px; transform:translateX(-50%); z-index:20;
+    font-family:var(--font-label); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ice3); opacity:.6; pointer-events:none; white-space:nowrap;
+  }
+
+  /* ===== TOP HUD BAR ===== */
+  .hud-top{
+    position:fixed; top:0; left:0; right:0; z-index:10;
+    display:flex; justify-content:center;
+    padding:14px 24px 10px;
+    pointer-events:none;
+  }
+  .hud-top-inner{ text-align:center; max-width:760px; pointer-events:auto; }
+  .mockup-tag{
+    display:block; font-size:10px; letter-spacing:.32em; color:var(--ice3); margin-bottom:4px;
+  }
+  .hud-top h1{
+    margin:0; font-size:19px; font-weight:600; letter-spacing:.2em; color:var(--ice0);
+    text-shadow:0 0 18px rgba(127,182,255,.35);
+  }
+  .hud-top h1 .ver, .hud-top h1 .est{
+    font-family:var(--font-num); font-weight:500; font-size:13px; letter-spacing:.08em; color:var(--ice3);
+    margin-left:10px;
+  }
+  .brief-line{
+    margin:6px auto 0; max-width:620px; font-size:12.5px; line-height:1.5; letter-spacing:.02em;
+    color:var(--ice3); font-style:italic; font-weight:500;
+  }
+  .view-tag{
+    margin-top:6px; font-size:10.5px; letter-spacing:.24em; color:var(--ice2);
+  }
+  .view-tag span{ color:var(--ice0); font-weight:600; }
+
+  /* ===== STAGE ===== */
+  .stage-wrap{
+    position:absolute; inset:0; z-index:3;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .orbit-stage{
+    position:relative;
+    width:var(--stage); height:var(--stage);
+    transform:scale(var(--stagescale,1));
+    transition:transform .3s ease;
+  }
+  .orbit-stage svg.overlay-svg{
+    position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none;
+  }
+  .ring-guide{ fill:none; stroke:var(--line-dim); stroke-width:1; }
+  .leader-line{ stroke:var(--line-mid); stroke-width:1; stroke-dasharray:2 3; }
+
+  /* station core */
+  .station-core{
+    position:absolute; left:50%; top:50%; width:132px; height:132px;
+    transform:translate(-50%,-50%); pointer-events:none;
+  }
+  .station-core svg{ width:100%; height:100%; }
+  .station-core .rot-slow{ transform-origin:66px 66px; animation:spin 60s linear infinite; }
+  .station-core .rot-slow-rev{ transform-origin:66px 66px; animation:spinrev 90s linear infinite; }
+  .station-core .core-dot{ animation:corepulse 2.6s ease-in-out infinite; }
+  @keyframes spin{ from{transform:rotate(0)} to{transform:rotate(360deg)} }
+  @keyframes spinrev{ from{transform:rotate(0)} to{transform:rotate(-360deg)} }
+  @keyframes corepulse{ 0%,100%{opacity:.55; r:3.4} 50%{opacity:1; r:5} }
+  .station-label{
+    position:absolute; left:50%; top:calc(50% + 78px); transform:translate(-50%,0);
+    font-size:10px; letter-spacing:.22em; color:var(--ice3); white-space:nowrap; text-align:center;
+  }
+  .station-label b{ display:block; color:var(--ice1); font-size:11.5px; letter-spacing:.16em; margin-top:1px;}
+
+  /* gauge */
+  .gauge-layer{ position:absolute; inset:0; pointer-events:none; }
+  .gauge-tick{ stroke:var(--ice-dim); stroke-width:2.4; stroke-linecap:round; }
+  .gauge-tick.lit{ stroke:var(--ice1); filter:drop-shadow(0 0 5px var(--ice2)); }
+  .gauge-peek{ fill:none; stroke:rgba(207,232,255,.55); stroke-width:1.6; stroke-dasharray:3 3; }
+  .gauge-ring-guide{ fill:none; stroke:var(--line-dim); stroke-width:1; }
+  .scan-sweep{
+    position:absolute; left:50%; top:50%; width:400px; height:400px; margin:-200px 0 0 -200px;
+    border-radius:50%; pointer-events:none;
+    background:conic-gradient(from 0deg, transparent 0deg, rgba(127,182,255,.5) 6deg, transparent 34deg);
+    -webkit-mask-image:radial-gradient(circle, transparent 83%, black 85%, black 94%, transparent 96%);
+    mask-image:radial-gradient(circle, transparent 83%, black 85%, black 94%, transparent 96%);
+    animation:sweep 7s linear infinite;
+    mix-blend-mode:screen;
+  }
+  @keyframes sweep{ from{transform:rotate(0)} to{transform:rotate(360deg)} }
+
+  .lvl-tag{
+    position:absolute; left:50%; top:50%; transform:translate(-50%, calc(-50% - 132px));
+    display:flex; align-items:center; gap:20px; pointer-events:auto;
+  }
+  .lvl-chev{
+    width:22px; height:22px; border:1px solid var(--line-mid); background:rgba(4,6,10,.65);
+    color:var(--ice1); font-size:13px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    clip-path:polygon(4px 0,100% 0,100% 100%,0 100%,0 4px);
+    transition:background .15s, border-color .15s; flex:none;
+  }
+  .lvl-chev:hover{ background:rgba(127,182,255,.18); border-color:var(--ice2); }
+  .lvl-readout{ text-align:center; min-width:104px; background:rgba(4,6,10,.55); padding:2px 6px; }
+  .lvl-num{ display:block; font-family:var(--font-num); font-size:20px; font-weight:600; letter-spacing:.06em; color:var(--ice0); }
+  .lvl-of{ display:block; font-size:10px; letter-spacing:.28em; color:var(--ice3); margin-top:1px; }
+  .peek-tag{
+    position:absolute; left:50%; top:50%; transform:translate(-50%, calc(-50% - 100px));
+    font-size:9.5px; letter-spacing:.18em; color:var(--warn2, #ffb37a); white-space:nowrap;
+    opacity:0; transition:opacity .2s; background:rgba(4,6,10,.55); padding:2px 8px;
+  }
+  .peek-tag.show{ opacity:1; }
+  .lvl-unlocks{
+    position:absolute; left:50%; top:50%; transform:translate(-50%, 145px);
+    font-size:9.5px; letter-spacing:.1em; color:var(--ice3); white-space:nowrap; text-align:center;
+    background:rgba(8,14,23,.6); padding:3px 10px; border-top:1px solid var(--line-dim); border-bottom:1px solid var(--line-dim);
+  }
+  .lvl-unlocks b{ color:var(--ice2); font-weight:600; }
+
+  /* nav rings */
+  .nav-ring{ position:absolute; inset:0; }
+  .nav-node{
+    position:absolute; width:0; height:0; pointer-events:auto;
+  }
+  .nav-node .dot{
+    position:absolute; left:-3px; top:-3px; width:6px; height:6px; border-radius:50%;
+    background:var(--ice3); box-shadow:0 0 6px rgba(127,182,255,.5);
+    transition:background .2s, box-shadow .2s;
+  }
+  .nav-node .label{
+    position:absolute; left:8px; top:-9px; white-space:nowrap;
+    font-size:11.5px; letter-spacing:.1em; color:var(--ice3);
+    padding:2px 8px 2px 7px; border-left:1px solid var(--line-mid);
+    background:rgba(4,6,10,.5);
+    text-shadow:0 0 4px rgba(4,6,10,.9), 0 1px 2px rgba(0,0,0,.9);
+    transition:color .2s, border-color .2s;
+    cursor:pointer; user-select:none;
+  }
+  .nav-node.flip .label{ left:auto; right:8px; border-left:none; border-right:1px solid var(--line-mid); text-align:right; }
+  .nav-node .label:hover{ color:var(--ice1); }
+  .nav-node.selected .dot{ background:var(--ice1); box-shadow:0 0 10px var(--ice2), 0 0 18px rgba(127,182,255,.6); }
+  .nav-node.selected .label{ color:var(--ice0); border-color:var(--ice2); }
+  .nav-node.current .dot{ animation:navpulse 1.8s ease-in-out infinite; }
+  .nav-node.current .label{ color:var(--ice0); }
+  @keyframes navpulse{
+    0%,100%{ box-shadow:0 0 6px rgba(127,182,255,.6), 0 0 0 0 rgba(207,232,255,.5); }
+    50%{ box-shadow:0 0 10px var(--ice2), 0 0 0 8px rgba(207,232,255,0); }
+  }
+  .ring-tag{
+    position:absolute; font-size:9px; letter-spacing:.3em; color:var(--ice-dim);
+  }
+
+  /* objective callouts */
+  .obj-marker{
+    position:absolute; width:8px; height:8px; margin:-4px 0 0 -4px; border-radius:50%;
+    background:var(--ice2); box-shadow:0 0 8px var(--ice2), 0 0 16px rgba(127,182,255,.5);
+    animation:navpulse 2.2s ease-in-out infinite;
+  }
+  .obj-panel{
+    position:absolute; width:186px; margin:-38px 0 0 -93px;
+    background:var(--panel-bg); border:1px solid var(--line-mid);
+    clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+    padding:8px 12px; backdrop-filter:blur(4px);
+  }
+  .obj-panel .obj-kicker{ font-size:8.5px; letter-spacing:.22em; color:var(--ice3); }
+  .obj-panel .obj-text{ font-size:11.5px; line-height:1.3; color:var(--ice1); margin:2px 0 5px; letter-spacing:.02em; }
+  .obj-progress-track{ height:3px; background:rgba(127,182,255,.15); position:relative; margin-bottom:6px; }
+  .obj-progress-fill{ position:absolute; inset:0; width:0%; background:linear-gradient(90deg,var(--ice3),var(--ice2)); transition:width .6s ease; }
+  .obj-meta{ display:flex; align-items:center; justify-content:space-between; font-family:var(--font-num); font-size:10.5px; color:var(--ice3); }
+  .obj-cta{
+    font-size:9.5px; letter-spacing:.12em; color:var(--ice0); text-decoration:none; border-bottom:1px solid var(--ice2);
+    padding-bottom:1px; white-space:nowrap;
+  }
+  .obj-cta:hover{ color:var(--ice2); }
+  .obj-complete{ color:var(--ice2); font-size:9.5px; letter-spacing:.16em; }
+
+  /* ===== FLOATING PANELS ===== */
+  .panel{
+    position:fixed; z-index:12;
+    width:248px;
+    background:var(--panel-bg2);
+    border:1px solid var(--line-mid);
+    clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+    backdrop-filter:blur(6px);
+    box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 12px 30px rgba(0,0,0,.45);
+  }
+  .panel-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 14px 7px; border-bottom:1px solid var(--line-dim);
+  }
+  .panel-head h2{ margin:0; font-size:11px; letter-spacing:.24em; color:var(--ice2); font-weight:600; }
+  .panel-body{ padding:10px 14px 14px; }
+  .panel::before{
+    content:''; position:absolute; left:0; top:14px; width:1px; height:calc(100% - 28px); background:linear-gradient(to bottom, transparent, rgba(127,182,255,.4), transparent);
+  }
+
+  .panel-tl{ top:78px; left:20px; }
+  .panel-tr{ top:78px; right:20px; }
+  .panel-bl{ bottom:20px; left:20px; }
+  .panel-br{ bottom:20px; right:20px; width:270px; }
+
+  /* identity panel */
+  .id-row{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .id-name{ font-size:15px; letter-spacing:.05em; color:var(--ice0); font-weight:600; }
+  .id-role{ font-size:9.5px; letter-spacing:.18em; color:var(--ice3); }
+  .id-corp{ font-family:var(--font-num); font-size:12px; color:var(--ice1); margin-bottom:2px; }
+  .id-ticker{ color:var(--ice3); font-size:10.5px; letter-spacing:.12em; }
+  .id-divider{ height:1px; background:var(--line-dim); margin:9px 0; }
+  .id-actions{ display:flex; justify-content:space-between; align-items:center; }
+  .notice-btn{
+    position:relative; font-size:10.5px; letter-spacing:.14em; color:var(--ice1); cursor:pointer;
+    border:1px solid var(--line-mid); padding:5px 10px; background:rgba(127,182,255,.05);
+  }
+  .notice-btn .badge{
+    position:absolute; top:-8px; right:-10px; background:var(--ice2); color:#04121e; font-family:var(--font-num);
+    font-size:10px; font-weight:700; line-height:1; border-radius:8px; min-width:20px; height:17px; padding:0 4px;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 0 6px rgba(127,182,255,.6);
+  }
+  .logout-btn{ font-size:10.5px; letter-spacing:.14em; color:var(--ice3); cursor:pointer; background:none; border:none; font-family:var(--font-label); }
+  .logout-btn:hover{ color:var(--warn); }
+  .notice-drop{
+    max-height:0; overflow:hidden; transition:max-height .25s ease;
+  }
+  .notice-drop.open{ max-height:120px; margin-top:8px; }
+  .notice-item{ font-size:11px; color:var(--ice3); padding:5px 0; border-top:1px solid var(--line-dim); }
+  .notice-item b{ color:var(--ice1); font-weight:600; }
+
+  /* military panel */
+  .mil-stats{ display:flex; gap:16px; margin-bottom:10px; }
+  .mil-stat{ flex:1; text-align:center; }
+  .mil-val{ font-family:var(--font-num); font-size:21px; font-weight:600; color:var(--ice0); }
+  .mil-lbl{ font-size:9px; letter-spacing:.2em; color:var(--ice3); margin-top:1px; }
+  .readiness-row{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .readiness-ring{ width:40px; height:40px; flex:none; }
+  .readiness-text{ font-size:10.5px; letter-spacing:.08em; color:var(--ice3); }
+  .readiness-text b{ display:block; font-family:var(--font-num); font-size:15px; color:var(--ice1); font-weight:600; }
+  .conglom-row{
+    display:flex; justify-content:space-between; align-items:center; padding-top:9px; border-top:1px solid var(--line-dim);
+  }
+  .conglom-lbl{ font-size:10px; letter-spacing:.16em; color:var(--ice3); }
+  .conglom-val{ font-size:11px; letter-spacing:.1em; color:var(--ice1); font-weight:600; }
+
+  /* financial panel */
+  .fin-primary{ margin-bottom:10px; }
+  .fin-lbl{ font-size:9.5px; letter-spacing:.2em; color:var(--ice3); }
+  .fin-val{ font-family:var(--font-num); font-size:26px; font-weight:600; color:var(--ice0); letter-spacing:.01em; }
+  .fin-warn{ color:var(--warn); text-shadow:0 0 16px var(--warn-glow); position:relative; }
+  .fin-warn-row{ display:flex; align-items:baseline; gap:8px; }
+  .fin-warn-arrow{ font-size:15px; }
+  .fin-warn-tag{
+    display:inline-block; margin-top:3px; font-size:9px; letter-spacing:.2em; color:var(--warn);
+    border:1px solid rgba(255,90,60,.5); padding:1px 7px; background:rgba(255,90,60,.08);
+    animation:warnblink 2.4s ease-in-out infinite;
+  }
+  @keyframes warnblink{ 0%,100%{opacity:1} 50%{opacity:.55} }
+  .fin-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; margin-top:10px; padding-top:9px; border-top:1px solid var(--line-dim); }
+  .fin-cell-lbl{ font-size:9px; letter-spacing:.14em; color:var(--ice3); }
+  .fin-cell-val{ font-family:var(--font-num); font-size:13px; color:var(--ice1); font-weight:600; }
+  .peg-row{ display:flex; align-items:center; justify-content:space-between; margin-top:9px; padding-top:9px; border-top:1px solid var(--line-dim); }
+  .peg-price{ font-family:var(--font-num); font-size:13px; color:var(--ice1); font-weight:600; }
+  .peg-spark{ width:70px; height:20px; }
+
+  /* feed panel */
+  .feed-list{ list-style:none; margin:0; padding:0; max-height:190px; overflow-y:auto; }
+  .feed-list::-webkit-scrollbar{ width:4px; }
+  .feed-list::-webkit-scrollbar-thumb{ background:var(--ice-dim); }
+  .feed-item{
+    font-size:11px; line-height:1.4; color:var(--ice1); padding:6px 0; border-top:1px solid var(--line-dim);
+    display:flex; gap:8px; animation:feedin .4s ease;
+  }
+  .feed-item:first-child{ border-top:none; }
+  .feed-time{ font-family:var(--font-num); font-size:9.5px; color:var(--ice3); flex:none; padding-top:1px; white-space:nowrap; }
+  @keyframes feedin{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
+  .feed-stub{ font-size:10.5px; color:var(--ice-dim); font-style:italic; padding-top:6px; }
+
+  /* responsive */
+  @media (max-width:1280px){
+    .panel{ width:220px; }
+    .panel-br{ width:238px; }
+  }
+  @media (max-width:900px){
+    html,body{ overflow-y:auto; overflow-x:hidden; height:auto; }
+    .hud-top{ position:relative; padding:16px 16px 8px; }
+    .stage-wrap{ position:relative; height:460px; }
+    .panel{ position:relative; top:auto; left:auto; right:auto; bottom:auto; width:calc(100% - 32px); max-width:480px; margin:10px auto; }
+    .panel-tl,.panel-tr,.panel-bl,.panel-br{ display:block; }
+    body{ display:flex; flex-direction:column; align-items:stretch; padding-bottom:20px; }
+    .mockup-badge{ position:static; left:auto; bottom:auto; transform:none; order:999; text-align:center; padding:14px 0 4px; }
+  }
+  @media (max-width:480px){
+    .hud-top h1{ font-size:14px; letter-spacing:.12em; }
+    .brief-line{ font-size:11px; }
+    .stage-wrap{ height:380px; }
+    :root{ --stagescale:.72; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="vignette"></div>
+<div class="scan-overlay"></div>
+<div class="mockup-badge">Mockup 03 — Orbital HUD</div>
+
+<header class="hud-top">
+  <div class="hud-top-inner">
+    <span class="mockup-tag">CORPORATE COMMAND UPLINK</span>
+    <h1>THE INTERSTELLAR SETTLEMENT PROTOCOL <span class="ver">v0.4</span><span class="est">EST. 2147</span></h1>
+    <p class="brief-line">ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.</p>
+    <div class="view-tag">VIEWING — <span id="viewLabel">OVERVIEW</span></div>
+  </div>
+</header>
+
+<div class="stage-wrap">
+  <div class="orbit-stage" id="stage">
+    <svg class="overlay-svg" id="guideSvg" viewBox="0 0 820 820"></svg>
+    <svg class="overlay-svg" id="leaderSvg" viewBox="0 0 820 820"></svg>
+
+    <div class="gauge-layer" id="gaugeLayer">
+      <svg class="overlay-svg" viewBox="0 0 820 820" id="gaugeSvg"></svg>
+      <div class="scan-sweep"></div>
+    </div>
+
+    <div class="lvl-tag">
+      <div class="lvl-chev" id="lvlPrev">‹</div>
+      <div class="lvl-readout">
+        <span class="lvl-num" id="lvlNum">LEVEL 2</span>
+        <span class="lvl-of">OF 30</span>
+      </div>
+      <div class="lvl-chev" id="lvlNext">›</div>
+    </div>
+    <div class="peek-tag" id="peekTag">PREVIEWING — CURRENT LEVEL 2</div>
+    <div class="lvl-unlocks" id="lvlUnlocks">UNLOCKS NEXT — EMP <b>45</b> · SLOTS <b>4</b> · FLEET <b>22</b> · TIER <b>2</b></div>
+
+    <div class="station-core">
+      <svg viewBox="0 0 132 132">
+        <g class="rot-slow" stroke="#7fb6ff" fill="none" stroke-width="1">
+          <circle cx="66" cy="66" r="58" stroke-dasharray="2 6" opacity=".55"/>
+        </g>
+        <g stroke="#cfe8ff" fill="none" stroke-width="1.3">
+          <polygon points="66,18 100,38 100,94 66,114 32,94 32,38" opacity=".8"/>
+          <circle cx="66" cy="66" r="30" opacity=".9"/>
+          <line x1="66" y1="36" x2="66" y2="18"/>
+          <line x1="66" y1="96" x2="66" y2="114"/>
+          <line x1="36" y1="66" x2="18" y2="66" opacity=".6"/>
+          <line x1="96" y1="66" x2="114" y2="66" opacity=".6"/>
+          <line x1="46" y1="46" x2="34" y2="34" opacity=".5"/>
+          <line x1="86" y1="86" x2="98" y2="98" opacity=".5"/>
+          <line x1="46" y1="86" x2="34" y2="98" opacity=".5"/>
+          <line x1="86" y1="46" x2="98" y2="34" opacity=".5"/>
+        </g>
+        <g class="rot-slow-rev" stroke="#7fb6ff" fill="none" stroke-width="1.1">
+          <rect x="52" y="52" width="28" height="28" opacity=".7"/>
+        </g>
+        <circle class="core-dot" cx="66" cy="66" r="4" fill="#e8f4ff"/>
+      </svg>
+      <div class="station-label">EARTH STATION PRIME<b>HOME OFFICE — SOL SYSTEM</b></div>
+    </div>
+
+    <!-- nav rings injected by JS -->
+    <div class="nav-ring" id="ring-company"></div>
+    <div class="nav-ring" id="ring-station"></div>
+    <div class="nav-ring" id="ring-industry"></div>
+    <div class="nav-ring" id="ring-market"></div>
+    <div class="nav-ring" id="ring-comms"></div>
+
+    <div class="obj-marker" id="objMarker1"></div>
+    <div class="obj-panel" id="objPanel1">
+      <div class="obj-kicker">REQUIREMENT 01</div>
+      <div class="obj-text" id="objText1">Sell 300 Silicate on the Galactic Exchange</div>
+      <div class="obj-progress-track"><div class="obj-progress-fill" id="objFill1"></div></div>
+      <div class="obj-meta"><span id="objMeta1">0 / 300</span><a class="obj-cta" id="objCta1" href="#">GO TO GEX →</a></div>
+    </div>
+
+    <div class="obj-marker" id="objMarker2"></div>
+    <div class="obj-panel" id="objPanel2">
+      <div class="obj-kicker">REQUIREMENT 02</div>
+      <div class="obj-text" id="objText2">Research Basic Extraction Analytics</div>
+      <div class="obj-progress-track"><div class="obj-progress-fill" id="objFill2"></div></div>
+      <div class="obj-meta"><span id="objMeta2">1 / 1</span><span class="obj-complete" id="objCta2">COMPLETE</span></div>
+    </div>
+  </div>
+</div>
+
+<section class="panel panel-tl">
+  <div class="panel-head"><h2>COMMAND IDENTITY</h2></div>
+  <div class="panel-body">
+    <div class="id-row"><span class="id-name">R. VANCE</span><span class="id-role">CHIEF EXECUTIVE</span></div>
+    <div class="id-corp">Helix Meridian Holdings</div>
+    <div class="id-ticker">TICKER · HMH</div>
+    <div class="id-divider"></div>
+    <div class="id-actions">
+      <div class="notice-btn" id="noticeBtn">NOTICES<span class="badge">23</span></div>
+      <button class="logout-btn">LOG OUT ⏻</button>
+    </div>
+    <div class="notice-drop" id="noticeDrop">
+      <div class="notice-item"><b>ISA Claims &amp; Leases</b> — Lease MRS-0419 renewal confirmed.</div>
+      <div class="notice-item"><b>Station Administration</b> — Docking bay maintenance window, 0600 UTC.</div>
+    </div>
+  </div>
+</section>
+
+<section class="panel panel-tr">
+  <div class="panel-head"><h2>FLEET &amp; DEFENSE</h2></div>
+  <div class="panel-body">
+    <div class="mil-stats">
+      <div class="mil-stat"><div class="mil-val" id="atkVal">0</div><div class="mil-lbl">ATK</div></div>
+      <div class="mil-stat"><div class="mil-val" id="defVal">0</div><div class="mil-lbl">DEF</div></div>
+    </div>
+    <div class="readiness-row">
+      <svg class="readiness-ring" viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="16" fill="none" stroke="var(--line-dim)" stroke-width="3"/>
+        <circle cx="20" cy="20" r="16" fill="none" stroke="#7fb6ff" stroke-width="3" stroke-dasharray="100.5 100.5" stroke-dashoffset="0" transform="rotate(-90 20 20)"/>
+      </svg>
+      <div class="readiness-text">READINESS<b id="readyVal">100%</b></div>
+    </div>
+    <div class="conglom-row">
+      <span class="conglom-lbl">CONGLOMERATE</span>
+      <span class="conglom-val">INDEPENDENT</span>
+    </div>
+  </div>
+</section>
+
+<section class="panel panel-bl">
+  <div class="panel-head"><h2>FINANCIAL CORE</h2></div>
+  <div class="panel-body">
+    <div class="fin-primary">
+      <div class="fin-lbl">CASH RESERVES</div>
+      <div class="fin-val" id="cashVal">$0</div>
+    </div>
+    <div class="fin-primary">
+      <div class="fin-lbl">NET DAILY FLOW</div>
+      <div class="fin-warn-row">
+        <span class="fin-warn-arrow fin-warn">▼</span>
+        <span class="fin-val fin-warn" id="flowVal">$0</span>
+      </div>
+      <span class="fin-warn-tag">DEFICIT — REVIEW PAYROLL &amp; LEASES</span>
+    </div>
+    <div class="fin-grid">
+      <div><div class="fin-cell-lbl">SILICATE STOCK</div><div class="fin-cell-val">142 u</div></div>
+      <div><div class="fin-cell-lbl">EMPLOYEES</div><div class="fin-cell-val">18 / 30</div></div>
+    </div>
+    <div class="peg-row">
+      <div><div class="fin-cell-lbl">GEX SILICATE PEG</div><div class="peg-price">61 cr / u</div></div>
+      <svg class="peg-spark" viewBox="0 0 70 20" preserveAspectRatio="none">
+        <polyline points="0,14 12,16 24,10 36,12 48,6 60,8 70,4" fill="none" stroke="#7fb6ff" stroke-width="1.5"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="panel panel-br">
+  <div class="panel-head"><h2>COMMAND FEED</h2></div>
+  <div class="panel-body">
+    <ul class="feed-list" id="feedList"></ul>
+    <div class="feed-stub">Command uplink standing by. Completed actions and queue additions will be logged here.</div>
+  </div>
+</section>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============ STARFIELD + MARS CANVAS ============ */
+  var canvas = document.getElementById('bg');
+  var ctx = canvas.getContext('2d');
+  var W, H, stars = [];
+  var mouseX = 0, mouseY = 0;
+
+  function resizeCanvas(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    stars = [];
+    var count = Math.floor((W*H)/3400);
+    for (var i=0;i<count;i++){
+      stars.push({
+        x: Math.random()*W,
+        y: Math.random()*H,
+        z: 0.2 + Math.random()*0.8,
+        r: Math.random()*1.4 + 0.3,
+        tw: Math.random()*Math.PI*2
+      });
+    }
+  }
+  window.addEventListener('resize', resizeCanvas);
+  window.addEventListener('mousemove', function(e){
+    mouseX = (e.clientX / W) - 0.5;
+    mouseY = (e.clientY / H) - 0.5;
+  });
+  resizeCanvas();
+
+  function drawMars(){
+    var cx = W*0.5, cy = H*1.75, r = Math.max(W,H)*0.60;
+    var g = ctx.createRadialGradient(cx, cy - r*0.92, r*0.1, cx, cy, r);
+    g.addColorStop(0, '#4a2416');
+    g.addColorStop(0.5, '#2c140d');
+    g.addColorStop(1, '#0c0705');
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI*2);
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    // limb glow
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, Math.PI*1.02, Math.PI*1.98);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(255,140,90,0.55)';
+    ctx.shadowColor = 'rgba(255,120,70,0.9)';
+    ctx.shadowBlur = 30;
+    ctx.stroke();
+    ctx.restore();
+
+    // faint craters
+    ctx.save();
+    ctx.globalAlpha = 0.25;
+    var craters = [[-0.18,-0.86,0.05],[0.05,-0.9,0.03],[-0.32,-0.8,0.025],[0.22,-0.83,0.04]];
+    for (var i=0;i<craters.length;i++){
+      var cxr = cx + craters[i][0]*r, cyr = cy + craters[i][1]*r, rr = craters[i][2]*r;
+      ctx.beginPath();
+      ctx.ellipse(cxr, cyr, rr, rr*0.5, 0, 0, Math.PI*2);
+      ctx.fillStyle = '#150906';
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  var t0 = performance.now();
+  function drawBG(now){
+    var dt = now - t0; t0 = now;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#04060a';
+    ctx.fillRect(0,0,W,H);
+
+    for (var i=0;i<stars.length;i++){
+      var s = stars[i];
+      s.tw += 0.0009*dt*(0.5+s.z);
+      var px = s.x + mouseX*40*s.z;
+      var py = s.y + mouseY*24*s.z;
+      var alpha = 0.35 + 0.65*Math.abs(Math.sin(s.tw));
+      ctx.beginPath();
+      ctx.arc(px, py, s.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(207,232,255,'+ (alpha*s.z+0.15) +')';
+      ctx.fill();
+      s.x -= 0.004*dt*s.z;
+      if (s.x < -5) s.x = W+5;
+    }
+    drawMars();
+  }
+
+  /* ============ GEOMETRY HELPERS ============ */
+  var CX = 410, CY = 410;
+  function polar(r, angleDeg){
+    var a = angleDeg * Math.PI / 180;
+    return { x: CX + r*Math.sin(a), y: CY - r*Math.cos(a) };
+  }
+  function samplePts(r, a0, a1, step){
+    step = step || 4;
+    var pts = [];
+    var n = Math.max(1, Math.round(Math.abs(a1-a0)/step));
+    for (var i=0;i<=n;i++){
+      var a = a0 + (a1-a0)*(i/n);
+      var p = polar(r, a);
+      pts.push(p.x.toFixed(1)+','+p.y.toFixed(1));
+    }
+    return pts.join(' ');
+  }
+  function svgEl(tag, attrs){
+    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  /* ============ GAUGE RING (30 ticks, corp level) ============ */
+  var GAUGE_R = 180;
+  var ACTUAL_LEVEL = 2;
+  var TOTAL_LEVELS = 30;
+  var gaugeSvg = document.getElementById('gaugeSvg');
+  var guideCircle = svgEl('circle', {cx:CX, cy:CY, r:GAUGE_R, class:'gauge-ring-guide'});
+  gaugeSvg.appendChild(guideCircle);
+  var ticks = [];
+  for (var i=0;i<TOTAL_LEVELS;i++){
+    var ang = i * (360/TOTAL_LEVELS);
+    var p1 = polar(GAUGE_R-9, ang), p2 = polar(GAUGE_R+9, ang);
+    var lit = i < ACTUAL_LEVEL;
+    var tick = svgEl('line', {x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y, class:'gauge-tick'+(lit?' lit':'')});
+    gaugeSvg.appendChild(tick);
+    ticks.push(tick);
+  }
+  var peekPoly = svgEl('polyline', {class:'gauge-peek', points:''});
+  gaugeSvg.appendChild(peekPoly);
+  function renderPeek(level){
+    var pts = samplePts(GAUGE_R+16, 0, level*(360/TOTAL_LEVELS), 3);
+    peekPoly.setAttribute('points', pts);
+  }
+  renderPeek(ACTUAL_LEVEL);
+
+  /* ============ LEVEL DATA ============ */
+  var LEVELS = {
+    1: { reqs:[
+          {text:'Sell 50 Silicate on the Galactic Exchange', have:50, need:50, cta:'GO TO GEX →', ctaHref:'#gex'},
+          {text:'Establish Mars Lease MRS-0419', have:1, need:1, cta:'VIEW LEASE →', ctaHref:'#lease'}
+        ], unlocks:{emp:30, slots:3, fleet:15, tier:1} },
+    2: { reqs:[
+          {text:'Sell 300 Silicate on the Galactic Exchange', have:0, need:300, cta:'GO TO GEX →', ctaHref:'#gex'},
+          {text:'Research Basic Extraction Analytics', have:1, need:1, cta:'OPEN R&D →', ctaHref:'#rnd'}
+        ], unlocks:{emp:45, slots:4, fleet:22, tier:2} },
+    3: { reqs:[
+          {text:'Sell 750 Silicate on the Galactic Exchange', have:0, need:750, cta:'GO TO GEX →', ctaHref:'#gex'},
+          {text:'Research Refinery Chain I', have:0, need:1, cta:'OPEN R&D →', ctaHref:'#rnd'}
+        ], unlocks:{emp:60, slots:5, fleet:30, tier:2} },
+    4: { reqs:[
+          {text:'Construct a Tier 2 Refinery', have:0, need:1, cta:'VIEW CONSTRUCTION →', ctaHref:'#build'},
+          {text:'Reach 1,200 GEX Transaction Volume', have:0, need:1200, cta:'GO TO GEX →', ctaHref:'#gex'}
+        ], unlocks:{emp:80, slots:6, fleet:40, tier:3} }
+  };
+  var peekLevel = ACTUAL_LEVEL;
+
+  var lvlNum = document.getElementById('lvlNum');
+  var peekTag = document.getElementById('peekTag');
+  var lvlUnlocks = document.getElementById('lvlUnlocks');
+
+  function fmtInt(n){ return n.toLocaleString('en-US'); }
+
+  function renderLevel(){
+    lvlNum.textContent = 'LEVEL ' + peekLevel;
+    if (peekLevel !== ACTUAL_LEVEL){
+      peekTag.textContent = 'PREVIEWING — CURRENT LEVEL ' + ACTUAL_LEVEL;
+      peekTag.classList.add('show');
+    } else {
+      peekTag.classList.remove('show');
+    }
+    renderPeek(peekLevel);
+    var lvl = LEVELS[peekLevel] || LEVELS[ACTUAL_LEVEL];
+    var u = lvl.unlocks;
+    lvlUnlocks.innerHTML = 'UNLOCKS NEXT — EMP <b>'+u.emp+'</b> · SLOTS <b>'+u.slots+'</b> · FLEET <b>'+u.fleet+'</b> · TIER <b>'+u.tier+'</b>';
+    renderObjectives(lvl);
+  }
+
+  document.getElementById('lvlPrev').addEventListener('click', function(){
+    peekLevel = Math.max(1, peekLevel-1); renderLevel();
+  });
+  document.getElementById('lvlNext').addEventListener('click', function(){
+    peekLevel = Math.min(4, peekLevel+1); renderLevel();
+  });
+
+  /* ============ OBJECTIVE CALLOUTS ============ */
+  var objText = [document.getElementById('objText1'), document.getElementById('objText2')];
+  var objFill = [document.getElementById('objFill1'), document.getElementById('objFill2')];
+  var objMeta = [document.getElementById('objMeta1'), document.getElementById('objMeta2')];
+  var objCtaWrap = [document.getElementById('objPanel1').querySelector('.obj-meta'), document.getElementById('objPanel2').querySelector('.obj-meta')];
+
+  function renderObjectives(lvl){
+    for (var i=0;i<2;i++){
+      var req = lvl.reqs[i];
+      objText[i].textContent = req.text;
+      var pct = Math.min(100, Math.round((req.have/req.need)*100));
+      objFill[i].style.width = pct + '%';
+      objMeta[i].textContent = fmtInt(req.have) + ' / ' + fmtInt(req.need);
+      var old = objCtaWrap[i].querySelector('.obj-cta, .obj-complete');
+      if (old) old.remove();
+      var el;
+      if (req.have >= req.need){
+        el = document.createElement('span');
+        el.className = 'obj-complete';
+        el.textContent = 'COMPLETE';
+      } else {
+        el = document.createElement('a');
+        el.className = 'obj-cta';
+        el.href = req.ctaHref;
+        el.textContent = req.cta;
+        el.addEventListener('click', function(e){ e.preventDefault(); });
+      }
+      objCtaWrap[i].appendChild(el);
+    }
+  }
+
+  /* orbit animation for the two objective markers */
+  var marker1 = document.getElementById('objMarker1'), panel1 = document.getElementById('objPanel1');
+  var marker2 = document.getElementById('objMarker2'), panel2 = document.getElementById('objPanel2');
+  var leaderSvg = document.getElementById('leaderSvg');
+  var line1 = svgEl('line', {class:'leader-line'});
+  var line2 = svgEl('line', {class:'leader-line'});
+  leaderSvg.appendChild(line1); leaderSvg.appendChild(line2);
+
+  var theta1 = 150, theta2 = 210;
+  var MARK_R = 196, PANEL_R = 275;
+
+  function placeOrbitItem(theta, marker, panel, line){
+    var mp = polar(MARK_R, theta);
+    var pp = polar(PANEL_R, theta);
+    marker.style.left = mp.x+'px'; marker.style.top = mp.y+'px';
+    panel.style.left = pp.x+'px'; panel.style.top = pp.y+'px';
+    line.setAttribute('x1', mp.x); line.setAttribute('y1', mp.y);
+    line.setAttribute('x2', pp.x); line.setAttribute('y2', pp.y);
+  }
+  placeOrbitItem(theta1, marker1, panel1, line1);
+  placeOrbitItem(theta2, marker2, panel2, line2);
+
+  /* ============ NAV RINGS ============ */
+  var NAV_GROUPS = [
+    { id:'company', radius:210, arc:[-130,130], tag:'COMPANY', items:[
+        {label:'Overview', current:true},
+        {label:'Inbox'},
+        {label:'Financial Core'},
+        {label:'CEO Insight'},
+        {label:'Assignments'},
+        {label:'Conglomerate'}
+      ]},
+    { id:'station', radius:262, arc:[-70,70], tag:'STATION', items:[
+        {label:'Station'}, {label:'Operations'}, {label:'Fleet'}
+      ]},
+    { id:'industry', radius:308, arc:[-92,92], tag:'INDUSTRY', items:[
+        {label:'Corporate R&D'}, {label:'Refinery Chains'}, {label:'Logistics'}
+      ]},
+    { id:'market', radius:350, arc:[-42,42], tag:'MARKET', items:[
+        {label:'Galactic Exchange'}, {label:'Assets'}
+      ]},
+    { id:'comms', radius:386, arc:[-28,28], tag:'COMMS', items:[
+        {label:'Chat'}, {label:'Forum'}
+      ]}
+  ];
+
+  var guideSvg = document.getElementById('guideSvg');
+
+  NAV_GROUPS.forEach(function(group){
+    group.rotation = 0;
+    var n = group.items.length;
+    group.items.forEach(function(item, i){
+      item.baseAngle = (n === 1) ? 0 : group.arc[0] + i*((group.arc[1]-group.arc[0])/(n-1));
+    });
+    group.guide = svgEl('polyline', {class:'ring-guide', points:''});
+    guideSvg.appendChild(group.guide);
+
+    var container = document.getElementById('ring-'+group.id);
+    group.nodeEls = group.items.map(function(item){
+      var node = document.createElement('div');
+      node.className = 'nav-node' + (item.current ? ' current selected' : '');
+      node.innerHTML = '<div class="dot"></div><div class="label">'+item.label+'</div>';
+      container.appendChild(node);
+      node.addEventListener('click', function(){
+        group.items.forEach(function(it, idx){ group.nodeEls[idx].classList.remove('selected'); });
+        node.classList.add('selected');
+        group.rotation = -item.baseAngle;
+        document.getElementById('viewLabel').textContent = item.label.toUpperCase();
+        renderGroup(group);
+      });
+      return node;
+    });
+  });
+
+  function renderGroup(group){
+    var a0 = group.arc[0] + group.rotation, a1 = group.arc[1] + group.rotation;
+    group.guide.setAttribute('points', samplePts(group.radius, a0, a1, 3));
+    group.items.forEach(function(item, i){
+      var angle = item.baseAngle + group.rotation;
+      var p = polar(group.radius, angle);
+      var node = group.nodeEls[i];
+      node.style.left = p.x+'px';
+      node.style.top = p.y+'px';
+      node.style.transition = 'left .7s cubic-bezier(.2,.7,.3,1), top .7s cubic-bezier(.2,.7,.3,1)';
+      node.classList.toggle('flip', Math.sin(angle*Math.PI/180) < -0.05);
+    });
+  }
+  NAV_GROUPS.forEach(renderGroup);
+
+  /* ============ NOTICES DROPDOWN ============ */
+  var noticeBtn = document.getElementById('noticeBtn');
+  var noticeDrop = document.getElementById('noticeDrop');
+  noticeBtn.addEventListener('click', function(){ noticeDrop.classList.toggle('open'); });
+
+  /* ============ COUNT-UP NUMBERS ============ */
+  function countUp(el, target, prefix, ms, negative){
+    var start = performance.now();
+    function step(now){
+      var p = Math.min(1, (now-start)/ms);
+      var eased = 1 - Math.pow(1-p, 3);
+      var val = Math.round(target*eased);
+      el.textContent = (negative ? '-' : '') + prefix + fmtInt(Math.abs(val));
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  countUp(document.getElementById('cashVal'), 18061, '$', 1100, false);
+  countUp(document.getElementById('flowVal'), 27915, '$', 1300, true);
+
+  /* ============ COMMAND FEED ============ */
+  var feedList = document.getElementById('feedList');
+  var initialFeed = [
+    { t:'−0:04', m:'Payroll disbursed: <b>-$4,210</b>' },
+    { t:'−0:19', m:'Lease MRS-0419 renewed by ISA Claims &amp; Leases Division' },
+    { t:'−0:52', m:'Research queued: Refinery Chain I' },
+    { t:'−1:10', m:'Extractor MX-01 cycle complete: <b>+48 Silicate</b>' }
+  ];
+  var poolFeed = [
+    'Extractor MX-02 cycle complete: <b>+31 Silicate</b>',
+    'GEX sell order filled: 40 Silicate @ 61cr',
+    'Notice received from Station Administration',
+    'Fleet status check: all vessels nominal',
+    'Employee onboarding complete: Refinery Tech',
+    'Silicate stockpile crossed 140 units'
+  ];
+  function addFeedItem(timeLabel, html){
+    var li = document.createElement('li');
+    li.className = 'feed-item';
+    li.innerHTML = '<span class="feed-time">'+timeLabel+'</span><span>'+html+'</span>';
+    feedList.insertBefore(li, feedList.firstChild);
+    while (feedList.children.length > 7) feedList.removeChild(feedList.lastChild);
+  }
+  initialFeed.slice().reverse().forEach(function(f){ addFeedItem(f.t, f.m); });
+  var feedClock = 0;
+  setInterval(function(){
+    feedClock++;
+    var m = poolFeed[Math.floor(Math.random()*poolFeed.length)];
+    addFeedItem('−0:00', m);
+  }, 9000);
+
+  /* ============ MAIN LOOP ============ */
+  var speed1 = 360/95000, speed2 = -360/76000;
+  function loop(now){
+    drawBG(now);
+    theta1 += speed1 * 16;
+    theta2 += speed2 * 16;
+    placeOrbitItem(theta1, marker1, panel1, line1);
+    placeOrbitItem(theta2, marker2, panel2, line2);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  renderLevel();
+
+  /* ============ RESPONSIVE STAGE SCALE ============ */
+  function fitStage(){
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var avail = Math.min(vw*0.62, vh*0.86);
+    var scale = Math.min(1, avail/820);
+    document.documentElement.style.setProperty('--stagescale', Math.max(0.42, scale));
+  }
+  window.addEventListener('resize', fitStage);
+  fitStage();
+
+})();
+</script>
+</body>
+</html>

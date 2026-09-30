@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 07 v2 — Zaibatsu: Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* =========================================================================
+     ZAIBATSU SHELL — reusable design tokens + component classes.
+     Copied verbatim from 07-zaibatsu-v2-overview.html so every v2 page shares
+     one system. Operations-only additions are appended below the shell block.
+     ========================================================================= */
+  :root{
+    --ink:#0a0a0a;
+    --panel:#161210;
+    --panel-2:#1d1815;
+    --panel-3:#241e19;
+    --hairline:rgba(244,238,227,0.09);
+    --hairline-strong:rgba(244,238,227,0.16);
+    --vermilion:#e0402a;
+    --vermilion-dim:rgba(224,64,42,0.16);
+    --vermilion-glow:rgba(224,64,42,0.35);
+    --white:#f4efe4;
+    --white-dim:rgba(244,239,228,0.58);
+    --white-faint:rgba(244,239,228,0.32);
+    --gold:#c9a35b;
+    --gold-dim:rgba(201,163,91,0.35);
+    --sans:'Zen Kaku Gothic New','IBM Plex Sans Condensed',sans-serif;
+    --jp:'Noto Sans JP',sans-serif;
+    --mono:'IBM Plex Mono',monospace;
+    --content-max:1680px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--ink);}
+  body{
+    font-family:var(--sans);
+    color:var(--white);
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(224,64,42,0.06), transparent 45%),
+      radial-gradient(ellipse at 90% 110%, rgba(201,163,91,0.05), transparent 40%),
+      var(--ink);
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit; text-decoration:none;}
+  .mono{font-family:var(--mono);}
+
+  .frame{ max-width:var(--content-max); margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ---------- top strip ---------- */
+  .topstrip{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 32px;
+    border-bottom:1px solid var(--hairline-strong);
+    background:linear-gradient(180deg, var(--panel-2), var(--panel));
+  }
+  .brand{ display:flex; align-items:baseline; gap:12px; }
+  .brand .jpmark{ font-family:var(--jp); font-weight:900; font-size:15px; color:var(--vermilion); letter-spacing:0.08em; }
+  .brand .title{
+    font-family:var(--sans); font-weight:900; font-size:14px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--white);
+  }
+  .brand .ver{ font-family:var(--mono); font-size:10.5px; color:var(--white-faint); letter-spacing:0.05em; }
+  .player{ display:flex; align-items:center; gap:22px; }
+  .player .id{ text-align:right; }
+  .player .id .name{ font-size:13px; font-weight:700; letter-spacing:0.02em; }
+  .player .id .corp{ font-family:var(--mono); font-size:11px; color:var(--white-dim); }
+  .player .corp b{ color:var(--gold); font-weight:600; }
+  .notice-pill{
+    display:flex; align-items:center; gap:7px;
+    border:1px solid var(--vermilion); background:var(--vermilion-dim);
+    color:var(--white); font-family:var(--mono); font-size:11px; padding:6px 10px;
+    border-radius:2px; cursor:pointer;
+  }
+  .notice-pill .dot{ width:6px; height:6px; border-radius:50%; background:var(--vermilion); box-shadow:0 0 8px var(--vermilion-glow); }
+
+  /* ---------- buttons (reusable: .btn, .btn-primary, .btn-ghost, .btn-sm) ---------- */
+  .btn{
+    font-family:var(--sans); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; font-weight:700;
+    padding:8px 14px; border-radius:2px; cursor:pointer; border:1px solid transparent; display:inline-flex;
+    align-items:center; gap:6px; background:transparent; color:var(--white);
+  }
+  .btn-ghost{ color:var(--white-dim); border-color:var(--hairline-strong); }
+  .btn-ghost:hover{ color:var(--white); border-color:var(--white-faint); }
+  .btn-primary{ background:var(--vermilion); color:var(--white); }
+  .btn-primary:hover{ background:#f04d34; }
+  .btn-sm{ font-size:10.5px; padding:5px 10px; }
+  .btn:disabled{ opacity:.4; cursor:default; }
+
+  /* ---------- tab rail : train signage (bigger badges/labels, taller rail) ---------- */
+  .tabrail{
+    display:flex; align-items:stretch; flex-wrap:wrap; gap:0;
+    background:var(--ink);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .rail-group{ display:flex; align-items:stretch; flex:0 1 auto; border-right:1px solid var(--hairline); border-bottom:1px solid var(--hairline); }
+  .rail-group-label{
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; font-weight:600;
+    color:var(--white-dim); padding:0 5px; background:var(--panel);
+    writing-mode:vertical-rl;
+    border-right:1px solid var(--hairline);
+    min-width:19px; flex-shrink:0;
+  }
+  .station{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+    padding:11px 6px 9px; cursor:pointer; width:80px; flex-shrink:0;
+    border-right:1px solid var(--hairline);
+    position:relative;
+    background:var(--ink);
+    transition:background .15s;
+  }
+  .station:hover{ background:var(--panel-2); }
+  .station .code-badge{
+    width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:700; font-size:10.5px;
+    border:2px solid var(--white-faint); color:var(--white-dim);
+  }
+  .station .code-badge b{ font-size:12px; }
+  .station .label{
+    font-size:13px; font-weight:500; color:var(--white-dim); letter-spacing:0.005em;
+    white-space:normal; text-align:center; line-height:1.15;
+  }
+  .station.active{ background:var(--panel-3); }
+  .station.active .code-badge{ border-color:var(--vermilion); background:var(--vermilion); color:var(--white); box-shadow:0 0 10px var(--vermilion-glow); }
+  .station.active .label{ color:var(--white); font-weight:700; }
+  .station.active::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--vermilion);
+  }
+  .station.link .label::after{ content:'→'; display:block; font-size:10px; color:var(--gold); margin-top:1px; }
+  .viewing-strip{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.1em; color:var(--white-faint);
+    padding:6px 32px; border-bottom:1px solid var(--hairline); background:var(--panel);
+  }
+  .viewing-strip b{ color:var(--gold); font-weight:600; }
+
+  /* ---------- page header ---------- */
+  .page-head{ padding:28px 32px 8px; }
+  .page-head .eyebrow{ font-family:var(--jp); font-weight:900; font-size:13px; color:var(--vermilion); letter-spacing:0.1em; margin-bottom:2px;}
+  .headline{
+    font-family:var(--sans); font-weight:900; font-size:40px; letter-spacing:0.01em;
+    text-transform:uppercase; color:var(--white); margin:0;
+    transform:scaleY(1.28); transform-origin:left bottom;
+    display:inline-block;
+  }
+  .headline .sub{ font-size:18px; color:var(--white-faint); font-weight:700; margin-left:14px; }
+  .page-head .meta-line{
+    display:flex; gap:18px; margin-top:14px; font-family:var(--mono); font-size:10.5px; color:var(--white-faint);
+    letter-spacing:0.06em; flex-wrap:wrap;
+  }
+  .page-head .meta-line span b{ color:var(--white); font-weight:600;}
+
+  /* ---------- layout grid ---------- */
+  .content{ padding:6px 32px 60px; flex:1; }
+  .dash{ display:grid; grid-template-columns:320px 1fr 340px; gap:22px; align-items:start; }
+  .col{ display:flex; flex-direction:column; gap:16px; }
+  .panel{ border:1px solid var(--hairline-strong); background:var(--panel); }
+  .panel-head{
+    display:flex; align-items:center; justify-content:space-between; padding:10px 14px;
+    border-bottom:1px solid var(--hairline); background:var(--panel-2);
+  }
+  .panel-head h3{ margin:0; font-size:10.5px; text-transform:uppercase; letter-spacing:0.14em; font-weight:700; color:var(--white-dim); }
+  .panel-head h3 em{ font-family:var(--jp); font-style:normal; color:var(--vermilion); font-weight:900; margin-right:7px; }
+  .panel-body{ padding:14px; }
+
+  /* ---------- table (reusable: .table) ---------- */
+  .table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .table th{ text-align:left; font-weight:500; text-transform:uppercase; letter-spacing:0.06em; font-size:10.5px; color:var(--white-faint); padding:8px 14px 8px 0; border-bottom:1px solid var(--hairline); white-space:nowrap; }
+  .table td{ padding:8px 14px 8px 0; border-bottom:1px solid var(--hairline); color:var(--white); font-family:var(--mono); white-space:nowrap; }
+  .table tr:last-child td{ border-bottom:none; }
+  .table td.num, .table th.num{ text-align:right; }
+  .table-scroll{ overflow-x:auto; }
+
+  /* ---------- tags (reusable: .tag, .tag-accent, .tag-gold, .tag-muted) ---------- */
+  .tag{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em; padding:2px 7px;
+    border:1px solid var(--gold); color:var(--gold); border-radius:2px; vertical-align:middle;
+    text-transform:uppercase; display:inline-block;
+  }
+  .tag-accent{ border-color:var(--vermilion); color:var(--vermilion); }
+  .tag-gold{ border-color:var(--gold); color:var(--gold); }
+  .tag-muted{ border-color:var(--white-faint); color:var(--white-faint); border-style:dashed; }
+
+  /* ---------- stats (reusable: .stat, .stat-grid, .stat-compact) ---------- */
+  .stat{ display:flex; flex-direction:column; gap:2px; padding:12px 14px; border-bottom:1px solid var(--hairline); }
+  .stat:last-child{ border-bottom:none; }
+  .stat .stat-label{ font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--white-faint); }
+  .stat .stat-value{ font-family:var(--mono); font-size:22px; font-weight:600; color:var(--white); }
+  .stat .stat-note{ font-size:10.5px; color:var(--white-faint); }
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .stat-compact{ padding:0; border-bottom:none; }
+  .stat-compact .stat-value{ font-size:15px; }
+  .stat-compact .stat-label{ font-size:11.5px; color:var(--white-dim); text-transform:none; letter-spacing:0.01em; }
+
+  /* ---------- warning (reusable: .warning, .warning-inner) ---------- */
+  .warning{
+    margin:0; padding:14px;
+    background:repeating-linear-gradient(135deg, var(--vermilion) 0 10px, #8a2417 10px 20px);
+    border-top:1px solid var(--hairline-strong); border-bottom:1px solid var(--hairline-strong);
+  }
+  .warning-inner{ background:var(--ink); padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .warning-inner .wtxt-col{ display:flex; align-items:baseline; gap:8px; }
+  .warning-inner .wjp{ font-family:var(--jp); font-weight:900; font-size:15px; color:var(--vermilion); }
+  .warning-inner .wtext{ font-size:10.5px; letter-spacing:0.1em; color:var(--white-dim); text-transform:uppercase; white-space:nowrap; }
+  .warning-inner .wval{ font-family:var(--mono); font-size:26px; font-weight:700; color:var(--vermilion); white-space:nowrap; }
+
+  .seal{ position:absolute; top:50%; right:12px; width:42px; height:42px; pointer-events:none; transform:translateY(-50%) rotate(-8deg); }
+
+  .mocklabel{
+    font-family:var(--mono); font-size:9.5px; color:var(--white-faint); letter-spacing:0.08em;
+    border-left:1px solid var(--hairline-strong); padding-left:12px; margin-left:4px; white-space:nowrap;
+  }
+
+  /* =========================================================================
+     OPERATIONS-ONLY ADDITIONS
+     ========================================================================= */
+
+  .row-2{ display:grid; grid-template-columns:400px 1fr; gap:22px; align-items:start; }
+  /* grid/flex items default to min-width:auto, which lets wide table content force the
+     track wider than the viewport and defeats .table-scroll's overflow-x:auto — pin them. */
+  .row-2 > *, .dash > .col, .extractor-grid > *, .econ-grid > *{ min-width:0; }
+
+  .field-list{ display:flex; flex-direction:column; gap:0; }
+  .field-row{ display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--hairline); font-size:12.5px; }
+  .field-row:last-child{ border-bottom:none; }
+  .field-row .fk{ color:var(--white-faint); font-size:11px; text-transform:uppercase; letter-spacing:0.06em; }
+  .field-row .fv{ font-family:var(--mono); color:var(--white); text-align:right; }
+  .field-row .fv small{ color:var(--white-faint); font-size:10px; }
+
+  .map-svg{ width:100%; height:auto; display:block; }
+
+  .extractor-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .excard{ border:1px solid var(--hairline-strong); background:var(--panel-2); padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
+  .excard-head{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .excard-head .exid{ font-family:var(--mono); font-weight:700; font-size:15px; letter-spacing:0.02em; }
+  .cycle-bar{ position:relative; height:8px; background:var(--panel-3); border:1px solid var(--hairline-strong); border-radius:2px; overflow:hidden; }
+  .cycle-fill{ position:absolute; top:0; left:0; height:100%; background:var(--vermilion); box-shadow:0 0 8px var(--vermilion-glow); transition:width .6s linear; }
+  .cycle-fill.ready{ background:var(--gold); box-shadow:0 0 8px var(--gold-dim); }
+  .cycle-meta{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:10.5px; color:var(--white-faint); }
+  .cycle-meta b{ color:var(--white-dim); font-weight:500; }
+  .excard-stats{ display:grid; grid-template-columns:1fr 1fr; gap:7px 12px; font-size:10.5px; color:var(--white-faint); text-transform:uppercase; letter-spacing:0.05em; }
+  .excard-stats b{ display:block; font-family:var(--mono); font-size:13px; color:var(--white); text-transform:none; letter-spacing:0; margin-top:2px; font-weight:600; }
+  .excard-actions{ display:flex; gap:8px; margin-top:2px; }
+  .excard-actions .btn{ flex:1; justify-content:center; }
+
+  .excard.empty{ align-items:center; justify-content:center; text-align:center; border-style:dashed; gap:10px; padding:22px 16px; color:var(--white-faint); }
+  .empty-plus{
+    width:38px; height:38px; border-radius:50%; border:1px dashed var(--white-faint);
+    display:flex; align-items:center; justify-content:center; font-size:20px; color:var(--white-faint);
+  }
+  .excard.empty .slot-title{ font-family:var(--mono); font-size:11px; letter-spacing:0.1em; color:var(--white-faint); text-transform:uppercase; }
+  .excard.empty .slot-name{ font-size:13px; color:var(--white-dim); font-weight:600; }
+  .excard.empty .slot-cost{ font-family:var(--mono); font-size:11px; color:var(--white-faint); }
+
+  .econ-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:14px; }
+  .econ-item{ border:1px solid var(--hairline-strong); background:var(--panel-2); padding:10px 12px; }
+  .econ-item .el{ font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--white-faint); }
+  .econ-item .ev{ font-family:var(--mono); font-size:17px; font-weight:600; margin-top:3px; }
+  .econ-item .ev.neg{ color:var(--vermilion); }
+  .econ-item .ev.zero{ color:var(--white-faint); }
+  .margin-note{ font-size:11.5px; line-height:1.6; color:var(--white-dim); padding:12px 14px; border-top:1px solid var(--hairline); }
+  .margin-note b{ color:var(--gold); font-weight:600; }
+
+  /* ---------- responsive ---------- */
+  .rail-break{ flex-basis:0; width:0; height:0; overflow:hidden; }
+  @media (max-width:1360px){
+    .rail-break.b1{ flex-basis:100%; }
+  }
+  @media (max-width:800px){
+    .rail-break.b2{ flex-basis:100%; }
+  }
+  @media (max-width:1280px){
+    .dash{ grid-template-columns:1fr 1fr; }
+    .dash .col:nth-child(3){ grid-column:1 / -1; }
+    .row-2{ grid-template-columns:1fr; }
+    .extractor-grid{ grid-template-columns:1fr 1fr; }
+    .econ-grid{ grid-template-columns:1fr 1fr; }
+  }
+  @media (max-width:800px){
+    .dash{ grid-template-columns:1fr; }
+    .headline{ font-size:26px; }
+    .topstrip{ flex-wrap:wrap; gap:10px; }
+    .extractor-grid{ grid-template-columns:1fr; }
+  }
+  @media (max-width:540px){
+    .rail-group{ flex:0 0 100%; flex-wrap:wrap; border-right:none; border-bottom:1px solid var(--hairline-strong); }
+    .rail-group-label{
+      writing-mode:horizontal-tb; transform:none; width:100%; min-width:0;
+      justify-content:flex-start; padding:5px 8px; border-right:none; border-bottom:1px solid var(--hairline);
+    }
+    .station{ width:66px; flex:0 0 auto; padding:9px 6px 7px; }
+    .station .label{ font-size:11px; }
+    .headline{ font-size:21px; transform:scaleY(1.15); }
+    .content, .page-head{ padding-left:14px; padding-right:14px; }
+    .topstrip{ padding:12px 14px; }
+    .viewing-strip{ padding:6px 14px; }
+    .econ-grid{ grid-template-columns:1fr 1fr; }
+    .field-row{ flex-direction:column; gap:2px; }
+    .field-row .fv{ text-align:left; }
+    .brand{ flex-wrap:wrap; row-gap:4px; }
+    .mocklabel{ border-left:none; padding-left:0; margin-left:0; flex-basis:100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <div class="topstrip">
+    <div class="brand">
+      <span class="jpmark">星际定居协议</span>
+      <span class="title">The Interstellar Settlement Protocol</span>
+      <span class="ver">v0.4 &nbsp;/&nbsp; EST. 2147</span>
+      <span class="mocklabel">MOCKUP 07 v2 - ZAIBATSU - OPERATIONS</span>
+    </div>
+    <div class="player">
+      <div class="notice-pill" id="noticePill"><span class="dot"></span> 23 UNREAD</div>
+      <div class="id">
+        <div class="name">R. VANCE <span style="color:var(--white-faint); font-weight:400;">— CEO</span></div>
+        <div class="corp"><b>HELIX MERIDIAN HOLDINGS</b> · HMH</div>
+      </div>
+      <button class="btn btn-ghost" id="logoutBtn">Log Out</button>
+    </div>
+  </div>
+
+  <!-- ===================== NAV RAIL — copied verbatim from the shell, active station changed ===================== -->
+  <nav class="tabrail" id="tabrail">
+    <div class="rail-group">
+      <div class="rail-group-label">COMPANY</div>
+      <a class="station link" href="07-zaibatsu-v2-overview.html" data-group="Company" data-name="Overview"><div class="code-badge"><b>C</b>01</div><div class="label">Overview</div></a>
+      <div class="station" data-group="Company" data-name="Inbox"><div class="code-badge"><b>C</b>02</div><div class="label">Inbox</div></div>
+      <div class="station" data-group="Company" data-name="Financial Core"><div class="code-badge"><b>C</b>03</div><div class="label">Financial Core</div></div>
+      <div class="station" data-group="Company" data-name="CEO Insight"><div class="code-badge"><b>C</b>04</div><div class="label">CEO Insight</div></div>
+      <div class="station" data-group="Company" data-name="Assignments"><div class="code-badge"><b>C</b>05</div><div class="label">Assignments</div></div>
+      <div class="station" data-group="Company" data-name="Conglomerate"><div class="code-badge"><b>C</b>06</div><div class="label">Conglomerate</div></div>
+    </div>
+    <div class="rail-break b2"></div>
+    <div class="rail-group">
+      <div class="rail-group-label">STATION</div>
+      <div class="station" data-group="Station" data-name="Station"><div class="code-badge"><b>S</b>01</div><div class="label">Station</div></div>
+      <div class="station active" data-group="Station" data-name="Operations"><div class="code-badge"><b>S</b>02</div><div class="label">Operations</div></div>
+      <div class="station" data-group="Station" data-name="Fleet"><div class="code-badge"><b>S</b>03</div><div class="label">Fleet</div></div>
+    </div>
+    <div class="rail-break b1"></div>
+    <div class="rail-group">
+      <div class="rail-group-label">INDUSTRY</div>
+      <a class="station link" href="07-zaibatsu-v2-research.html" data-group="Industry" data-name="Corporate R&amp;D"><div class="code-badge"><b>I</b>01</div><div class="label">Corporate R&amp;D</div></a>
+      <div class="station" data-group="Industry" data-name="Refinery Chains"><div class="code-badge"><b>I</b>02</div><div class="label">Refinery Chains</div></div>
+      <div class="station" data-group="Industry" data-name="Logistics"><div class="code-badge"><b>I</b>03</div><div class="label">Logistics</div></div>
+    </div>
+    <div class="rail-group">
+      <div class="rail-group-label">MARKET</div>
+      <a class="station link" href="07-zaibatsu-v2-exchange.html" data-group="Market" data-name="Galactic Exchange"><div class="code-badge"><b>M</b>01</div><div class="label">Galactic Exchange</div></a>
+      <div class="station" data-group="Market" data-name="Assets"><div class="code-badge"><b>M</b>02</div><div class="label">Assets</div></div>
+    </div>
+    <div class="rail-group" style="border-right:none;">
+      <div class="rail-group-label">COMMS</div>
+      <div class="station" data-group="Comms" data-name="Chat"><div class="code-badge"><b>X</b>01</div><div class="label">Chat</div></div>
+      <div class="station" data-group="Comms" data-name="Forum"><div class="code-badge"><b>X</b>02</div><div class="label">Forum</div></div>
+    </div>
+  </nav>
+  <div class="viewing-strip">VIEWING: <b id="viewingName">Station — Operations</b> &nbsp;/&nbsp; STATION S-02 &nbsp;/&nbsp; ROUTE NORMAL</div>
+  <!-- ===================== /NAV RAIL ===================== -->
+
+  <div class="page-head">
+    <div class="eyebrow">作业</div>
+    <h1 class="headline">Operations<span class="sub">Mining &amp; Extraction — Mars</span></h1>
+    <div class="meta-line">
+      <span>CORP ID: <b>HMH-01</b></span>
+      <span>LEASE: <b>MRS-0419</b></span>
+      <span>SECTOR: <b>Tharsis-7</b></span>
+      <span>EXTRACTOR SLOTS: <b id="slotsVal">2 / 3</b></span>
+      <span>SERVER TIME: <b class="mono" id="clock">—</b></span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="row-2">
+      <!-- LEASE PANEL -->
+      <div class="panel">
+        <div class="panel-head"><h3>Mars Lease — MRS-0419</h3><span class="tag tag-gold">ACTIVE</span></div>
+        <div class="panel-body">
+          <div class="field-list">
+            <div class="field-row"><span class="fk">Filing Authority</span><span class="fv">ISA Claims &amp; Leases Div.</span></div>
+            <div class="field-row"><span class="fk">Site</span><span class="fv">Mars — Tharsis Sector 7</span></div>
+            <div class="field-row"><span class="fk">Filed</span><span class="fv">Cycle 2147.03</span></div>
+            <div class="field-row"><span class="fk">Term</span><span class="fv">180-cycle standard</span></div>
+            <div class="field-row"><span class="fk">Renewal</span><span class="fv">Cycle 2147.19 <small>confirmed</small></span></div>
+            <div class="field-row"><span class="fk">Lease Fee</span><span class="fv">340 cr <small>/ cycle</small></span></div>
+            <div class="field-row"><span class="fk">Extractor Slots</span><span class="fv" id="slotsValFv">2 / 3 used</span></div>
+            <div class="field-row"><span class="fk">Silicate Stock</span><span class="fv"><span id="stockVal">142</span> units</span></div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="fileLeaseBtn" style="margin-top:14px; width:100%;">File New Lease</button>
+        </div>
+      </div>
+
+      <!-- SCHEMATIC MAP -->
+      <div class="panel">
+        <div class="panel-head"><h3>Claim Schematic — Tharsis Sector 7</h3><span class="tag tag-muted">DIAGRAM</span></div>
+        <div class="panel-body">
+          <svg class="map-svg" viewBox="0 0 620 260" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="620" height="260" fill="var(--panel-2)"/>
+            <!-- sector grid -->
+            <g stroke="var(--hairline)" stroke-width="1">
+              <line x1="0" y1="52" x2="620" y2="52"/><line x1="0" y1="104" x2="620" y2="104"/>
+              <line x1="0" y1="156" x2="620" y2="156"/><line x1="0" y1="208" x2="620" y2="208"/>
+              <line x1="103" y1="0" x2="103" y2="260"/><line x1="206" y1="0" x2="206" y2="260"/>
+              <line x1="309" y1="0" x2="309" y2="260"/><line x1="412" y1="0" x2="412" y2="260"/>
+              <line x1="515" y1="0" x2="515" y2="260"/>
+            </g>
+            <!-- claim boundary -->
+            <rect x="60" y="40" width="500" height="180" fill="none" stroke="var(--vermilion)" stroke-width="2" stroke-dasharray="9 6" opacity="0.85"/>
+            <text x="70" y="28" font-family="IBM Plex Mono" font-size="11" letter-spacing="1" fill="var(--gold)">THARSIS SECTOR 7</text>
+            <text x="410" y="240" font-family="IBM Plex Mono" font-size="10" letter-spacing="1" fill="var(--vermilion)" text-anchor="end">CLAIM MRS-0419</text>
+
+            <!-- compass -->
+            <g transform="translate(578,36)" opacity="0.7">
+              <line x1="0" y1="10" x2="0" y2="-14" stroke="var(--white-faint)" stroke-width="1.5"/>
+              <polygon points="0,-18 -5,-9 5,-9" fill="var(--white-faint)"/>
+              <text x="0" y="22" font-family="IBM Plex Mono" font-size="9" fill="var(--white-faint)" text-anchor="middle">N</text>
+            </g>
+
+            <!-- MX-01 -->
+            <g transform="translate(190,130)">
+              <circle r="30" fill="none" stroke="var(--hairline-strong)" stroke-width="4"/>
+              <circle r="30" fill="none" stroke="var(--vermilion)" stroke-width="4" stroke-dasharray="188.5" stroke-dashoffset="52.8" stroke-linecap="round" transform="rotate(-90)"/>
+              <circle r="22" fill="var(--panel-3)"/>
+              <text y="4" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--white)">72%</text>
+              <text y="46" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600" font-size="12" fill="var(--white)">MX-01</text>
+              <text y="60" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--white-faint)">RUNNING</text>
+            </g>
+
+            <!-- MX-02 -->
+            <g transform="translate(360,130)">
+              <circle r="30" fill="none" stroke="var(--hairline-strong)" stroke-width="4"/>
+              <circle r="30" fill="none" stroke="var(--gold)" stroke-width="4" stroke-dasharray="188.5" stroke-dashoffset="130.1" stroke-linecap="round" transform="rotate(-90)"/>
+              <circle r="22" fill="var(--panel-3)"/>
+              <text y="4" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--white)">31%</text>
+              <text y="46" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600" font-size="12" fill="var(--white)">MX-02</text>
+              <text y="60" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--white-faint)">RUNNING</text>
+            </g>
+
+            <!-- Slot 03, empty -->
+            <g transform="translate(500,130)">
+              <circle r="26" fill="none" stroke="var(--white-faint)" stroke-width="2" stroke-dasharray="5 5"/>
+              <line x1="-8" y1="0" x2="8" y2="0" stroke="var(--white-faint)" stroke-width="2"/>
+              <line x1="0" y1="-8" x2="0" y2="8" stroke="var(--white-faint)" stroke-width="2"/>
+              <text y="46" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600" font-size="12" fill="var(--white-faint)">SLOT 03</text>
+              <text y="60" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--white-faint)">OPEN</text>
+            </g>
+
+            <!-- scale -->
+            <g transform="translate(60,222)" font-family="IBM Plex Mono" font-size="9" fill="var(--white-faint)">
+              <line x1="0" y1="0" x2="80" y2="0" stroke="var(--white-faint)" stroke-width="1"/>
+              <line x1="0" y1="-3" x2="0" y2="3" stroke="var(--white-faint)" stroke-width="1"/>
+              <line x1="80" y1="-3" x2="80" y2="3" stroke="var(--white-faint)" stroke-width="1"/>
+              <text x="0" y="14">0</text>
+              <text x="62" y="14">500m</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXTRACTORS -->
+    <div class="panel" style="margin-top:22px;">
+      <div class="panel-head"><h3>Extraction Yards — MRS-0419</h3><span class="tag tag-gold" id="deployedTag">2 / 3 DEPLOYED</span></div>
+      <div class="panel-body">
+        <div class="extractor-grid" id="extractorGrid"></div>
+      </div>
+    </div>
+
+    <!-- ECONOMICS -->
+    <div class="panel" style="margin-top:22px;">
+      <div class="panel-head"><h3>Mining Economics</h3><span class="tag tag-muted">DAILY</span></div>
+      <div class="panel-body">
+        <div class="econ-grid">
+          <div class="econ-item"><div class="el">Extraction Fees</div><div class="ev neg">-$680</div></div>
+          <div class="econ-item"><div class="el">Payroll</div><div class="ev neg">-$4,210</div></div>
+          <div class="econ-item"><div class="el">Lease Fee</div><div class="ev neg">-$340</div></div>
+          <div class="econ-item"><div class="el">Silicate Sold (24h)</div><div class="ev zero">$0</div></div>
+        </div>
+      </div>
+      <div class="warning">
+        <div class="warning-inner">
+          <div class="wtxt-col">
+            <div class="wjp">警告</div>
+            <div class="wtext">Mining Net Contribution — Daily Flow</div>
+          </div>
+          <div class="wval">-$5,230</div>
+        </div>
+      </div>
+      <div class="margin-note">
+        Per-cycle margin at the current GEX peg (<b>61 cr/unit</b>): a completed 48-unit cycle is worth
+        <b>2,928 cr</b> gross, <b>2,843 cr</b> net of the 85 cr extraction fee — <b>once sold</b>. All 142 units on
+        hand are still unlisted, so extraction fees, payroll and the lease are paid in cash today while the
+        Silicate they produced sits as inventory. That gap is most of what Financial Core reports as this
+        corporation's net daily flow.
+      </div>
+    </div>
+
+    <div class="row-2" style="margin-top:22px;">
+      <!-- LIFETIME TOTALS -->
+      <div class="panel">
+        <div class="panel-head"><h3>Lifetime Totals</h3></div>
+        <div class="panel-body">
+          <div class="table-scroll">
+          <table class="table">
+            <thead><tr><th>Extractor</th><th class="num">Mined</th><th class="num">Fees Paid</th><th class="num">Uptime</th></tr></thead>
+            <tbody id="totalsBody">
+              <tr><td>MX-01</td><td class="num">1,644 u</td><td class="num">2,910 cr</td><td class="num">97%</td></tr>
+              <tr><td>MX-02</td><td class="num">612 u</td><td class="num">1,020 cr</td><td class="num">89%</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MINING HISTORY -->
+      <div class="panel">
+        <div class="panel-head"><h3>Mining History</h3><span class="tag tag-muted">LAST 6 CYCLES</span></div>
+        <div class="panel-body">
+          <div class="table-scroll">
+          <table class="table">
+            <thead><tr><th>Cycle</th><th>Extractor</th><th class="num">Yield</th><th class="num">Fee</th><th>Completed</th></tr></thead>
+            <tbody id="historyBody">
+              <tr><td>#118</td><td>MX-01</td><td class="num">+48</td><td class="num">-85 cr</td><td>2147.14 06:00 STT</td></tr>
+              <tr><td>#117</td><td>MX-02</td><td class="num">+48</td><td class="num">-85 cr</td><td>2147.14 00:12 STT</td></tr>
+              <tr><td>#116</td><td>MX-01</td><td class="num">+48</td><td class="num">-85 cr</td><td>2147.13 18:00 STT</td></tr>
+              <tr><td>#115</td><td>MX-02</td><td class="num">+48</td><td class="num">-85 cr</td><td>2147.13 12:14 STT</td></tr>
+              <tr><td>#114</td><td>MX-01</td><td class="num">+48</td><td class="num">-85 cr</td><td>2147.13 06:00 STT</td></tr>
+              <tr><td>#113</td><td>MX-02</td><td class="num">+48</td><td class="num">-85 cr</td><td>2147.13 00:16 STT</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+(function(){
+
+  /* ---------------- clock ---------------- */
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  function tickClock(){
+    var d = new Date();
+    document.getElementById('clock').textContent = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())+' STT';
+  }
+  tickClock(); setInterval(tickClock, 1000);
+
+  /* ---------------- nav tabs (highlight-only items; .link items navigate) ---------------- */
+  var stations = document.querySelectorAll('.tabrail .station:not(.link)');
+  var viewingName = document.getElementById('viewingName');
+  stations.forEach(function(s){
+    s.addEventListener('click', function(){
+      document.querySelectorAll('.tabrail .station').forEach(function(o){ o.classList.remove('active'); });
+      s.classList.add('active');
+      viewingName.textContent = s.dataset.group + ' — ' + s.dataset.name;
+    });
+  });
+
+  /* ---------------- notice / logout / lease / deploy (mockup no-ops) ---------------- */
+  document.getElementById('noticePill').addEventListener('click', function(){
+    this.style.opacity = 0.6; this.querySelector('.dot').style.animation = 'none';
+  });
+  document.getElementById('logoutBtn').addEventListener('click', function(){
+    alert('Session end requested. (Mockup — no backend.)');
+  });
+  document.getElementById('fileLeaseBtn').addEventListener('click', function(){
+    alert('New lease filing opened with the ISA Claims & Leases Division. (Mockup — no backend.)');
+  });
+
+  /* ---------------- extractors ---------------- */
+  var stock = 142;
+  var stockEl = document.getElementById('stockVal');
+  var historyBody = document.getElementById('historyBody');
+  var cycleCounter = 118;
+
+  var extractors = [
+    { id:'MX-01', cycleMs:6*3600*1000, progress:72, status:'RUNNING', yield:48, fee:85, mined:1644, feesPaid:2910, uptime:97 },
+    { id:'MX-02', cycleMs:6*3600*1000, progress:31, status:'RUNNING', yield:48, fee:85, mined:612, feesPaid:1020, uptime:89 }
+  ];
+
+  var grid = document.getElementById('extractorGrid');
+
+  function rate(ex){ return Math.round(ex.yield / (ex.cycleMs/3600000)); }
+
+  function cardHTML(ex, i){
+    var ready = ex.progress >= 100;
+    var statusTag = ready ? 'tag-accent' : (ex.status==='PAUSED' ? 'tag-muted' : 'tag-gold');
+    var statusText = ready ? 'READY' : ex.status;
+    var fillClass = ready ? 'cycle-fill ready' : 'cycle-fill';
+    return (
+      '<div class="excard" data-idx="'+i+'">' +
+        '<div class="excard-head"><span class="exid">'+ex.id+'</span><span class="tag '+statusTag+'">'+statusText+'</span></div>' +
+        '<div>' +
+          '<div class="cycle-bar"><div class="'+fillClass+'" style="width:'+ex.progress.toFixed(2)+'%"></div></div>' +
+          '<div class="cycle-meta"><span>Cycle <b>'+ (ex.cycleMs/3600000) +'h</b></span><span><b>'+ex.progress.toFixed(1)+'%</b></span></div>' +
+        '</div>' +
+        '<div class="excard-stats">' +
+          '<div>Yield / Cycle<b>+'+ex.yield+' Silicate</b></div>' +
+          '<div>Fee / Cycle<b>'+ex.fee+' cr</b></div>' +
+          '<div>Rate<b>'+rate(ex)+' u/hr</b></div>' +
+          '<div>Uptime<b>'+ex.uptime+'%</b></div>' +
+        '</div>' +
+        '<div class="excard-actions">' +
+          (ready
+            ? '<button class="btn btn-primary btn-sm act-collect">Collect</button>'
+            : '<button class="btn btn-ghost btn-sm act-pause">'+(ex.status==='PAUSED'?'Resume':'Pause')+'</button>') +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function emptySlotHTML(){
+    return (
+      '<div class="excard empty">' +
+        '<div class="empty-plus">+</div>' +
+        '<div class="slot-title">Slot 03 — Open</div>' +
+        '<div class="slot-name">Deploy Basic Extractor Yard</div>' +
+        '<div class="slot-cost">4,800 cr &nbsp;+&nbsp; 4 crew</div>' +
+        '<button class="btn btn-primary btn-sm act-deploy" style="width:100%;">Deploy</button>' +
+      '</div>'
+    );
+  }
+
+  function render(){
+    var html = '';
+    extractors.forEach(function(ex, i){ html += cardHTML(ex, i); });
+    html += emptySlotHTML();
+    grid.innerHTML = html;
+
+    grid.querySelectorAll('.act-pause').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var idx = parseInt(btn.closest('.excard').dataset.idx, 10);
+        var ex = extractors[idx];
+        ex.status = ex.status === 'PAUSED' ? 'RUNNING' : 'PAUSED';
+        render();
+      });
+    });
+    grid.querySelectorAll('.act-collect').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var idx = parseInt(btn.closest('.excard').dataset.idx, 10);
+        collect(idx);
+      });
+    });
+    grid.querySelector('.act-deploy').addEventListener('click', function(){
+      alert('Deployment requisition sent for a Basic Extractor Yard on Slot 03. (Mockup — no backend.)');
+    });
+  }
+
+  function collect(idx){
+    var ex = extractors[idx];
+    stock += ex.yield;
+    ex.mined += ex.yield;
+    ex.feesPaid += ex.fee;
+    ex.progress = 0;
+    ex.status = 'RUNNING';
+    stockEl.textContent = stock.toLocaleString('en-US');
+
+    var d = new Date();
+    var stamp = '2147.14 ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ' STT';
+    var row = document.createElement('tr');
+    row.innerHTML = '<td>#'+(cycleCounter++)+'</td><td>'+ex.id+'</td><td class="num">+'+ex.yield+'</td><td class="num">-'+ex.fee+' cr</td><td>'+stamp+'</td>';
+    historyBody.insertBefore(row, historyBody.firstChild);
+    while(historyBody.children.length > 6){ historyBody.removeChild(historyBody.lastChild); }
+
+    var totalsRow = document.getElementById('totalsBody').children[idx];
+    totalsRow.children[1].textContent = ex.mined.toLocaleString('en-US') + ' u';
+    totalsRow.children[2].textContent = ex.feesPaid.toLocaleString('en-US') + ' cr';
+
+    render();
+  }
+
+  render();
+
+  /* ---------------- cycle tick: real-time progress against each extractor's own cycle length ---------------- */
+  var lastTick = Date.now();
+  setInterval(function(){
+    var now = Date.now();
+    var delta = now - lastTick;
+    lastTick = now;
+    extractors.forEach(function(ex){
+      if(ex.status === 'RUNNING' && ex.progress < 100){
+        ex.progress = Math.min(100, ex.progress + (delta / ex.cycleMs) * 100);
+      }
+    });
+    render();
+  }, 1000);
+
+})();
+</script>
+</body>
+</html>

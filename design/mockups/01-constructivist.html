@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 01 — Constructivist Directive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Oswald:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#0e0c0b;
+    --ground-2:#171310;
+    --panel:#1c170f;
+    --panel-2:#241d13;
+    --red:#e0341f;
+    --red-dim:#8f2015;
+    --bone:#f5eeda;
+    --bone-dim:#cbc0a4;
+    --ochre:#8a6a3a;
+    --ochre-bright:#cf9a4c;
+    --line:#4d4330;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ground);
+    color:var(--bone);
+    font-family:"Oswald",sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* ============ TEXTURE LAYERS ============ */
+  .grain{
+    position:fixed; inset:0; pointer-events:none; z-index:500; mix-blend-mode:overlay; opacity:0.5;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 3px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 3px);
+  }
+  .halftone{
+    position:fixed; inset:0; pointer-events:none; z-index:1;
+    background-image: radial-gradient(circle at center, rgba(232,224,208,0.05) 0.6px, transparent 0.6px);
+    background-size: 4px 4px;
+    opacity:0.6;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:499;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.28) 100%);
+  }
+
+  /* ============ BIG ROTATED NUMERAL ============ */
+  .level-numeral{
+    position:absolute;
+    top:-60px; left:-40px;
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:900;
+    font-size:560px;
+    line-height:1;
+    color:rgba(210,48,30,0.09);
+    -webkit-text-stroke:5px rgba(224,52,31,0.55);
+    transform:rotate(-9deg);
+    z-index:8;
+    letter-spacing:-20px;
+    pointer-events:none;
+    user-select:none;
+    mix-blend-mode:screen;
+  }
+
+  /* ============ TOP DIRECTIVE BAR ============ */
+  .top-bar{
+    position:relative; z-index:20;
+    background:var(--ground-2);
+    border-bottom:3px solid var(--red);
+    padding:14px 28px 10px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:14px;
+  }
+  .brand .star{
+    width:38px; height:38px;
+    position:relative;
+    flex-shrink:0;
+  }
+  .brand .star svg{width:100%;height:100%;display:block;}
+  .brand-text .name{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:800;
+    font-size:22px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--bone);
+    line-height:1;
+  }
+  .brand-text .sub{
+    font-family:"Space Mono",monospace;
+    font-size:10.5px;
+    color:var(--bone-dim);
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    margin-top:3px;
+  }
+  .top-right{
+    display:flex; align-items:center; gap:22px;
+  }
+  .ceo-block{
+    text-align:right;
+    font-family:"Space Mono",monospace;
+  }
+  .ceo-block .who{
+    font-size:13px; color:var(--bone); font-weight:700; letter-spacing:0.5px;
+  }
+  .ceo-block .corp{
+    font-size:10.5px; color:var(--bone-dim); margin-top:2px;
+  }
+  .notices{
+    position:relative;
+    background:var(--red);
+    color:var(--ground);
+    font-family:"Space Mono",monospace;
+    font-weight:700;
+    font-size:12px;
+    padding:8px 14px;
+    transform:skewX(-8deg);
+    cursor:pointer;
+    border:1px solid #f0523c;
+    transition:filter 0.15s;
+  }
+  .notices:hover{filter:brightness(1.15);}
+  .notices span{display:inline-block; transform:skewX(8deg);}
+  .logout-btn{
+    font-family:"Space Mono",monospace;
+    font-size:11px;
+    color:var(--bone-dim);
+    border:1px solid var(--line);
+    padding:7px 12px;
+    background:transparent;
+    cursor:pointer;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    transition:all 0.15s;
+  }
+  .logout-btn:hover{border-color:var(--red); color:var(--red);}
+
+  /* ============ ANGLED NAV TABS ============ */
+  .nav-wrap{
+    position:relative; z-index:20;
+    background:var(--ground);
+    border-bottom:1px solid var(--line);
+    padding:9px 28px 6px 28px;
+    display:flex;
+    flex-wrap:wrap;
+    row-gap:8px;
+    column-gap:18px;
+  }
+  .nav-group{
+    display:flex;
+    flex-direction:column;
+    flex-shrink:0;
+  }
+  .nav-group-label{
+    font-family:"Space Mono",monospace;
+    font-size:8.5px;
+    letter-spacing:2px;
+    color:var(--ochre-bright);
+    text-transform:uppercase;
+    margin-bottom:5px;
+    padding-left:3px;
+  }
+  .nav-tabs{
+    display:flex;
+    flex-wrap:wrap;
+    gap:2px;
+    row-gap:2px;
+  }
+  .nav-tab{
+    position:relative;
+    font-family:"Oswald",sans-serif;
+    font-weight:600;
+    font-size:11px;
+    letter-spacing:0.3px;
+    text-transform:uppercase;
+    color:var(--bone-dim);
+    background:var(--panel);
+    border:none;
+    padding:7px 10px 8px 10px;
+    cursor:pointer;
+    transform:skewX(-12deg);
+    transition:all 0.12s;
+    white-space:nowrap;
+    border-top:2px solid var(--line);
+  }
+  .nav-tab span{display:inline-block; transform:skewX(12deg);}
+  .nav-tab:hover{background:var(--panel-2); color:var(--bone);}
+  .nav-tab.active{
+    background:var(--red);
+    color:var(--ground);
+    border-top:2px solid var(--bone);
+    font-weight:700;
+  }
+
+  /* ============ LAYOUT ============ */
+  .stage{
+    position:relative;
+    z-index:5;
+    max-width:1400px;
+    margin:0 auto;
+    padding:34px 28px 60px 28px;
+    display:grid;
+    grid-template-columns: 1fr 300px;
+    gap:28px;
+  }
+  .main-col{min-width:0;}
+  .side-col{
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+  }
+
+  /* ============ POSTER HEADER SLOGAN ============ */
+  .slogan-block{
+    position:relative;
+    z-index:1;
+    margin-bottom:34px;
+    padding:26px 30px;
+    overflow:hidden;
+    background:
+      linear-gradient(100deg, transparent 0%, transparent 34%, var(--ground) 34%, var(--ground) 35.5%,
+        var(--red) 35.5%, var(--red) 44%, var(--ground) 44%, var(--ground) 45.5%, transparent 45.5%),
+      var(--panel);
+    border-left:10px solid var(--red);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  .slogan-block::before{
+    content:"";
+    position:absolute;
+    z-index:-1;
+    top:-16px; right:-30px;
+    width:220px; height:calc(100% + 32px);
+    background:var(--red);
+    transform:skewX(-16deg);
+  }
+  .slogan-block::after{
+    content:"";
+    position:absolute;
+    z-index:-1;
+    top:-16px; right:126px;
+    width:20px; height:calc(100% + 32px);
+    background:var(--ground);
+    transform:skewX(-16deg);
+  }
+  .slogan-block .eyebrow{
+    display:inline-block;
+    font-family:"Space Mono",monospace;
+    font-weight:700;
+    font-size:11px;
+    letter-spacing:3px;
+    color:var(--ground);
+    background:var(--bone);
+    padding:4px 9px;
+    text-transform:uppercase;
+    margin-bottom:12px;
+  }
+  .slogan-block h1{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:900;
+    font-size:44px;
+    line-height:0.98;
+    text-transform:uppercase;
+    margin:0;
+    color:var(--bone);
+    letter-spacing:0.2px;
+    text-shadow:0 2px 0 rgba(0,0,0,0.4);
+  }
+  .slogan-block .quote{
+    font-family:"Oswald",sans-serif;
+    font-style:normal;
+    font-weight:500;
+    font-size:14.5px;
+    color:var(--bone-dim);
+    margin-top:12px;
+    max-width:640px;
+    border-top:1px solid var(--line);
+    padding-top:11px;
+  }
+
+  /* ============ SECTION TITLES ============ */
+  .section-title{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:0 0 14px 0;
+  }
+  .section-title .tag{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:800;
+    font-size:15px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--ground);
+    background:var(--red);
+    padding:4px 10px 5px 10px;
+    transform:skewX(-10deg);
+  }
+  .section-title .tag span{transform:skewX(10deg); display:inline-block;}
+  .section-title .rule{
+    flex:1;
+    height:2px;
+    background:repeating-linear-gradient(90deg, var(--line) 0 8px, transparent 8px 12px);
+  }
+
+  /* ============ LEVEL / DIRECTIVE PANEL ============ */
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    position:relative;
+    margin-bottom:30px;
+  }
+  .level-panel{
+    padding:26px;
+    position:relative;
+    overflow:hidden;
+  }
+  .level-panel::after{
+    content:"";
+    position:absolute;
+    top:-40%; right:-15%;
+    width:340px; height:340px;
+    border:2px dashed rgba(210,48,30,0.25);
+    border-radius:50%;
+  }
+  .level-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    gap:14px;
+    position:relative;
+    z-index:2;
+  }
+  .level-peek{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .peek-btn{
+    width:34px; height:34px;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    color:var(--bone-dim);
+    font-family:"Space Mono",monospace;
+    font-size:16px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:all 0.15s;
+  }
+  .peek-btn:hover{border-color:var(--red); color:var(--red);}
+  .level-current{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:900;
+    font-size:30px;
+    text-transform:uppercase;
+    color:var(--bone);
+    letter-spacing:0.5px;
+    min-width:220px;
+    text-align:center;
+  }
+  .level-current .of{color:var(--bone-dim); font-size:18px; font-weight:600;}
+  .level-current .lvl-num{color:var(--red);}
+
+  .progress-arc-wrap{
+    display:flex;
+    align-items:center;
+    gap:18px;
+  }
+  .progress-arc-wrap .pct-label{
+    font-family:"Space Mono",monospace;
+    font-size:22px;
+    font-weight:700;
+    color:var(--red);
+  }
+  .progress-arc-wrap .pct-label small{font-size:11px; color:var(--bone-dim); display:block; font-weight:400; letter-spacing:1px;}
+
+  .directives{
+    margin-top:22px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    position:relative;
+    z-index:2;
+  }
+  .directive{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px 16px;
+    background:var(--panel-2);
+    border-left:4px solid var(--ochre);
+    padding:13px 16px;
+    position:relative;
+  }
+  .directive.done{border-left-color:#5f7a4a;}
+  .directive .dnum{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:800;
+    font-size:13px;
+    color:var(--ground);
+    background:var(--ochre-bright);
+    padding:3px 8px;
+    letter-spacing:0.5px;
+    flex-shrink:0;
+  }
+  .directive.done .dnum{background:#7d9c62;}
+  .directive .dtext{
+    flex:1;
+    min-width:0;
+  }
+  .directive .dtext .label{
+    font-family:"Oswald",sans-serif;
+    font-weight:600;
+    font-size:14px;
+    text-transform:uppercase;
+    color:var(--bone);
+    letter-spacing:0.3px;
+  }
+  .directive .dtext .meta{
+    font-family:"Space Mono",monospace;
+    font-size:11px;
+    color:var(--bone-dim);
+    margin-top:3px;
+  }
+  .directive .dprogress{
+    font-family:"Space Mono",monospace;
+    font-size:13px;
+    font-weight:700;
+    color:var(--red);
+    white-space:nowrap;
+  }
+  .directive.done .dprogress{color:#8caf6e;}
+  .directive .golink{
+    font-family:"Space Mono",monospace;
+    font-size:10.5px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--ground);
+    background:var(--red);
+    border:none;
+    padding:7px 12px;
+    cursor:pointer;
+    white-space:nowrap;
+    flex-shrink:0;
+    transition:filter 0.15s;
+  }
+  .directive .golink:hover{filter:brightness(1.15);}
+
+  .unlocks-row{
+    margin-top:20px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+    display:flex;
+    flex-wrap:wrap;
+    gap:22px;
+    position:relative;
+    z-index:2;
+  }
+  .unlock-item{
+    font-family:"Space Mono",monospace;
+    font-size:11.5px;
+    color:var(--bone-dim);
+  }
+  .unlock-item b{color:var(--bone); font-size:15px; display:block; font-family:"Big Shoulders Display",sans-serif; font-weight:700;}
+
+  /* ============ KEY FIGURES POSTER GRID ============ */
+  .figures{
+    display:grid;
+    grid-template-columns:1.3fr 1fr;
+    gap:16px;
+    margin-bottom:30px;
+  }
+  .fig-cash{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:24px;
+    position:relative;
+    overflow:hidden;
+  }
+  .fig-cash .fig-label{
+    font-family:"Space Mono",monospace;
+    font-size:11px;
+    letter-spacing:2px;
+    color:var(--bone-dim);
+    text-transform:uppercase;
+  }
+  .fig-cash .fig-value{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:900;
+    font-size:56px;
+    color:var(--bone);
+    line-height:1;
+    margin-top:8px;
+    letter-spacing:0.5px;
+  }
+  .fig-cash .fig-value sup{font-size:24px; color:var(--bone-dim); font-weight:600;}
+  .fig-cash::before{
+    content:"";
+    position:absolute;
+    right:-30px; bottom:-30px;
+    width:150px; height:150px;
+    background:conic-gradient(from 45deg, transparent 0deg, rgba(138,106,58,0.18) 90deg, transparent 180deg);
+    border-radius:50%;
+  }
+
+  .fig-flow{
+    background:var(--red);
+    border:1px solid #f0523c;
+    padding:24px;
+    position:relative;
+    overflow:hidden;
+    clip-path:polygon(0 0, 100% 0, 100% 86%, 92% 100%, 0 100%);
+  }
+  .fig-flow .fig-label{
+    font-family:"Space Mono",monospace;
+    font-size:11px;
+    letter-spacing:2px;
+    color:rgba(14,12,11,0.75);
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .fig-flow .fig-value{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:900;
+    font-size:44px;
+    color:var(--ground);
+    line-height:1;
+    margin-top:8px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .flow-arrow{
+    width:0; height:0;
+    border-left:13px solid transparent;
+    border-right:13px solid transparent;
+    border-top:20px solid var(--ground);
+    animation:dropPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes dropPulse{
+    0%,100%{transform:translateY(0); opacity:1;}
+    50%{transform:translateY(4px); opacity:0.6;}
+  }
+  .fig-flow .fig-note{
+    font-family:"Oswald",sans-serif;
+    font-size:11.5px;
+    color:rgba(14,12,11,0.7);
+    margin-top:6px;
+  }
+
+  .figures-row2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin-bottom:30px;
+  }
+  .fig-small{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:18px 20px;
+  }
+  .fig-small .fig-label{
+    font-family:"Space Mono",monospace;
+    font-size:10.5px;
+    letter-spacing:1.5px;
+    color:var(--bone-dim);
+    text-transform:uppercase;
+  }
+  .fig-small .fig-value{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:800;
+    font-size:24px;
+    color:var(--bone);
+    margin-top:6px;
+  }
+  .fig-small .fig-value .mil{color:var(--ochre-bright);}
+  .fig-small .fig-sub{
+    font-family:"Space Mono",monospace;
+    font-size:10.5px;
+    color:var(--bone-dim);
+    margin-top:4px;
+  }
+  .readiness-bar{
+    margin-top:8px;
+    height:5px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .readiness-fill{
+    height:100%;
+    background:var(--ochre-bright);
+    width:0%;
+    transition:width 1.2s ease-out;
+  }
+
+  /* ============ COMMAND FEEDBACK / TELETYPE ============ */
+  .feed-panel{
+    background:var(--ground-2);
+    border:1px solid var(--line);
+    padding:0;
+    margin-bottom:30px;
+  }
+  .feed-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 18px;
+    border-bottom:1px solid var(--line);
+    background:var(--panel);
+  }
+  .feed-head .ft{
+    font-family:"Space Mono",monospace;
+    font-size:11px;
+    letter-spacing:2px;
+    color:var(--red);
+    text-transform:uppercase;
+  }
+  .feed-dot{
+    width:8px; height:8px;
+    border-radius:50%;
+    background:var(--red);
+    animation:blink 1.4s steps(2) infinite;
+  }
+  @keyframes blink{50%{opacity:0.15;}}
+  .feed-body{
+    font-family:"Space Mono",monospace;
+    font-size:12.5px;
+    line-height:1.9;
+    padding:16px 18px;
+    max-height:220px;
+    overflow-y:auto;
+    color:var(--bone-dim);
+  }
+  .feed-body .fline{
+    display:flex;
+    gap:10px;
+  }
+  .feed-body .fline .ts{color:var(--ochre-bright); flex-shrink:0;}
+  .feed-body .fline .tx{color:var(--bone);}
+  .feed-body .fline.standby .tx{color:var(--bone-dim); font-style:normal;}
+  .feed-body .fline.new{
+    animation:feedIn 0.4s ease-out;
+  }
+  @keyframes feedIn{from{opacity:0; transform:translateX(-6px);} to{opacity:1; transform:translateX(0);}}
+
+  /* ============ BRIEF PANEL ============ */
+  .brief-panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-top:4px solid var(--ochre-bright);
+    padding:22px 24px;
+    margin-bottom:30px;
+  }
+  .brief-panel .btitle{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:800;
+    font-size:16px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    color:var(--bone);
+    margin:0 0 10px 0;
+  }
+  .brief-panel p{
+    font-family:"Oswald",sans-serif;
+    font-size:13.5px;
+    line-height:1.65;
+    color:var(--bone-dim);
+    margin:0;
+  }
+
+  /* ============ SIDEBAR: RIGHT POSTER COLUMN ============ */
+  .side-block{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:18px 18px;
+  }
+  .side-block .sb-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .side-block .sb-title .num{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:900;
+    font-size:20px;
+    color:var(--red);
+    line-height:1;
+  }
+  .side-block .sb-title .txt{
+    font-family:"Space Mono",monospace;
+    font-size:10.5px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--bone-dim);
+  }
+
+  .sta-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:9px 0;
+    border-bottom:1px solid var(--line);
+    font-family:"Space Mono",monospace;
+    font-size:12px;
+  }
+  .sta-row:last-child{border-bottom:none;}
+  .sta-row .k{color:var(--bone-dim);}
+  .sta-row .v{color:var(--bone); font-weight:700; margin-left:auto;}
+  .sta-row .v.pct{color:var(--ochre-bright);}
+
+  .extractor{
+    padding:11px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .extractor:last-child{border-bottom:none;}
+  .extractor .exname{
+    font-family:"Oswald",sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    text-transform:uppercase;
+    color:var(--bone);
+    display:flex;
+    justify-content:space-between;
+  }
+  .extractor .exname .exp{color:var(--red); font-family:"Space Mono",monospace; font-weight:700;}
+  .cycle-bar{
+    margin-top:7px;
+    height:6px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    position:relative;
+    overflow:hidden;
+  }
+  .cycle-fill{
+    height:100%;
+    background:repeating-linear-gradient(-45deg, var(--red) 0 6px, var(--red-dim) 6px 12px);
+    width:0%;
+    transition:width 1.4s ease-out;
+  }
+
+  .inbox-item{
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    gap:10px;
+    cursor:pointer;
+  }
+  .inbox-item:last-child{border-bottom:none;}
+  .inbox-item .isrc{
+    font-family:"Space Mono",monospace;
+    font-size:9.5px;
+    font-weight:700;
+    color:var(--ground);
+    background:var(--ochre-bright);
+    padding:2px 6px;
+    height:16px;
+    flex-shrink:0;
+    letter-spacing:0.5px;
+  }
+  .inbox-item .itxt{
+    font-family:"Oswald",sans-serif;
+    font-size:12px;
+    color:var(--bone-dim);
+    line-height:1.4;
+  }
+  .inbox-item:hover .itxt{color:var(--bone);}
+
+  .rd-item{
+    padding:10px 0;
+  }
+  .rd-item .rdname{
+    font-family:"Oswald",sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    color:var(--bone);
+    text-transform:uppercase;
+  }
+  .rd-bar{
+    margin-top:7px;
+    height:6px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+  }
+  .rd-fill{
+    height:100%;
+    background:var(--ochre-bright);
+    width:0%;
+    transition:width 1.4s ease-out;
+  }
+  .rd-eta{
+    font-family:"Space Mono",monospace;
+    font-size:10.5px;
+    color:var(--bone-dim);
+    margin-top:5px;
+  }
+
+  .gex-row{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .gex-row .gprice{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:800;
+    font-size:26px;
+    color:var(--bone);
+  }
+  .gex-row .gunit{
+    font-family:"Space Mono",monospace;
+    font-size:10.5px;
+    color:var(--bone-dim);
+  }
+  .spark{
+    display:block;
+    width:100%;
+    height:44px;
+  }
+
+  .mockup-label{
+    position:relative;
+    z-index:5;
+    max-width:1400px;
+    margin:0 auto;
+    padding:10px 28px 18px 28px;
+    border-top:1px solid var(--line);
+    text-align:right;
+    font-family:"Space Mono",monospace;
+    font-size:10px;
+    color:rgba(203,192,164,0.55);
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width:1280px){
+    .stage{grid-template-columns:1fr 260px;}
+    .level-numeral{font-size:420px;}
+  }
+  @media (max-width:900px){
+    .stage{grid-template-columns:1fr; padding:24px 16px 50px;}
+    .figures{grid-template-columns:1fr;}
+    .figures-row2{grid-template-columns:1fr;}
+    .level-numeral{display:none;}
+    .top-bar{flex-wrap:wrap; gap:12px;}
+    .nav-group{flex:1 1 100%; min-width:0;}
+    .nav-tabs{flex-wrap:wrap;}
+    .slogan-block::before, .slogan-block::after{display:none;}
+  }
+  @media (max-width:600px){
+    .slogan-block h1{font-size:26px;}
+    .level-current{font-size:22px; min-width:0;}
+    .fig-cash .fig-value{font-size:38px;}
+    .nav-wrap{column-gap:14px; row-gap:10px;}
+    .directive .golink{flex:1 1 100%; text-align:center;}
+  }
+</style>
+</head>
+<body>
+
+<div class="halftone"></div>
+<div class="grain"></div>
+<div class="level-numeral">02</div>
+
+<!-- ============ TOP BAR ============ -->
+<header class="top-bar">
+  <div class="brand">
+    <div class="star">
+      <svg viewBox="0 0 100 100">
+        <polygon points="50,4 61,38 96,38 68,59 79,94 50,73 21,94 32,59 4,38 39,38"
+          fill="none" stroke="#d2301e" stroke-width="4"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <div class="name">Interstellar Settlement Protocol</div>
+      <div class="sub">v0.4 &nbsp;·&nbsp; est. 2147 &nbsp;·&nbsp; ISA-registered instrument</div>
+    </div>
+  </div>
+  <div class="top-right">
+    <div class="ceo-block">
+      <div class="who">CEO R. VANCE</div>
+      <div class="corp">HELIX MERIDIAN HOLDINGS — HMH</div>
+    </div>
+    <div class="notices" id="noticesBtn"><span>23 NOTICES ▸</span></div>
+    <button class="logout-btn" id="logoutBtn">Log Out</button>
+  </div>
+</header>
+
+<!-- ============ NAV ============ -->
+<nav class="nav-wrap" id="navWrap">
+  <div class="nav-group">
+    <div class="nav-group-label">Company</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-nav="Overview"><span>Overview</span></button>
+      <button class="nav-tab" data-nav="Inbox"><span>Inbox</span></button>
+      <button class="nav-tab" data-nav="Financial Core"><span>Financial Core</span></button>
+      <button class="nav-tab" data-nav="CEO Insight"><span>CEO Insight</span></button>
+      <button class="nav-tab" data-nav="Assignments"><span>Assignments</span></button>
+      <button class="nav-tab" data-nav="Conglomerate"><span>Conglomerate</span></button>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Station</div>
+    <div class="nav-tabs">
+      <button class="nav-tab" data-nav="Station"><span>Station</span></button>
+      <button class="nav-tab" data-nav="Operations"><span>Operations</span></button>
+      <button class="nav-tab" data-nav="Fleet"><span>Fleet</span></button>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Industry</div>
+    <div class="nav-tabs">
+      <button class="nav-tab" data-nav="Corporate R&D"><span>Corporate R&amp;D</span></button>
+      <button class="nav-tab" data-nav="Refinery Chains"><span>Refinery Chains</span></button>
+      <button class="nav-tab" data-nav="Logistics"><span>Logistics</span></button>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Market</div>
+    <div class="nav-tabs">
+      <button class="nav-tab" data-nav="Galactic Exchange"><span>Galactic Exchange</span></button>
+      <button class="nav-tab" data-nav="Assets"><span>Assets</span></button>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Comms</div>
+    <div class="nav-tabs">
+      <button class="nav-tab" data-nav="Chat"><span>Chat</span></button>
+      <button class="nav-tab" data-nav="Forum"><span>Forum</span></button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ STAGE ============ -->
+<div class="stage">
+  <div class="main-col">
+
+    <div class="slogan-block">
+      <div class="eyebrow">Ministry of Corporate Advancement — Overview Bulletin</div>
+      <h1>The Stars Belong To No One.<br>That Is Why We Have Lawyers.</h1>
+      <div class="quote">Humanity didn't reach the stars for freedom. It reached them for market share.</div>
+    </div>
+
+    <!-- LEVEL / DIRECTIVES -->
+    <div class="section-title"><div class="tag"><span>Corporation Level</span></div><div class="rule"></div></div>
+    <div class="panel level-panel">
+      <div class="level-head">
+        <div class="level-peek">
+          <button class="peek-btn" id="peekPrev">‹</button>
+          <div class="level-current" id="levelCurrentLabel">LEVEL <span class="lvl-num">2</span> <span class="of">OF 30</span></div>
+          <button class="peek-btn" id="peekNext">›</button>
+        </div>
+        <div class="progress-arc-wrap">
+          <svg width="72" height="72" viewBox="0 0 72 72">
+            <circle cx="36" cy="36" r="30" fill="none" stroke="#3a332a" stroke-width="6"/>
+            <circle id="arcProgress" cx="36" cy="36" r="30" fill="none" stroke="#d2301e" stroke-width="6"
+              stroke-dasharray="188.5" stroke-dashoffset="188.5" stroke-linecap="butt" transform="rotate(-90 36 36)"/>
+          </svg>
+          <div class="pct-label" id="pctLabel">0%<small>DIRECTIVES</small></div>
+        </div>
+      </div>
+
+      <div class="directives" id="directivesList"></div>
+
+      <div class="unlocks-row" id="unlocksRow"></div>
+    </div>
+
+    <!-- KEY FIGURES -->
+    <div class="section-title"><div class="tag"><span>Key Figures</span></div><div class="rule"></div></div>
+    <div class="figures">
+      <div class="fig-cash">
+        <div class="fig-label">Cash Reserves — Total Corporate Credits On Hand</div>
+        <div class="fig-value"><sup>$</sup><span id="cashValue">0</span></div>
+      </div>
+      <div class="fig-flow">
+        <div class="fig-label">⚠ Net Daily Flow</div>
+        <div class="fig-value"><div class="flow-arrow"></div><span id="flowValue">−$0</span></div>
+        <div class="fig-note">Income minus costs booked in the last 24 hours. Payroll and lease renewal exceeded receipts.</div>
+      </div>
+    </div>
+    <div class="figures-row2">
+      <div class="fig-small">
+        <div class="fig-label">Conglomerate Status</div>
+        <div class="fig-value">Independent</div>
+        <div class="fig-sub">HMH answers to no charter but its own.</div>
+      </div>
+      <div class="fig-small">
+        <div class="fig-label">Military Power</div>
+        <div class="fig-value"><span class="mil">0</span> ATK &nbsp;/&nbsp; <span class="mil">0</span> DEF</div>
+        <div class="fig-sub">Readiness 100%</div>
+        <div class="readiness-bar"><div class="readiness-fill" id="readinessFill"></div></div>
+      </div>
+    </div>
+
+    <!-- COMMAND FEEDBACK -->
+    <div class="section-title"><div class="tag"><span>Command Feedback</span></div><div class="rule"></div></div>
+    <div class="feed-panel">
+      <div class="feed-head">
+        <div class="ft">Teletype of Decrees — Live Uplink</div>
+        <div class="feed-dot"></div>
+      </div>
+      <div class="feed-body" id="feedBody"></div>
+    </div>
+
+    <!-- BRIEF -->
+    <div class="section-title"><div class="tag"><span>Executive Situation Brief</span></div><div class="rule"></div></div>
+    <div class="brief-panel">
+      <p class="btitle">Directive Standing Order No. 2147-A</p>
+      <p>ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each
+      unlock expands market access, infrastructure depth, and interstellar reach. Compliance is not optional. Growth is.</p>
+    </div>
+
+  </div>
+
+  <!-- ============ RIGHT POSTER COLUMN ============ -->
+  <div class="side-col">
+
+    <div class="side-block">
+      <div class="sb-title"><div class="num">01</div><div class="txt">Lease MRS-0419 — Mars</div></div>
+      <div class="extractor">
+        <div class="exname">Extractor MX-01 <span class="exp" id="mx01pct">72%</span></div>
+        <div class="cycle-bar"><div class="cycle-fill" id="mx01fill"></div></div>
+      </div>
+      <div class="extractor">
+        <div class="exname">Extractor MX-02 <span class="exp" id="mx02pct">31%</span></div>
+        <div class="cycle-bar"><div class="cycle-fill" id="mx02fill"></div></div>
+      </div>
+      <div class="sta-row"><span class="k">Silicate Stock</span><span class="v">142 units</span></div>
+      <div class="sta-row"><span class="k">Employees</span><span class="v">18 / 30</span></div>
+    </div>
+
+    <div class="side-block">
+      <div class="sb-title"><div class="num">02</div><div class="txt">Galactic Exchange — Silicate</div></div>
+      <div class="gex-row">
+        <div class="gprice">61<span class="gunit">cr/unit</span></div>
+        <div class="gunit" style="color:#5f9c5f;">▲ peg stable</div>
+      </div>
+      <svg class="spark" viewBox="0 0 260 44" preserveAspectRatio="none">
+        <polyline points="0,30 30,26 60,32 90,20 120,24 150,14 180,18 210,10 240,16 260,8"
+          fill="none" stroke="#d2301e" stroke-width="2"/>
+        <polyline points="0,30 30,26 60,32 90,20 120,24 150,14 180,18 210,10 240,16 260,8 260,44 0,44"
+          fill="rgba(210,48,30,0.12)" stroke="none"/>
+      </svg>
+    </div>
+
+    <div class="side-block">
+      <div class="sb-title"><div class="num">03</div><div class="txt">Inbox — Priority</div></div>
+      <div class="inbox-item">
+        <div class="isrc">ISA</div>
+        <div class="itxt">Claims &amp; Leases Division: MRS-0419 renewal confirmed. Fees assessed.</div>
+      </div>
+      <div class="inbox-item">
+        <div class="isrc">STA</div>
+        <div class="itxt">Station Administration: berth inspection scheduled, Earth Station Prime.</div>
+      </div>
+    </div>
+
+    <div class="side-block">
+      <div class="sb-title"><div class="num">04</div><div class="txt">Research Queue</div></div>
+      <div class="rd-item">
+        <div class="rdname">Refinery Chain I — In Progress</div>
+        <div class="rd-bar"><div class="rd-fill" id="rdFill"></div></div>
+        <div class="rd-eta">ETA 06:42:10 — Corporate R&amp;D</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="mockup-label">MOCKUP 01 — CONSTRUCTIVIST DIRECTIVE</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Level data (peekable) ----------
+  var levels = {
+    1: {
+      unlocks: {cap:30, slots:3, fleet:14, tier:1},
+      directives: [
+        {label:"Sign Initial Lease on Mars", meta:"MRS-0419 — ISA Claims & Leases Division", done:true, progText:"1 / 1"},
+        {label:"Hire First Extraction Crew", meta:"Station personnel office", done:true, progText:"6 / 6"}
+      ]
+    },
+    2: {
+      unlocks: {cap:45, slots:4, fleet:22, tier:2},
+      directives: [
+        {label:"Sell 300 Silicate on the Galactic Exchange", meta:"Open market order — GEX peg 61 cr/unit", done:false, progText:"0 / 300", cur:0, tgt:300, link:true},
+        {label:"Research Basic Extraction Analytics", meta:"Corporate R&D — completed", done:true, progText:"1 / 1", cur:1, tgt:1}
+      ]
+    },
+    3: {
+      unlocks: {cap:60, slots:5, fleet:30, tier:2},
+      directives: [
+        {label:"Commission a Third Extractor Unit", meta:"Requires Building Slot — Mars lease", done:false, progText:"0 / 1", cur:0, tgt:1},
+        {label:"Reach 500 Cumulative Payroll Cycles", meta:"HR Directorate", done:false, progText:"210 / 500", cur:210, tgt:500}
+      ]
+    },
+    4: {
+      unlocks: {cap:80, slots:6, fleet:40, tier:3},
+      directives: [
+        {label:"Establish a Refinery Chain", meta:"Industry Directorate — silicate to alloy", done:false, progText:"0 / 1", cur:0, tgt:1},
+        {label:"Sign a Second Lease", meta:"ISA Claims & Leases Division", done:false, progText:"0 / 1", cur:0, tgt:1}
+      ]
+    }
+  };
+  var currentLevel = 2;
+
+  function renderLevel(lv){
+    var data = levels[lv] || levels[2];
+    document.getElementById("levelCurrentLabel").innerHTML =
+      'LEVEL <span class="lvl-num">' + lv + '</span> <span class="of">OF 30</span>';
+
+    var list = document.getElementById("directivesList");
+    list.innerHTML = "";
+    var doneCount = 0;
+    data.directives.forEach(function(d, i){
+      if(d.done) doneCount++;
+      var row = document.createElement("div");
+      row.className = "directive" + (d.done ? " done" : "");
+      row.innerHTML =
+        '<div class="dnum">DIRECTIVE ' + (i+1) + '</div>' +
+        '<div class="dtext"><div class="label">' + d.label + '</div><div class="meta">' + d.meta + '</div></div>' +
+        '<div class="dprogress">' + d.progText + (d.done ? " ✓" : "") + '</div>' +
+        (d.link ? '<button class="golink" data-goto="Galactic Exchange">Go to Galactic Exchange ▸</button>' : "");
+      list.appendChild(row);
+    });
+
+    var pct = Math.round((doneCount / data.directives.length) * 100);
+    var circumference = 188.5;
+    var offset = circumference - (circumference * pct / 100);
+    document.getElementById("arcProgress").style.strokeDashoffset = offset;
+    document.getElementById("pctLabel").innerHTML = pct + "%<small>DIRECTIVES</small>";
+
+    var unlocksRow = document.getElementById("unlocksRow");
+    unlocksRow.innerHTML =
+      '<div class="unlock-item"><b>' + data.unlocks.cap + '</b>Employee Cap</div>' +
+      '<div class="unlock-item"><b>' + data.unlocks.slots + '</b>Building Slots</div>' +
+      '<div class="unlock-item"><b>' + data.unlocks.fleet + '</b>Fleet Cap</div>' +
+      '<div class="unlock-item"><b>Tier ' + data.unlocks.tier + '</b>Highest Building Tier</div>';
+
+    document.querySelectorAll("[data-goto]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        setActiveNav(btn.getAttribute("data-goto"));
+        pushFeed("Navigating to " + btn.getAttribute("data-goto") + " per directive order.");
+      });
+    });
+  }
+  renderLevel(currentLevel);
+
+  document.getElementById("peekPrev").addEventListener("click", function(){
+    if(levels[currentLevel-1]){ currentLevel--; renderLevel(currentLevel); }
+  });
+  document.getElementById("peekNext").addEventListener("click", function(){
+    if(levels[currentLevel+1]){ currentLevel++; renderLevel(currentLevel); }
+  });
+
+  // ---------- Nav selection ----------
+  function setActiveNav(name){
+    document.querySelectorAll(".nav-tab").forEach(function(t){
+      t.classList.toggle("active", t.getAttribute("data-nav") === name);
+    });
+  }
+  document.querySelectorAll(".nav-tab").forEach(function(tab){
+    tab.addEventListener("click", function(){
+      setActiveNav(tab.getAttribute("data-nav"));
+      pushFeed("Console focus shifted to " + tab.getAttribute("data-nav") + ".");
+    });
+  });
+
+  // ---------- Animated counters ----------
+  function animateCount(el, target, prefix, duration){
+    var start = 0;
+    var startTime = null;
+    function step(ts){
+      if(!startTime) startTime = ts;
+      var progress = Math.min((ts - startTime) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var val = Math.round(start + (target - start) * eased);
+      el.textContent = prefix + val.toLocaleString();
+      if(progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  animateCount(document.getElementById("cashValue"), 18061, "", 1400);
+  animateCount(document.getElementById("flowValue"), 27915, "−$", 1400);
+
+  // ---------- Bars / arcs ----------
+  requestAnimationFrame(function(){
+    setTimeout(function(){
+      document.getElementById("readinessFill").style.width = "100%";
+      document.getElementById("mx01fill").style.width = "72%";
+      document.getElementById("mx02fill").style.width = "31%";
+      document.getElementById("rdFill").style.width = "64%";
+    }, 150);
+  });
+
+  // ---------- Command feedback teletype ----------
+  var feedBody = document.getElementById("feedBody");
+  var initialFeed = [
+    {ts:"00:00:00", tx:"Command uplink standing by. Completed actions and queue additions will be logged here.", standby:true},
+    {ts:"—04:12", tx:"Extractor MX-01 cycle complete: +48 Silicate"},
+    {ts:"—19:03", tx:"Research queued: Refinery Chain I"},
+    {ts:"—41:55", tx:"Lease MRS-0419 renewed by ISA Claims & Leases Division"},
+    {ts:"—58:20", tx:"Payroll disbursed: −$4,210"}
+  ];
+  initialFeed.forEach(function(f){ appendFeedLine(f.ts, f.tx, f.standby); });
+
+  function appendFeedLine(ts, tx, standby){
+    var row = document.createElement("div");
+    row.className = "fline" + (standby ? " standby" : "") + " new";
+    row.innerHTML = '<span class="ts">' + ts + '</span><span class="tx">' + tx + '</span>';
+    feedBody.appendChild(row);
+    feedBody.scrollTop = feedBody.scrollHeight;
+  }
+  function pushFeed(msg){
+    var now = new Date();
+    var ts = "T+" + now.toLocaleTimeString([], {hour12:false});
+    appendFeedLine(ts, msg, false);
+  }
+
+  // Live-ish ticking additions
+  var tickMessages = [
+    "Extractor MX-02 cycle progressing nominally.",
+    "GEX peg holding at 61 cr/unit for Silicate.",
+    "STA berth inspection notice acknowledged.",
+    "Fleet status: all vessels docked, Earth Station Prime.",
+    "Employee shift rotation logged."
+  ];
+  var tickIndex = 0;
+  setInterval(function(){
+    pushFeed(tickMessages[tickIndex % tickMessages.length]);
+    tickIndex++;
+  }, 9000);
+
+  // ---------- Notices / Logout (mock, non-destructive) ----------
+  document.getElementById("noticesBtn").addEventListener("click", function(){
+    pushFeed("Notices panel requested — 23 unread items pending review.");
+  });
+  document.getElementById("logoutBtn").addEventListener("click", function(){
+    pushFeed("Logout request intercepted for this directive session. No action taken in mockup.");
+  });
+
+})();
+</script>
+
+</body>
+</html>

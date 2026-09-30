@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 25 — Retro Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --phosphor: #00d835;
+            --phosphor-dark: #005a0a;
+            --bg: #001a00;
+            --text: #00d835;
+            --dim: #008014;
+            --accent: #ffff00;
+            --scanline: rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            overflow: hidden;
+            letter-spacing: 0.05em;
+        }
+
+        /* CRT scanline effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                var(--scanline),
+                var(--scanline) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
+            background: radial-gradient(ellipse at center, var(--phosphor-dark) 0%, var(--bg) 100%);
+        }
+
+        .sidebar {
+            width: 220px;
+            border: 2px solid var(--text);
+            padding: 15px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.4);
+            flex-shrink: 0;
+        }
+
+        .sidebar-group {
+            margin-bottom: 20px;
+        }
+
+        .sidebar-group-title {
+            color: var(--accent);
+            text-decoration: underline;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        .sidebar-item {
+            padding: 6px 8px;
+            margin: 4px 0;
+            cursor: pointer;
+            border: 1px solid transparent;
+            color: var(--dim);
+            transition: all 0.1s;
+        }
+
+        .sidebar-item:hover {
+            color: var(--text);
+            border: 1px solid var(--text);
+        }
+
+        .sidebar-item.active {
+            color: var(--accent);
+            background: var(--phosphor-dark);
+            border: 1px solid var(--accent);
+            box-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
+        }
+
+        .header {
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--text);
+            padding-bottom: 10px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .title-block {
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 10px var(--text);
+        }
+
+        .version {
+            font-size: 10px;
+            color: var(--dim);
+            text-align: right;
+        }
+
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--dim);
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .panel {
+            border: 2px solid var(--text);
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .panel-title {
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .kpi {
+            border: 1px solid var(--dim);
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .kpi-label {
+            font-size: 10px;
+            color: var(--dim);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .kpi-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--text);
+        }
+
+        .kpi-value.warning {
+            color: var(--accent);
+            text-shadow: 0 0 5px var(--accent);
+        }
+
+        .progress-bar {
+            margin: 8px 0;
+            border: 1px solid var(--dim);
+            height: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--phosphor);
+            transition: width 0.3s;
+            box-shadow: 0 0 5px var(--phosphor);
+        }
+
+        .level-section {
+            margin-bottom: 15px;
+        }
+
+        .level-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .level-btn {
+            background: var(--phosphor-dark);
+            border: 1px solid var(--dim);
+            color: var(--text);
+            padding: 4px 8px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            transition: all 0.1s;
+        }
+
+        .level-btn:hover {
+            border-color: var(--text);
+            box-shadow: 0 0 5px var(--phosphor);
+        }
+
+        .level-info {
+            font-size: 10px;
+            color: var(--dim);
+            margin: 8px 0;
+        }
+
+        .objective {
+            margin: 8px 0;
+            padding: 6px;
+            border-left: 2px solid var(--dim);
+            font-size: 11px;
+        }
+
+        .objective.completed {
+            border-left-color: var(--phosphor);
+            color: var(--phosphor);
+        }
+
+        .objective-link {
+            color: var(--accent);
+            cursor: pointer;
+            text-decoration: underline;
+            margin-left: 4px;
+        }
+
+        .log-entry {
+            padding: 6px;
+            border-bottom: 1px solid var(--phosphor-dark);
+            font-size: 10px;
+            color: var(--dim);
+            transition: color 0.3s;
+        }
+
+        .log-entry.new {
+            color: var(--text);
+            animation: pulse 0.5s;
+        }
+
+        @keyframes pulse {
+            0% { color: var(--accent); }
+            100% { color: var(--text); }
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 14px;
+            background: var(--text);
+            margin-left: 2px;
+            animation: blink 0.8s infinite;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        .unlock-row {
+            font-size: 10px;
+            color: var(--dim);
+            margin: 4px 0;
+            padding-left: 16px;
+        }
+
+        .unlock-row.new {
+            color: var(--phosphor);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .device-status {
+            padding: 8px;
+            border: 1px solid var(--dim);
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .device-name {
+            color: var(--text);
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .device-stat {
+            color: var(--dim);
+            margin: 2px 0;
+        }
+
+        .device-stat .value {
+            color: var(--phosphor);
+            font-weight: bold;
+        }
+
+        .escape-label {
+            position: fixed;
+            bottom: 10px;
+            right: 15px;
+            font-size: 9px;
+            color: var(--dim);
+            text-align: right;
+            z-index: 100;
+        }
+
+        @media (max-width: 1280px) {
+            .container {
+                flex-direction: column;
+                padding: 15px;
+                gap: 15px;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 150px;
+                display: flex;
+                gap: 30px;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 390px) {
+            body {
+                font-size: 11px;
+            }
+
+            .container {
+                padding: 10px;
+                gap: 10px;
+            }
+
+            .sidebar {
+                max-height: 120px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                white-space: nowrap;
+                display: flex;
+                gap: 20px;
+            }
+
+            .sidebar-group {
+                flex-shrink: 0;
+                margin: 0;
+            }
+
+            .panel {
+                padding: 8px;
+            }
+
+            .title-block {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="header">
+                <div class="title-block">ISP COMMAND</div>
+                <div class="version">v0.4 EARTH STATION</div>
+            </div>
+
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">COMPANY</div>
+                <div class="sidebar-item active">Overview</div>
+                <div class="sidebar-item">Inbox</div>
+                <div class="sidebar-item">Financial Core</div>
+                <div class="sidebar-item">CEO Insight</div>
+                <div class="sidebar-item">Assignments</div>
+                <div class="sidebar-item">Conglomerate</div>
+            </div>
+
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">STATION</div>
+                <div class="sidebar-item">Station</div>
+                <div class="sidebar-item">Operations</div>
+                <div class="sidebar-item">Fleet</div>
+            </div>
+
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">INDUSTRY</div>
+                <div class="sidebar-item">Corporate R&D</div>
+                <div class="sidebar-item">Refinery Chains</div>
+                <div class="sidebar-item">Logistics</div>
+            </div>
+
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">MARKET</div>
+                <div class="sidebar-item">Galactic Exchange</div>
+                <div class="sidebar-item">Assets</div>
+            </div>
+
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">COMMS</div>
+                <div class="sidebar-item">Chat</div>
+                <div class="sidebar-item">Forum</div>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="header">
+                <div class="header-top">
+                    <div>
+                        <div class="title-block">THE INTERSTELLAR SETTLEMENT PROTOCOL</div>
+                    </div>
+                    <div class="version">
+                        CORP: HELIX MERIDIAN HOLDINGS (HMH)<br>
+                        CEO: R. VANCE | NOTICES: 23 UNREAD<br>
+                        [ LOGOUT ]
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-title">LEVEL PROGRESS</div>
+                    <div class="level-info">LEVEL 2 OF 30 UNLOCKED</div>
+
+                    <div style="margin: 10px 0; font-size: 10px; color: var(--dim);">ADVANCEMENT REQUIREMENTS:</div>
+
+                    <div class="objective">
+                        > SELL 300 SILICATE GEX
+                        <div style="color: var(--phosphor); font-weight: bold;">0 / 300 UNITS</div>
+                        <div class="objective-link" onclick="alert('Navigating to Galactic Exchange...')">[ GO TO GALACTIC EXCHANGE ]</div>
+                    </div>
+
+                    <div class="objective completed">
+                        > RESEARCH BASIC EXTRACTION ANALYTICS
+                        <div style="color: var(--phosphor); font-weight: bold;">1 / 1 COMPLETED ✓</div>
+                    </div>
+
+                    <div style="margin-top: 12px; font-size: 10px; color: var(--dim);">LEVEL 3 UNLOCKS:</div>
+                    <div class="unlock-row">• EMPLOYEE CAP: 45</div>
+                    <div class="unlock-row">• BUILDING SLOTS: 4</div>
+                    <div class="unlock-row">• FLEET CAP: 22</div>
+                    <div class="unlock-row">• MAX TIER: 2</div>
+
+                    <div style="margin-top: 10px; display: flex; gap: 8px;">
+                        <button class="level-btn" onclick="peekLevel(1)">< PREV</button>
+                        <button class="level-btn" onclick="peekLevel(3)">NEXT ></button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">SITUATION BRIEF</div>
+                    <div style="font-size: 10px; line-height: 1.6; color: var(--dim);">
+                        ISP IS DESIGNED AS MULTI-YEAR STRATEGY ARC. CORPORATION LEVELS ARE MILESTONE-GATED, NOT XP-GATED, AND EACH UNLOCK EXPANDS MARKET ACCESS, INFRASTRUCTURE DEPTH, AND INTERSTELLAR REACH.
+                    </div>
+
+                    <div style="margin-top: 15px; font-size: 10px; color: var(--dim);">KEY FIGURES:</div>
+                    <div class="stats-grid">
+                        <div class="kpi">
+                            <div class="kpi-label">CASH RESERVES</div>
+                            <div class="kpi-value">$18,061</div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-label">NET DAILY FLOW</div>
+                            <div class="kpi-value warning">-$27,915</div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-label">CONGLOMERATE</div>
+                            <div class="kpi-value">INDEPENDENT</div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-label">MILITARY POWER</div>
+                            <div class="kpi-value">0 ATK / 0 DEF</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">ASSET STATUS</div>
+                <div class="stats-grid">
+                    <div class="device-status">
+                        <div class="device-name">EXTRACTOR MX-01 [MARS MRS-0419]</div>
+                        <div class="device-stat">CYCLE: <span class="value">72%</span></div>
+                        <div class="device-stat">ETA YIELD: <span class="value">+68 SILICATE</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: 72%"></div></div>
+                    </div>
+                    <div class="device-status">
+                        <div class="device-name">EXTRACTOR MX-02 [MARS MRS-0419]</div>
+                        <div class="device-stat">CYCLE: <span class="value">31%</span></div>
+                        <div class="device-stat">ETA YIELD: <span class="value">+52 SILICATE</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: 31%"></div></div>
+                    </div>
+                    <div class="device-status">
+                        <div class="device-name">INVENTORY: SILICATE</div>
+                        <div class="device-stat">ON HAND: <span class="value">142 UNITS</span></div>
+                        <div class="device-stat">GEX PEG: <span class="value">61 CR/UNIT</span></div>
+                    </div>
+                    <div class="device-status">
+                        <div class="device-name">PERSONNEL ROSTER</div>
+                        <div class="device-stat">EMPLOYED: <span class="value">18 / 30</span></div>
+                        <div class="device-stat">PAYROLL: <span class="value">-$4,210 / CYCLE</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">COMMAND FEEDBACK LOG</div>
+                <div class="log-entry">COMMAND UPLINK STANDING BY. COMPLETED ACTIONS AND QUEUE ADDITIONS LOGGED HERE.</div>
+                <div class="log-entry new" id="log-entry-1">► RESEARCH QUEUED: REFINERY CHAIN I [2.5 DAYS]</div>
+                <div class="log-entry new" id="log-entry-2">► EXTRACTOR MX-01 CYCLE COMPLETE: +68 SILICATE HARVESTED</div>
+                <div class="log-entry" id="log-entry-3">► LEASE MRS-0419 RENEWED BY ISA CLAIMS & LEASES DIVISION</div>
+                <div class="log-entry" id="log-entry-4">► PAYROLL DISBURSED: -$4,210 [CYCLE 847]</div>
+                <div class="log-entry" id="log-entry-5">► [INBOX] NOTICE FROM STATION ADMIN: PRESSURE VARIANCE ON SECTOR 7</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="escape-label">
+        MOCKUP 25<br>
+        RETRO TERMINAL
+    </div>
+
+    <script>
+        // Navigation interactivity
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Level peek functionality
+        const levelData = {
+            1: { title: 'LEVEL 1 OF 30', cash: '$0', objectives: ['Start corporation', 'Hire 1 employee'] },
+            2: { title: 'LEVEL 2 OF 30', cash: '$18,061', objectives: ['Sell 300 Silicate', 'Research Basic Extraction'] },
+            3: { title: 'LEVEL 3 OF 30', cash: '$45,200', objectives: ['Establish Mars colony', 'Build 2 factories'] },
+            4: { title: 'LEVEL 4 OF 30', cash: '$120,000', objectives: ['Research advanced tech', 'Fleet capacity 30'] }
+        };
+
+        function peekLevel(num) {
+            const data = levelData[num];
+            if (data) {
+                alert(`${data.title}\nCash: ${data.cash}\nObjectives: ${data.objectives.join(', ')}`);
+            }
+        }
+
+        // Animate new log entries
+        function addLogEntry(text) {
+            const logPanel = document.querySelector('.panel:last-child');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry new';
+            entry.textContent = '► ' + text;
+            logPanel.appendChild(entry);
+            setTimeout(() => entry.classList.remove('new'), 1000);
+        }
+
+        // Periodic log updates
+        const logMessages = [
+            'SILICATE PRICE UP 2.3% ON GEX THIS CYCLE',
+            'RESEARCH: REFINERY CHAIN I [1.2 DAYS REMAINING]',
+            'EMPLOYEE MORALE: 78% [STABLE]',
+            'ISA MESSAGE: "LEASE RENEWAL APPROVED - MRS-0419 EXTENDED 6 MONTHS"',
+            'SYSTEM: AUTOMATED MARKET BUY ORDER LIMIT REACHED'
+        ];
+
+        let messageIndex = 0;
+        setInterval(() => {
+            if (messageIndex < logMessages.length) {
+                addLogEntry(logMessages[messageIndex]);
+                messageIndex++;
+            }
+        }, 8000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 07 v2 — Zaibatsu: Exchange (unfinished)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* =========================================================================
+     ZAIBATSU SHELL — reusable design tokens + component classes, copied
+     verbatim from 07-zaibatsu-v2-overview.html so the pages feel like one
+     product. Exchange-specific additions are marked below.
+     ========================================================================= */
+  :root{
+    --ink:#0a0a0a;
+    --panel:#161210;
+    --panel-2:#1d1815;
+    --panel-3:#241e19;
+    --hairline:rgba(244,238,227,0.09);
+    --hairline-strong:rgba(244,238,227,0.16);
+    --vermilion:#e0402a;
+    --vermilion-dim:rgba(224,64,42,0.16);
+    --vermilion-glow:rgba(224,64,42,0.35);
+    --white:#f4efe4;
+    --white-dim:rgba(244,239,228,0.58);
+    --white-faint:rgba(244,239,228,0.32);
+    --gold:#c9a35b;
+    --gold-dim:rgba(201,163,91,0.35);
+    --sans:'Zen Kaku Gothic New','IBM Plex Sans Condensed',sans-serif;
+    --jp:'Noto Sans JP',sans-serif;
+    --mono:'IBM Plex Mono',monospace;
+    --content-max:1680px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--ink);}
+  body{
+    font-family:var(--sans);
+    color:var(--white);
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(224,64,42,0.06), transparent 45%),
+      radial-gradient(ellipse at 90% 110%, rgba(201,163,91,0.05), transparent 40%),
+      var(--ink);
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit; text-decoration:none;}
+  .mono{font-family:var(--mono);}
+
+  .frame{ max-width:var(--content-max); margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ---------- top strip ---------- */
+  .topstrip{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 32px;
+    border-bottom:1px solid var(--hairline-strong);
+    background:linear-gradient(180deg, var(--panel-2), var(--panel));
+  }
+  .brand{ display:flex; align-items:baseline; gap:12px; }
+  .brand .jpmark{ font-family:var(--jp); font-weight:900; font-size:15px; color:var(--vermilion); letter-spacing:0.08em; }
+  .brand .title{
+    font-family:var(--sans); font-weight:900; font-size:14px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--white);
+  }
+  .brand .ver{ font-family:var(--mono); font-size:10.5px; color:var(--white-faint); letter-spacing:0.05em; }
+  .player{ display:flex; align-items:center; gap:22px; }
+  .player .id{ text-align:right; }
+  .player .id .name{ font-size:13px; font-weight:700; letter-spacing:0.02em; }
+  .player .id .corp{ font-family:var(--mono); font-size:11px; color:var(--white-dim); }
+  .player .corp b{ color:var(--gold); font-weight:600; }
+  .notice-pill{
+    display:flex; align-items:center; gap:7px;
+    border:1px solid var(--vermilion); background:var(--vermilion-dim);
+    color:var(--white); font-family:var(--mono); font-size:11px; padding:6px 10px;
+    border-radius:2px; cursor:pointer;
+  }
+  .notice-pill .dot{ width:6px; height:6px; border-radius:50%; background:var(--vermilion); box-shadow:0 0 8px var(--vermilion-glow); }
+
+  /* ---------- buttons (reusable: .btn, .btn-primary, .btn-ghost, .btn-sm) ---------- */
+  .btn{
+    font-family:var(--sans); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; font-weight:700;
+    padding:8px 14px; border-radius:2px; cursor:pointer; border:1px solid transparent; display:inline-flex;
+    align-items:center; gap:6px; background:transparent; color:var(--white);
+  }
+  .btn-ghost{ color:var(--white-dim); border-color:var(--hairline-strong); }
+  .btn-ghost:hover{ color:var(--white); border-color:var(--white-faint); }
+  .btn-primary{ background:var(--vermilion); color:var(--white); }
+  .btn-primary:hover{ background:#f04d34; }
+  .btn-sm{ font-size:10.5px; padding:5px 10px; }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  /* ---------- tab rail : train signage (bigger badges/labels, taller rail) ---------- */
+  .tabrail{
+    display:flex; align-items:stretch; flex-wrap:wrap; gap:0;
+    background:var(--ink);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .rail-group{ display:flex; align-items:stretch; flex:0 1 auto; border-right:1px solid var(--hairline); border-bottom:1px solid var(--hairline); }
+  .rail-group-label{
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; font-weight:600;
+    color:var(--white-dim); padding:0 5px; background:var(--panel);
+    writing-mode:vertical-rl;
+    border-right:1px solid var(--hairline);
+    min-width:19px; flex-shrink:0;
+  }
+  .station{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+    padding:11px 6px 9px; cursor:pointer; width:80px; flex-shrink:0;
+    border-right:1px solid var(--hairline);
+    position:relative;
+    background:var(--ink);
+    transition:background .15s;
+  }
+  .station:hover{ background:var(--panel-2); }
+  .station .code-badge{
+    width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:700; font-size:10.5px;
+    border:2px solid var(--white-faint); color:var(--white-dim);
+  }
+  .station .code-badge b{ font-size:12px; }
+  .station .label{
+    font-size:13px; font-weight:500; color:var(--white-dim); letter-spacing:0.005em;
+    white-space:normal; text-align:center; line-height:1.15;
+  }
+  .station.active{ background:var(--panel-3); }
+  .station.active .code-badge{ border-color:var(--vermilion); background:var(--vermilion); color:var(--white); box-shadow:0 0 10px var(--vermilion-glow); }
+  .station.active .label{ color:var(--white); font-weight:700; }
+  .station.active::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--vermilion);
+  }
+  .station.link .label::after{ content:'→'; display:block; font-size:10px; color:var(--gold); margin-top:1px; }
+  .viewing-strip{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.1em; color:var(--white-faint);
+    padding:6px 32px; border-bottom:1px solid var(--hairline); background:var(--panel);
+  }
+  .viewing-strip b{ color:var(--gold); font-weight:600; }
+
+  /* ---------- page header ---------- */
+  .page-head{ padding:28px 32px 8px; }
+  .page-head .eyebrow{ font-family:var(--jp); font-weight:900; font-size:13px; color:var(--vermilion); letter-spacing:0.1em; margin-bottom:2px;}
+  .headline{
+    font-family:var(--sans); font-weight:900; font-size:40px; letter-spacing:0.01em;
+    text-transform:uppercase; color:var(--white); margin:0;
+    transform:scaleY(1.28); transform-origin:left bottom;
+    display:inline-block;
+  }
+  .headline .sub{ font-size:18px; color:var(--white-faint); font-weight:700; margin-left:14px; }
+  .page-head .meta-line{
+    display:flex; gap:18px; margin-top:14px; font-family:var(--mono); font-size:10.5px; color:var(--white-faint);
+    letter-spacing:0.06em; flex-wrap:wrap;
+  }
+  .page-head .meta-line span b{ color:var(--white); font-weight:600;}
+
+  /* ---------- layout grid ---------- */
+  .content{ padding:6px 32px 60px; flex:1; }
+  .train-section{
+    margin:16px 0 24px; border:1px solid var(--hairline-strong); background:var(--panel);
+    padding:20px 26px 16px;
+  }
+  .train-section-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:10px;}
+  .train-section-head h2{
+    font-size:12px; text-transform:uppercase; letter-spacing:0.18em; color:var(--white-dim); margin:0; font-weight:700;
+  }
+  .train-section-head h2 em{ font-family:var(--jp); font-style:normal; color:var(--gold); margin-right:8px; font-weight:900;}
+  .line-key{ font-family:var(--mono); font-size:10px; color:var(--white-faint); }
+  .line-key b{ color:var(--vermilion); }
+
+  /* ---------- tags (reusable: .tag, .tag-accent, .tag-gold, .tag-muted) ---------- */
+  .tag{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em; padding:2px 7px;
+    border:1px solid var(--gold); color:var(--gold); border-radius:2px; vertical-align:middle;
+    text-transform:uppercase; display:inline-block;
+  }
+  .tag-accent{ border-color:var(--vermilion); color:var(--vermilion); }
+  .tag-gold{ border-color:var(--gold); color:var(--gold); }
+  .tag-muted{ border-color:var(--white-faint); color:var(--white-faint); border-style:dashed; }
+
+  /* ---------- seal (reusable approval stamp) ---------- */
+  .seal{ position:absolute; top:50%; right:12px; width:42px; height:42px; pointer-events:none; transform:translateY(-50%) rotate(-8deg); }
+
+  /* ---------- stats (reusable: .stat, .stat-grid, .stat-compact) ---------- */
+  .stat{ display:flex; flex-direction:column; gap:2px; padding:12px 14px; border-bottom:1px solid var(--hairline); }
+  .stat:last-child{ border-bottom:none; }
+  .stat .stat-label{ font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--white-faint); }
+  .stat .stat-value{ font-family:var(--mono); font-size:22px; font-weight:600; color:var(--white); }
+  .stat .stat-note{ font-size:10.5px; color:var(--white-faint); }
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .stat-compact{ padding:0; border-bottom:none; }
+  .stat-compact .stat-value{ font-size:15px; }
+  .stat-compact .stat-label{ font-size:11.5px; color:var(--white-dim); text-transform:none; letter-spacing:0.01em; }
+
+  /* ---------- warning (reusable: .warning, .warning-inner) ---------- */
+  .warning{
+    margin:0; padding:14px;
+    background:repeating-linear-gradient(135deg, var(--vermilion) 0 10px, #8a2417 10px 20px);
+    border-top:1px solid var(--hairline-strong); border-bottom:1px solid var(--hairline-strong);
+  }
+  .warning-inner{ background:var(--ink); padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .warning-inner .wtxt-col{ display:flex; align-items:baseline; gap:8px; }
+  .warning-inner .wjp{ font-family:var(--jp); font-weight:900; font-size:15px; color:var(--vermilion); }
+  .warning-inner .wtext{ font-size:10.5px; letter-spacing:0.1em; color:var(--white-dim); text-transform:uppercase; white-space:nowrap; }
+  .warning-inner .wval{ font-family:var(--mono); font-size:26px; font-weight:700; color:var(--vermilion); white-space:nowrap; }
+
+  /* ---------- panels (reusable: .panel, .panel-head, .panel-body) ---------- */
+  .dash{ display:grid; grid-template-columns:320px 1fr 340px; gap:22px; align-items:start; }
+  .col{ display:flex; flex-direction:column; gap:16px; }
+  .panel{ border:1px solid var(--hairline-strong); background:var(--panel); }
+  .panel-head{
+    display:flex; align-items:center; justify-content:space-between; padding:10px 14px;
+    border-bottom:1px solid var(--hairline); background:var(--panel-2);
+  }
+  .panel-head h3{ margin:0; font-size:10.5px; text-transform:uppercase; letter-spacing:0.14em; font-weight:700; color:var(--white-dim); }
+  .panel-head h3 em{ font-family:var(--jp); font-style:normal; color:var(--vermilion); font-weight:900; margin-right:7px; }
+  .panel-body{ padding:14px; }
+
+  /* ---------- table (reusable: .table) ---------- */
+  .table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .table th{ text-align:left; font-weight:500; text-transform:uppercase; letter-spacing:0.06em; font-size:10.5px; color:var(--white-faint); padding:8px 0; border-bottom:1px solid var(--hairline); }
+  .table td{ padding:8px 0; border-bottom:1px solid var(--hairline); color:var(--white); font-family:var(--mono); }
+  .table tr:last-child td{ border-bottom:none; }
+  .table td.num, .table th.num{ text-align:right; }
+
+  .sparkline-row{ display:flex; align-items:center; justify-content:space-between; }
+  .sparkline-row .price{ font-family:var(--mono); font-size:18px; color:var(--white); }
+  .sparkline-row .price small{ font-size:10px; color:var(--white-faint); }
+
+  .mocklabel{
+    font-family:var(--mono); font-size:9.5px; color:var(--white-faint); letter-spacing:0.08em;
+    border-left:1px solid var(--hairline-strong); padding-left:12px; margin-left:4px; white-space:nowrap;
+  }
+
+  /* =========================================================================
+     EXCHANGE-SPECIFIC ADDITIONS (not part of the shared shell above)
+     ========================================================================= */
+
+  .restabs{ display:flex; flex-wrap:wrap; border-bottom:1px solid var(--hairline-strong); }
+  .restab{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--white-dim); padding:10px 18px; cursor:pointer;
+    border-right:1px solid var(--hairline); border-bottom:2px solid transparent;
+  }
+  .restab:hover{ color:var(--white); background:var(--panel-2); }
+  .restab.active{ color:var(--white); font-weight:700; border-bottom-color:var(--vermilion); background:var(--panel-3); }
+  .restab .rt-none{ color:var(--white-faint); font-weight:400; margin-left:6px; font-size:9.5px; }
+
+  .chart-head{ display:flex; align-items:baseline; justify-content:space-between; margin:16px 0 6px; flex-wrap:wrap; gap:8px; }
+  .chart-price{ font-family:var(--mono); font-size:26px; color:var(--white); }
+  .chart-price small{ font-size:11px; color:var(--white-faint); font-weight:400; }
+  .chart-delta{ font-family:var(--mono); font-size:13px; padding:3px 8px; border-radius:2px; }
+  .chart-delta.up{ color:var(--gold); border:1px solid var(--gold-dim); }
+  .chart-delta.down{ color:var(--vermilion); border:1px solid var(--vermilion-dim); }
+  #chartWrap{ line-height:0; }
+  #chartWrap svg{ display:block; width:100%; height:190px; }
+
+  .ticker-strip{ display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; padding-top:14px; border-top:1px solid var(--hairline); }
+  .ticker-chip{
+    display:flex; flex-direction:column; gap:3px; padding:7px 12px; border:1px solid var(--hairline-strong);
+    border-radius:2px; cursor:pointer; min-width:104px; background:var(--panel-2);
+  }
+  .ticker-chip:hover{ border-color:var(--white-faint); }
+  .ticker-chip.active{ border-color:var(--vermilion); background:var(--panel-3); }
+  .ticker-chip .tk-code{ font-family:var(--mono); font-size:10px; color:var(--white-faint); letter-spacing:0.08em; }
+  .ticker-chip .tk-price{ font-family:var(--mono); font-size:14px; color:var(--white); }
+  .ticker-chip .tk-delta{ font-family:var(--mono); font-size:10.5px; }
+  .ticker-chip .tk-delta.up{ color:var(--gold); }
+  .ticker-chip .tk-delta.down{ color:var(--vermilion); }
+
+  .field{ display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+  .field label{ font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--white-faint); }
+  .field input{
+    background:var(--panel-2); border:1px solid var(--hairline-strong); color:var(--white);
+    font-family:var(--mono); font-size:13px; padding:7px 9px; border-radius:2px; width:100%;
+  }
+  .field input:focus{ outline:none; border-color:var(--vermilion); }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+
+  .sell-stock{ font-size:11.5px; color:var(--white-dim); margin-bottom:10px; }
+  .sell-stock b{ color:var(--gold); }
+
+  .lvl3-box{ border:1px solid var(--hairline-strong); background:var(--panel-2); padding:10px 12px; margin-bottom:14px; }
+  .lvl3-head{ display:flex; justify-content:space-between; font-size:11px; color:var(--white-dim); margin-bottom:7px; }
+  .lvl3-head b{ color:var(--white); }
+  .bar-track{ height:6px; background:var(--panel-3); border:1px solid var(--hairline-strong); }
+  .bar-fill{ height:100%; transition:width .5s; box-shadow:0 0 8px var(--vermilion-glow); }
+
+  .sell-breakdown{
+    border:1px solid var(--hairline-strong); background:var(--panel-2); padding:11px 13px;
+    margin-top:4px; display:flex; flex-direction:column; gap:6px;
+  }
+  .sell-breakdown.gex{ border-color:var(--gold-dim); margin-top:10px; }
+  .sell-breakdown .sb-row{ display:flex; justify-content:space-between; font-size:12px; color:var(--white-dim); }
+  .sell-breakdown .sb-row b{ color:var(--white); font-family:var(--mono); }
+  .sell-breakdown .btn{ margin-top:4px; width:100%; justify-content:center; }
+  .sell-msg{ font-size:11px; color:var(--white-faint); margin-top:8px; min-height:14px; }
+  .sell-msg.err{ color:var(--vermilion); }
+  .sell-msg.ok{ color:var(--gold); }
+
+  .quota-line{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-family:var(--mono); font-size:11px; color:var(--white-dim); }
+  .quota-line .qval{ color:var(--gold); font-weight:600; }
+
+  /* the shared .table class has no horizontal cell padding (it was only ever used for
+     2-column label/value tables); the wider multi-column tables on this page need a
+     gap between columns so right-aligned numeric cells don't visually collide. */
+  .table th:not(:last-child), .table td:not(:last-child){ padding-right:14px; }
+  .table td.num, .table th.num{ padding-left:14px; }
+  .book-table .buy-btn, .listings-table .cancel-btn{ padding:4px 10px; font-size:9.5px; }
+  .empty-row td{ color:var(--white-faint); font-style:italic; font-family:var(--sans); text-align:center; padding:16px 0; }
+  .hist-wrap{ max-height:260px; overflow-y:auto; }
+  .hist-wrap .table{ font-size:11.5px; }
+  .type-tag{ font-family:var(--mono); font-size:9px; padding:1px 5px; border-radius:2px; letter-spacing:0.04em; }
+  .type-tag.LISTED{ border:1px solid var(--white-faint); color:var(--white-dim); }
+  .type-tag.CANCELLED{ border:1px solid var(--white-faint); color:var(--white-faint); }
+  .type-tag.SOLD-GEX, .type-tag.SOLD-OB{ border:1px solid var(--gold); color:var(--gold); }
+  .type-tag.BOUGHT{ border:1px solid var(--vermilion); color:var(--vermilion); }
+
+  /* ---------- responsive ---------- */
+  /* nav rail: all 16 stations fit one row down to ~1360px. Below that, invisible
+     zero-height "breaker" items force deliberate line splits (rather than letting
+     flex-wrap dump whichever group happens to overflow onto its own lonely line):
+     <=1360px: Company+Station / Industry+Market+Comms (two balanced rows)
+     <=800px:  Company / Station+Industry / Market+Comms (three rows, narrower still fits) */
+  .rail-break{ flex-basis:0; width:0; height:0; overflow:hidden; }
+  @media (max-width:1360px){
+    .rail-break.b1{ flex-basis:100%; }
+  }
+  @media (max-width:800px){
+    .rail-break.b2{ flex-basis:100%; }
+  }
+  @media (max-width:1280px){
+    .dash{ grid-template-columns:1fr 1fr; }
+    .dash .col:nth-child(2){ grid-column:1 / -1; order:-1; }
+  }
+  @media (max-width:800px){
+    .dash{ grid-template-columns:1fr; }
+    .dash .col:nth-child(2){ order:0; }
+    .headline{ font-size:26px; }
+    .topstrip{ flex-wrap:wrap; gap:10px; }
+    .field-row{ flex-direction:column; }
+  }
+  @media (max-width:540px){
+    .rail-group{ flex:0 0 100%; flex-wrap:wrap; border-right:none; border-bottom:1px solid var(--hairline-strong); }
+    .rail-group-label{
+      writing-mode:horizontal-tb; transform:none; width:100%; min-width:0;
+      justify-content:flex-start; padding:5px 8px; border-right:none; border-bottom:1px solid var(--hairline);
+    }
+    .station{ width:66px; flex:0 0 auto; padding:9px 6px 7px; }
+    .station .label{ font-size:11px; }
+    .headline{ font-size:21px; transform:scaleY(1.15); }
+    .train-section{ padding:16px 14px; }
+    .content, .page-head{ padding-left:14px; padding-right:14px; }
+    .topstrip{ padding:12px 14px; }
+    .viewing-strip{ padding:6px 14px; }
+    .restab{ padding:8px 12px; font-size:10px; }
+    .ticker-chip{ min-width:88px; }
+    .chart-price{ font-size:20px; }
+    .mocklabel{ white-space:normal; }
+  }
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <div class="topstrip">
+    <div class="brand">
+      <span class="jpmark">星际定居协议</span>
+      <span class="title">The Interstellar Settlement Protocol</span>
+      <span class="ver">v0.4 &nbsp;/&nbsp; EST. 2147</span>
+      <span class="mocklabel">MOCKUP 07 v2 — ZAIBATSU — EXCHANGE</span>
+    </div>
+    <div class="player">
+      <div class="notice-pill" id="noticePill"><span class="dot"></span> 23 UNREAD</div>
+      <div class="id">
+        <div class="name">R. VANCE <span style="color:var(--white-faint); font-weight:400;">— CEO</span></div>
+        <div class="corp"><b>HELIX MERIDIAN HOLDINGS</b> · HMH</div>
+      </div>
+      <button class="btn btn-ghost" id="logoutBtn">Log Out</button>
+    </div>
+  </div>
+
+  <!-- ===================== NAV RAIL — copied verbatim from the overview shell; only the active/link state differs per page ===================== -->
+  <nav class="tabrail" id="tabrail">
+    <div class="rail-group">
+      <div class="rail-group-label">COMPANY</div>
+      <a class="station link" href="07-zaibatsu-v2-overview.html" data-group="Company" data-name="Overview"><div class="code-badge"><b>C</b>01</div><div class="label">Overview</div></a>
+      <div class="station" data-group="Company" data-name="Inbox"><div class="code-badge"><b>C</b>02</div><div class="label">Inbox</div></div>
+      <div class="station" data-group="Company" data-name="Financial Core"><div class="code-badge"><b>C</b>03</div><div class="label">Financial Core</div></div>
+      <div class="station" data-group="Company" data-name="CEO Insight"><div class="code-badge"><b>C</b>04</div><div class="label">CEO Insight</div></div>
+      <div class="station" data-group="Company" data-name="Assignments"><div class="code-badge"><b>C</b>05</div><div class="label">Assignments</div></div>
+      <div class="station" data-group="Company" data-name="Conglomerate"><div class="code-badge"><b>C</b>06</div><div class="label">Conglomerate</div></div>
+    </div>
+    <div class="rail-break b2"></div>
+    <div class="rail-group">
+      <div class="rail-group-label">STATION</div>
+      <div class="station" data-group="Station" data-name="Station"><div class="code-badge"><b>S</b>01</div><div class="label">Station</div></div>
+      <a class="station link" href="07-zaibatsu-v2-operations.html" data-group="Station" data-name="Operations"><div class="code-badge"><b>S</b>02</div><div class="label">Operations</div></a>
+      <div class="station" data-group="Station" data-name="Fleet"><div class="code-badge"><b>S</b>03</div><div class="label">Fleet</div></div>
+    </div>
+    <div class="rail-break b1"></div>
+    <div class="rail-group">
+      <div class="rail-group-label">INDUSTRY</div>
+      <a class="station link" href="07-zaibatsu-v2-research.html" data-group="Industry" data-name="Corporate R&amp;D"><div class="code-badge"><b>I</b>01</div><div class="label">Corporate R&amp;D</div></a>
+      <div class="station" data-group="Industry" data-name="Refinery Chains"><div class="code-badge"><b>I</b>02</div><div class="label">Refinery Chains</div></div>
+      <div class="station" data-group="Industry" data-name="Logistics"><div class="code-badge"><b>I</b>03</div><div class="label">Logistics</div></div>
+    </div>
+    <div class="rail-group">
+      <div class="rail-group-label">MARKET</div>
+      <div class="station active" data-group="Market" data-name="Galactic Exchange"><div class="code-badge"><b>M</b>01</div><div class="label">Galactic Exchange</div></div>
+      <div class="station" data-group="Market" data-name="Assets"><div class="code-badge"><b>M</b>02</div><div class="label">Assets</div></div>
+    </div>
+    <div class="rail-group" style="border-right:none;">
+      <div class="rail-group-label">COMMS</div>
+      <div class="station" data-group="Comms" data-name="Chat"><div class="code-badge"><b>X</b>01</div><div class="label">Chat</div></div>
+      <div class="station" data-group="Comms" data-name="Forum"><div class="code-badge"><b>X</b>02</div><div class="label">Forum</div></div>
+    </div>
+  </nav>
+  <div class="viewing-strip">VIEWING: <b id="viewingName">Market — Galactic Exchange</b> &nbsp;/&nbsp; STATION M-01 &nbsp;/&nbsp; ROUTE NORMAL</div>
+  <!-- ===================== /NAV RAIL ===================== -->
+
+  <div class="page-head">
+    <div class="eyebrow">交易所</div>
+    <h1 class="headline">Galactic Exchange<span class="sub">Commodities Market</span></h1>
+    <div class="meta-line">
+      <span>CORP ID: <b>HMH-01</b></span>
+      <span>MARKET: <b>GEX Prime</b></span>
+      <span>SETTLEMENT: <b>T+0 instant</b></span>
+      <span>LISTING FEE: <b>2.5%</b></span>
+      <span>SERVER TIME: <b class="mono" id="clock">—</b></span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <section class="train-section">
+      <div class="train-section-head">
+        <h2><em>市场</em>Resource Market</h2>
+        <div class="line-key">Level 3 requires <b>300 Silicate</b> sold &nbsp;·&nbsp; you hold <b style="color:var(--gold);">142</b> today</div>
+      </div>
+
+      <div class="restabs" id="resTabs"></div>
+
+      <div class="chart-head">
+        <div>
+          <div class="chart-price" id="chartPrice">— <small>cr/unit</small></div>
+        </div>
+        <span class="chart-delta" id="chartDelta">—</span>
+      </div>
+      <div id="chartWrap"></div>
+
+      <div class="ticker-strip" id="tickerStrip"></div>
+    </section>
+
+    <div class="dash">
+
+      <!-- LEFT COLUMN -->
+      <div class="col">
+        <div class="panel">
+          <div class="panel-head"><h3><em>出售</em>Sell — <span id="sellResName">Silicate</span></h3></div>
+          <div class="panel-body">
+            <div class="sell-stock">You hold <b id="sellStock">142</b> units on hand</div>
+
+            <div class="lvl3-box" id="lvl3Box">
+              <div class="lvl3-head"><span>Sold <b id="lvl3Count">0</b> / 300 toward Level 3</span><span id="lvl3Pct">0%</span></div>
+              <div class="bar-track"><div class="bar-fill" id="lvl3Fill" style="width:0%; background:var(--vermilion);"></div></div>
+            </div>
+
+            <div class="field-row">
+              <div class="field"><label>Quantity</label><input type="number" id="sellQty" value="40" min="1"></div>
+              <div class="field"><label>List Price (cr/unit)</label><input type="number" id="sellPrice" value="62" min="1"></div>
+            </div>
+
+            <div class="sell-breakdown">
+              <div class="sb-row"><span>Gross</span><b id="obGross">—</b></div>
+              <div class="sb-row"><span>Listing fee (2.5%)</span><b id="obFee">—</b></div>
+              <div class="sb-row"><span>Net proceeds</span><b id="obNet">—</b></div>
+              <button class="btn btn-primary btn-sm" id="listBtn">List on Order Book</button>
+            </div>
+
+            <div class="sell-breakdown gex">
+              <div class="sb-row"><span>GEX peg price</span><b id="gexPegVal">61 cr</b></div>
+              <div class="sb-row"><span>Net proceeds (no fee)</span><b id="gexNet">—</b></div>
+              <div class="quota-line"><span>Quota remaining today</span><span class="qval" id="gexQuotaInline">180 / 400</span></div>
+              <button class="btn btn-ghost btn-sm" id="gexSellBtn">Sell to GEX at Peg</button>
+            </div>
+
+            <div class="sell-msg" id="sellMsg"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>My Active Listings</h3><span class="tag tag-muted" id="listingsCount">1 OPEN</span></div>
+          <div class="panel-body">
+            <table class="table listings-table">
+              <thead><tr><th>Resource</th><th class="num">Qty</th><th class="num">Price</th><th>Posted</th><th></th></tr></thead>
+              <tbody id="listingsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER COLUMN -->
+      <div class="col">
+        <div class="panel">
+          <div class="panel-head"><h3>Sell Order Book — <span id="bookResName">Silicate</span></h3><span class="tag tag-muted">Other corporations</span></div>
+          <div class="panel-body">
+            <table class="table book-table">
+              <thead><tr><th>Seller</th><th class="num">Qty</th><th class="num">Price/Unit</th><th>Posted</th><th></th></tr></thead>
+              <tbody id="bookBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="col">
+        <div class="panel">
+          <div class="panel-head"><h3><em>官方</em>GEX Standing Buy Order</h3><span class="tag tag-gold" id="quotaTag">QUOTA OPEN</span></div>
+          <div class="panel-body">
+            <div class="sparkline-row">
+              <div class="price" id="gexPrice">61<small> cr/unit</small></div>
+            </div>
+            <div class="quota-line"><span>Daily quota remaining</span><span class="qval" id="quotaRemain">180 / 400</span></div>
+            <div class="bar-track" style="margin-top:6px;"><div class="bar-fill" id="quotaFill" style="width:45%; background:var(--gold);"></div></div>
+            <div class="quota-line"><span>Resets in (midnight EST)</span><span class="mono" id="quotaCountdown">—</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Trade History</h3></div>
+          <div class="panel-body hist-wrap">
+            <table class="table">
+              <thead><tr><th>Type</th><th>Counterparty</th><th class="num">Qty</th><th class="num">Price</th></tr></thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<script>
+(function(){
+
+  /* ---------------- clock ---------------- */
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  function tickClock(){
+    var d = new Date();
+    document.getElementById('clock').textContent = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())+' STT';
+  }
+  tickClock(); setInterval(tickClock, 1000);
+
+  /* ---------------- nav tabs (highlight-only items; .link items navigate) ---------------- */
+  var stations = document.querySelectorAll('.tabrail .station:not(.link)');
+  var viewingName = document.getElementById('viewingName');
+  stations.forEach(function(s){
+    s.addEventListener('click', function(){
+      document.querySelectorAll('.tabrail .station').forEach(function(o){ o.classList.remove('active'); });
+      s.classList.add('active');
+      viewingName.textContent = s.dataset.group + ' — ' + s.dataset.name;
+    });
+  });
+
+  /* ---------------- notice / logout (mockup no-ops) ---------------- */
+  document.getElementById('noticePill').addEventListener('click', function(){
+    this.style.opacity = 0.6; this.querySelector('.dot').style.animation = 'none';
+  });
+  document.getElementById('logoutBtn').addEventListener('click', function(){
+    alert('Session end requested. (Mockup — no backend.)');
+  });
+
+  /* =========================================================================
+     MARKET DATA — six resources, plausible and internally consistent.
+     Only Silicate has a player-held stock; the rest are browsable but the
+     player cannot yet sell them.
+     ========================================================================= */
+  function seededRandom(seed){
+    var s = seed % 233280;
+    return function(){ s = (s*9301 + 49297) % 233280; return s / 233280; };
+  }
+  function genCandles(peg, seed){
+    var rnd = seededRandom(seed);
+    var out = [], close = peg * (0.9 + rnd()*0.08);
+    for(var i=0;i<14;i++){
+      var open = close;
+      var delta = (rnd()-0.48) * peg * 0.05;
+      close = Math.max(peg*0.6, open + delta);
+      var high = Math.max(open,close) + rnd()*peg*0.02;
+      var low = Math.max(0.1, Math.min(open,close) - rnd()*peg*0.02);
+      out.push({o:open,h:high,l:low,c:close});
+    }
+    // nudge the final close toward today's peg so the chart reads as "settled here"
+    out[13].c = peg;
+    return out;
+  }
+
+  var RESOURCES = {
+    SIL: { name:'Silicate', stock:142, peg:61, quota:400, quotaUsed:220, seed:11,
+      book:[
+        {corp:'KRD', qty:120, price:63, posted:'11m ago'},
+        {corp:'NBF', qty:75,  price:62, posted:'34m ago'},
+        {corp:'ORS', qty:200, price:64, posted:'1h 02m ago'},
+        {corp:'VSC', qty:50,  price:60, posted:'2h 15m ago'},
+        {corp:'CMG', qty:310, price:65, posted:'3h 40m ago'}
+      ] },
+    FER: { name:'Ferrite', stock:0, peg:38, quota:500, quotaUsed:340, seed:23,
+      book:[
+        {corp:'ORS', qty:400, price:39, posted:'8m ago'},
+        {corp:'TAW', qty:260, price:37, posted:'52m ago'},
+        {corp:'KRD', qty:180, price:40, posted:'2h 05m ago'}
+      ] },
+    HE3: { name:'Helium-3', stock:0, peg:145, quota:120, quotaUsed:55, seed:37,
+      book:[
+        {corp:'VSC', qty:22, price:149, posted:'19m ago'},
+        {corp:'NBF', qty:14, price:143, posted:'1h 40m ago'},
+        {corp:'CMG', qty:30, price:151, posted:'4h 12m ago'}
+      ] },
+    H2O: { name:'Water Ice', stock:0, peg:12, quota:800, quotaUsed:500, seed:41,
+      book:[
+        {corp:'TAW', qty:900,  price:12, posted:'3m ago'},
+        {corp:'KRD', qty:650,  price:11, posted:'27m ago'},
+        {corp:'ORS', qty:1200, price:13, posted:'1h 18m ago'},
+        {corp:'VSC', qty:340,  price:12, posted:'5h 02m ago'}
+      ] },
+    REO: { name:'Rare Earth Oxide', stock:0, peg:210, quota:60, quotaUsed:12, seed:53,
+      book:[
+        {corp:'CMG', qty:9,  price:216, posted:'44m ago'},
+        {corp:'NBF', qty:5,  price:208, posted:'2h 30m ago'}
+      ] },
+    PLY: { name:'Polymer Resin', stock:0, peg:54, quota:300, quotaUsed:90, seed:67,
+      book:[
+        {corp:'KRD', qty:140, price:55, posted:'21m ago'},
+        {corp:'TAW', qty:88,  price:53, posted:'1h 05m ago'},
+        {corp:'VSC', qty:210, price:56, posted:'3h 21m ago'}
+      ] }
+  };
+  var RES_ORDER = ['SIL','FER','HE3','H2O','REO','PLY'];
+  Object.keys(RESOURCES).forEach(function(k){ RESOURCES[k].candles = genCandles(RESOURCES[k].peg, RESOURCES[k].seed); });
+
+  var currentRes = 'SIL';
+  var LEVEL3_TARGET = 300, level3Sold = 0;
+  var listingIdSeq = 2;
+  var activeListings = [
+    { id:1, res:'SIL', qty:40, price:61, posted:'2h ago' }
+  ];
+  var tradeHistory = [
+    { type:'LISTED',    res:'SIL', counterparty:'Order book', qty:40, price:61, ts:'2h ago' },
+    { type:'SOLD-GEX',  res:'SIL', counterparty:'GEX Commodities Authority', qty:22, price:61, ts:'6h ago' },
+    { type:'BOUGHT',    res:'FER', counterparty:'ORS', qty:15, price:39, ts:'9h ago' },
+    { type:'SOLD-GEX',  res:'SIL', counterparty:'GEX Commodities Authority', qty:40, price:61, ts:'1d ago' }
+  ];
+
+  var fmt = function(n){ return Math.round(n).toLocaleString('en-US'); };
+
+  /* ---------------- resource tabs ---------------- */
+  var resTabs = document.getElementById('resTabs');
+  RES_ORDER.forEach(function(key){
+    var r = RESOURCES[key];
+    var el = document.createElement('div');
+    el.className = 'restab' + (key===currentRes ? ' active' : '');
+    el.dataset.res = key;
+    el.innerHTML = r.name + (r.stock>0 ? '' : '<span class="rt-none">not yet produced</span>');
+    el.addEventListener('click', function(){ selectResource(key); });
+    resTabs.appendChild(el);
+  });
+
+  /* ---------------- price chart (14-day candles, vermilion/ink style) ---------------- */
+  function renderChart(key){
+    var data = RESOURCES[key].candles;
+    var W=640, H=190, padL=8, padR=8, padT=10, padB=14;
+    var n = data.length;
+    var lo = Math.min.apply(null, data.map(function(d){return d.l;}));
+    var hi = Math.max.apply(null, data.map(function(d){return d.h;}));
+    var padv = (hi-lo)*0.1 || 1; lo -= padv; hi += padv;
+    function x(i){ return padL + i*((W-padL-padR)/(n-1)); }
+    function y(v){ return padT + (1-((v-lo)/(hi-lo)))*(H-padT-padB); }
+    var candleW = ((W-padL-padR)/n) * 0.46;
+    var parts = ['<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'];
+    for(var g=0; g<=3; g++){
+      var gy = padT + g*(H-padT-padB)/3;
+      parts.push('<line x1="'+padL+'" y1="'+gy+'" x2="'+(W-padR)+'" y2="'+gy+'" stroke="var(--hairline)" stroke-width="1"/>');
+    }
+    var pts = [];
+    data.forEach(function(d,i){
+      var cx = x(i), up = d.c >= d.o;
+      var color = up ? 'var(--gold)' : 'var(--vermilion)';
+      parts.push('<line x1="'+cx+'" y1="'+y(d.h)+'" x2="'+cx+'" y2="'+y(d.l)+'" stroke="'+color+'" stroke-width="1.4"/>');
+      var oy=y(d.o), cy=y(d.c), top=Math.min(oy,cy), h=Math.max(1.5, Math.abs(cy-oy));
+      parts.push('<rect x="'+(cx-candleW/2)+'" y="'+top+'" width="'+candleW+'" height="'+h+'" fill="'+color+'" opacity="0.92"/>');
+      pts.push(cx+','+y(d.c));
+    });
+    parts.push('<polyline points="'+pts.join(' ')+'" fill="none" stroke="var(--white-faint)" stroke-width="1" stroke-dasharray="2,2"/>');
+    parts.push('</svg>');
+    document.getElementById('chartWrap').innerHTML = parts.join('');
+
+    var last = data[data.length-1].c, prev = data[data.length-2].c;
+    var pct = ((last-prev)/prev*100);
+    document.getElementById('chartPrice').innerHTML = fmt(last) + ' <small>cr/unit</small>';
+    var deltaEl = document.getElementById('chartDelta');
+    deltaEl.textContent = (pct>=0?'▲ +':'▼ ') + Math.abs(pct).toFixed(1) + '% / 14d';
+    deltaEl.className = 'chart-delta ' + (pct>=0?'up':'down');
+  }
+
+  /* ---------------- ticker strip ---------------- */
+  function renderTicker(){
+    var strip = document.getElementById('tickerStrip');
+    strip.innerHTML = '';
+    RES_ORDER.forEach(function(key){
+      var r = RESOURCES[key], data = r.candles;
+      var last = data[data.length-1].c, prev = data[data.length-2].c;
+      var pct = ((last-prev)/prev*100);
+      var chip = document.createElement('div');
+      chip.className = 'ticker-chip' + (key===currentRes?' active':'');
+      chip.innerHTML =
+        '<span class="tk-code">'+key+'</span>'+
+        '<span class="tk-price">'+fmt(last)+'</span>'+
+        '<span class="tk-delta '+(pct>=0?'up':'down')+'">'+(pct>=0?'▲':'▼')+' '+Math.abs(pct).toFixed(1)+'%</span>';
+      chip.addEventListener('click', function(){ selectResource(key); });
+      strip.appendChild(chip);
+    });
+  }
+
+  /* ---------------- sell order book (other corporations) ---------------- */
+  function renderBook(key){
+    document.getElementById('bookResName').textContent = RESOURCES[key].name;
+    var body = document.getElementById('bookBody');
+    body.innerHTML = '';
+    var rows = RESOURCES[key].book;
+    if(!rows.length){
+      body.innerHTML = '<tr class="empty-row"><td colspan="5">No open listings for this resource.</td></tr>';
+      return;
+    }
+    rows.forEach(function(row, idx){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>'+row.corp+'</td>'+
+        '<td class="num">'+fmt(row.qty)+'</td>'+
+        '<td class="num">'+fmt(row.price)+' cr</td>'+
+        '<td>'+row.posted+'</td>'+
+        '<td><button class="btn btn-ghost btn-sm buy-btn">Buy</button></td>';
+      tr.querySelector('.buy-btn').addEventListener('click', function(){
+        tradeHistory.unshift({ type:'BOUGHT', res:key, counterparty:row.corp, qty:row.qty, price:row.price, ts:'just now' });
+        rows.splice(idx, 1);
+        renderBook(key);
+        renderHistory();
+      });
+      body.appendChild(tr);
+    });
+  }
+
+  /* ---------------- my active listings ---------------- */
+  function renderListings(){
+    var body = document.getElementById('listingsBody');
+    body.innerHTML = '';
+    if(!activeListings.length){
+      body.innerHTML = '<tr class="empty-row"><td colspan="5">No open listings.</td></tr>';
+    } else {
+      activeListings.forEach(function(l){
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>'+RESOURCES[l.res].name+'</td>'+
+          '<td class="num">'+fmt(l.qty)+'</td>'+
+          '<td class="num">'+fmt(l.price)+' cr</td>'+
+          '<td>'+l.posted+'</td>'+
+          '<td><button class="btn btn-ghost btn-sm cancel-btn">Cancel</button></td>';
+        tr.querySelector('.cancel-btn').addEventListener('click', function(){
+          RESOURCES[l.res].stock += l.qty;
+          activeListings = activeListings.filter(function(x){ return x.id!==l.id; });
+          tradeHistory.unshift({ type:'CANCELLED', res:l.res, counterparty:'Order book', qty:l.qty, price:l.price, ts:'just now' });
+          renderListings(); renderHistory(); renderSellPanel();
+        });
+        body.appendChild(tr);
+      });
+    }
+    document.getElementById('listingsCount').textContent = activeListings.length + ' OPEN';
+  }
+
+  /* ---------------- trade history ---------------- */
+  function renderHistory(){
+    var body = document.getElementById('historyBody');
+    body.innerHTML = '';
+    tradeHistory.slice(0, 10).forEach(function(h){
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><span class="type-tag '+h.type+'">'+h.type+'</span><br><span style="font-size:9.5px;color:var(--white-faint);">'+h.res+' · '+h.ts+'</span></td>'+
+        '<td>'+h.counterparty+'</td>'+
+        '<td class="num">'+fmt(h.qty)+'</td>'+
+        '<td class="num">'+fmt(h.price)+' cr</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  /* ---------------- sell panel (live fee/net + Level 3 progress) ---------------- */
+  function renderLevel3(){
+    document.getElementById('lvl3Count').textContent = level3Sold;
+    var pct = Math.min(100, level3Sold/LEVEL3_TARGET*100);
+    document.getElementById('lvl3Pct').textContent = pct.toFixed(0)+'%';
+    document.getElementById('lvl3Fill').style.width = pct+'%';
+  }
+
+  function updateSellMath(){
+    var r = RESOURCES[currentRes];
+    var qty = Math.max(0, parseFloat(document.getElementById('sellQty').value) || 0);
+    var price = Math.max(0, parseFloat(document.getElementById('sellPrice').value) || 0);
+    var gross = qty*price, fee = gross*0.025, net = gross-fee;
+    document.getElementById('obGross').textContent = fmt(gross)+' cr';
+    document.getElementById('obFee').textContent = fmt(fee)+' cr';
+    document.getElementById('obNet').textContent = fmt(net)+' cr';
+
+    var gexNet = qty*r.peg;
+    document.getElementById('gexNet').textContent = fmt(gexNet)+' cr';
+
+    var quotaRemain = r.quota - r.quotaUsed;
+    document.getElementById('gexQuotaInline').textContent = fmt(quotaRemain)+' / '+fmt(r.quota);
+
+    var canSell = r.stock > 0;
+    document.getElementById('listBtn').disabled = !canSell;
+    document.getElementById('gexSellBtn').disabled = !canSell;
+  }
+
+  function renderSellPanel(){
+    var r = RESOURCES[currentRes];
+    document.getElementById('sellResName').textContent = r.name;
+    document.getElementById('sellStock').textContent = fmt(r.stock);
+    document.getElementById('bookResName').textContent = r.name;
+    document.getElementById('gexPegVal').textContent = fmt(r.peg)+' cr';
+    document.getElementById('gexPrice').innerHTML = fmt(r.peg)+'<small> cr/unit</small>';
+
+    var quotaRemain = r.quota - r.quotaUsed;
+    document.getElementById('quotaRemain').textContent = fmt(quotaRemain)+' / '+fmt(r.quota);
+    document.getElementById('quotaFill').style.width = Math.min(100, quotaRemain/r.quota*100)+'%';
+    var quotaTag = document.getElementById('quotaTag');
+    quotaTag.textContent = quotaRemain>0 ? 'QUOTA OPEN' : 'QUOTA EXHAUSTED';
+    quotaTag.className = 'tag ' + (quotaRemain>0 ? 'tag-gold' : 'tag-accent');
+
+    var lvl3Box = document.getElementById('lvl3Box');
+    lvl3Box.style.display = (currentRes==='SIL') ? '' : 'none';
+
+    document.getElementById('sellPrice').value = r.peg + 1;
+    document.getElementById('sellQty').value = Math.min(40, r.stock) || (r.stock>0 ? r.stock : 40);
+    document.getElementById('sellMsg').textContent = '';
+    document.getElementById('sellMsg').className = 'sell-msg';
+
+    updateSellMath();
+  }
+
+  function setMsg(text, kind){
+    var el = document.getElementById('sellMsg');
+    el.textContent = text;
+    el.className = 'sell-msg' + (kind ? ' '+kind : '');
+  }
+
+  document.getElementById('sellQty').addEventListener('input', updateSellMath);
+  document.getElementById('sellPrice').addEventListener('input', updateSellMath);
+
+  document.getElementById('listBtn').addEventListener('click', function(){
+    var r = RESOURCES[currentRes];
+    var qty = parseFloat(document.getElementById('sellQty').value) || 0;
+    var price = parseFloat(document.getElementById('sellPrice').value) || 0;
+    if(qty<=0 || price<=0){ setMsg('Enter a valid quantity and price.', 'err'); return; }
+    if(qty>r.stock){ setMsg('You only hold '+fmt(r.stock)+' units.', 'err'); return; }
+    r.stock -= qty;
+    activeListings.unshift({ id:listingIdSeq++, res:currentRes, qty:qty, price:price, posted:'just now' });
+    tradeHistory.unshift({ type:'LISTED', res:currentRes, counterparty:'Order book', qty:qty, price:price, ts:'just now' });
+    setMsg('Listed '+fmt(qty)+' '+r.name+' at '+fmt(price)+' cr/unit.', 'ok');
+    renderListings(); renderHistory(); renderSellPanel();
+  });
+
+  document.getElementById('gexSellBtn').addEventListener('click', function(){
+    var r = RESOURCES[currentRes];
+    var qty = parseFloat(document.getElementById('sellQty').value) || 0;
+    var quotaRemain = r.quota - r.quotaUsed;
+    if(qty<=0){ setMsg('Enter a valid quantity.', 'err'); return; }
+    if(qty>r.stock){ setMsg('You only hold '+fmt(r.stock)+' units.', 'err'); return; }
+    if(qty>quotaRemain){ setMsg('GEX daily quota only has '+fmt(quotaRemain)+' units left today.', 'err'); return; }
+    r.stock -= qty;
+    r.quotaUsed += qty;
+    if(currentRes==='SIL'){ level3Sold = Math.min(LEVEL3_TARGET, level3Sold+qty); renderLevel3(); }
+    tradeHistory.unshift({ type:'SOLD-GEX', res:currentRes, counterparty:'GEX Commodities Authority', qty:qty, price:r.peg, ts:'just now' });
+    setMsg('Sold '+fmt(qty)+' '+r.name+' to GEX at '+fmt(r.peg)+' cr/unit.', 'ok');
+    renderHistory(); renderSellPanel(); renderTicker();
+  });
+
+  /* ---------------- resource selection ---------------- */
+  function selectResource(key){
+    currentRes = key;
+    document.querySelectorAll('.restab').forEach(function(t){ t.classList.toggle('active', t.dataset.res===key); });
+    renderChart(key);
+    renderTicker();
+    renderBook(key);
+    renderSellPanel();
+  }
+
+  /* ---------------- GEX quota countdown to midnight EST ---------------- */
+  function msToNextMidnightEST(){
+    var now = new Date();
+    var estNowMs = now.getTime() - (5*60*60*1000); // approximate fixed EST offset, ignores DST for mockup purposes
+    var estNow = new Date(estNowMs);
+    var estMidnight = new Date(Date.UTC(estNow.getUTCFullYear(), estNow.getUTCMonth(), estNow.getUTCDate()+1, 0,0,0));
+    return estMidnight.getTime() - estNowMs;
+  }
+  function tickQuotaCountdown(){
+    var ms = msToNextMidnightEST();
+    var totalSec = Math.max(0, Math.floor(ms/1000));
+    var h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = totalSec%60;
+    document.getElementById('quotaCountdown').textContent = pad(h)+':'+pad(m)+':'+pad(s);
+  }
+  tickQuotaCountdown(); setInterval(tickQuotaCountdown, 1000);
+
+  /* ---------------- initial render ---------------- */
+  renderLevel3();
+  renderListings();
+  renderHistory();
+  selectResource(currentRes);
+
+})();
+</script>
+</body>
+</html>

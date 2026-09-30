@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup 23 — Vaporwave Protocol</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a0033 50%, #0d1b2a 100%);
+      color: #e0d5ff;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          rgba(255, 20, 147, 0.03) 0px,
+          rgba(255, 20, 147, 0.03) 1px,
+          transparent 1px,
+          transparent 2px
+        );
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      background: linear-gradient(180deg, rgba(26, 0, 51, 0.9) 0%, rgba(10, 14, 39, 0.95) 100%);
+      border-right: 2px solid #ff1493;
+      padding: 20px 0;
+      overflow-y: auto;
+      box-shadow: inset -10px 0 20px rgba(0, 255, 255, 0.1);
+    }
+
+    .sidebar-group {
+      margin-bottom: 24px;
+    }
+
+    .sidebar-group-title {
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #00ffff;
+      padding: 8px 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-item {
+      padding: 8px 16px;
+      font-size: 12px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      margin: 2px 0;
+      transition: all 0.2s;
+      position: relative;
+      color: #b8a7ff;
+    }
+
+    .sidebar-item:hover {
+      color: #ff69b4;
+      border-left-color: #ff69b4;
+      background: rgba(255, 105, 180, 0.1);
+    }
+
+    .sidebar-item.active {
+      color: #00ffff;
+      border-left-color: #00ffff;
+      background: rgba(0, 255, 255, 0.15);
+      text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+    }
+
+    /* Main Content */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(135deg, rgba(10, 20, 50, 0.7) 0%, rgba(30, 10, 50, 0.5) 100%);
+      border-left: 1px solid rgba(0, 255, 255, 0.2);
+    }
+
+    /* Header */
+    .header {
+      border-bottom: 2px solid #ff1493;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(90deg, rgba(26, 0, 51, 0.8) 0%, rgba(10, 20, 50, 0.6) 100%);
+      box-shadow: 0 4px 20px rgba(255, 20, 147, 0.2);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #00ffff;
+      text-shadow: 0 0 15px rgba(0, 255, 255, 0.8), 0 0 30px rgba(255, 20, 147, 0.4);
+    }
+
+    .logo-sub {
+      font-size: 10px;
+      color: #ff69b4;
+      margin-top: 2px;
+    }
+
+    .header-divider {
+      width: 1px;
+      height: 30px;
+      background: linear-gradient(180deg, rgba(0, 255, 255, 0.3), rgba(255, 20, 147, 0.3));
+    }
+
+    .player-info {
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .player-name {
+      color: #ff69b4;
+      font-weight: 700;
+      text-shadow: 0 0 8px rgba(255, 105, 180, 0.5);
+    }
+
+    .player-corp {
+      color: #b8a7ff;
+      font-size: 11px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .notices {
+      background: linear-gradient(135deg, #ff1493 0%, #ff69b4 100%);
+      color: #0a0e27;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 2px;
+      box-shadow: 0 0 10px rgba(255, 20, 147, 0.6);
+    }
+
+    .logout-btn {
+      background: none;
+      border: 1px solid #00ffff;
+      color: #00ffff;
+      padding: 6px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .logout-btn:hover {
+      background: rgba(0, 255, 255, 0.2);
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+    }
+
+    /* Content Area */
+    .content {
+      flex: 1;
+      display: flex;
+      gap: 24px;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    /* Left Column */
+    .left-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Level Progress */
+    .level-card {
+      background: linear-gradient(135deg, rgba(255, 20, 147, 0.1) 0%, rgba(0, 255, 255, 0.08) 100%);
+      border: 2px solid #ff1493;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .level-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #00ffff, transparent);
+      animation: scanline 3s infinite;
+    }
+
+    @keyframes scanline {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    .level-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #00ffff;
+      text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+      margin-bottom: 12px;
+    }
+
+    .level-info {
+      font-size: 12px;
+      color: #b8a7ff;
+      margin-bottom: 12px;
+    }
+
+    .objective {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      border-left: 3px solid #ff69b4;
+    }
+
+    .objective.completed {
+      border-left-color: #00ffff;
+    }
+
+    .objective-text {
+      font-size: 11px;
+      color: #e0d5ff;
+    }
+
+    .objective-progress {
+      font-size: 11px;
+      color: #ff69b4;
+      font-weight: 700;
+    }
+
+    .objective.completed .objective-progress {
+      color: #00ffff;
+    }
+
+    .objective-link {
+      color: #00ffff;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 10px;
+      margin-left: 8px;
+      text-decoration: underline;
+      transition: all 0.2s;
+    }
+
+    .objective-link:hover {
+      text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+    }
+
+    .unlocks {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed rgba(0, 255, 255, 0.3);
+      font-size: 11px;
+      color: #b8a7ff;
+    }
+
+    .unlock-item {
+      margin: 4px 0;
+    }
+
+    .level-nav {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .level-btn {
+      background: none;
+      border: 1px solid #ff69b4;
+      color: #ff69b4;
+      padding: 6px 12px;
+      font-size: 10px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      transition: all 0.2s;
+      flex: 1;
+    }
+
+    .level-btn:hover {
+      background: rgba(255, 105, 180, 0.2);
+      box-shadow: 0 0 8px rgba(255, 105, 180, 0.4);
+    }
+
+    /* Situation Brief */
+    .brief-card {
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.08) 0%, rgba(255, 20, 147, 0.08) 100%);
+      border: 1px dashed #00ffff;
+      padding: 12px;
+      font-size: 11px;
+      color: #b8a7ff;
+      line-height: 1.6;
+      font-style: italic;
+    }
+
+    /* Command Feed */
+    .feed-card {
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.05) 0%, rgba(10, 20, 50, 0.9) 100%);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      padding: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .feed-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255, 20, 147, 0.3);
+      background: rgba(26, 0, 51, 0.5);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: #ff69b4;
+      text-shadow: 0 0 6px rgba(255, 105, 180, 0.4);
+    }
+
+    .feed-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .feed-entry {
+      font-size: 11px;
+      color: #b8a7ff;
+      padding: 6px 0;
+      border-left: 2px solid rgba(0, 255, 255, 0.4);
+      padding-left: 8px;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .feed-entry-time {
+      color: #00ffff;
+      font-size: 10px;
+    }
+
+    .feed-entry-positive {
+      color: #00ff88;
+    }
+
+    .feed-entry-negative {
+      color: #ff6b6b;
+    }
+
+    /* Right Column */
+    .right-column {
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* KPI Cards */
+    .kpi {
+      background: linear-gradient(135deg, rgba(255, 20, 147, 0.12) 0%, rgba(0, 255, 255, 0.08) 100%);
+      border: 2px solid #ff69b4;
+      padding: 12px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi.warning {
+      border-color: #ff6b6b;
+      background: linear-gradient(135deg, rgba(255, 107, 107, 0.12) 0%, rgba(10, 20, 50, 0.9) 100%);
+    }
+
+    .kpi::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { right: -100%; }
+      100% { right: 100%; }
+    }
+
+    .kpi-label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #ff69b4;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .kpi.warning .kpi-label {
+      color: #ff6b6b;
+    }
+
+    .kpi-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #00ffff;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+    }
+
+    .kpi.warning .kpi-value {
+      color: #ff6b6b;
+    }
+
+    /* Status Indicators */
+    .status-bar {
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.08) 0%, rgba(255, 20, 147, 0.08) 100%);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      padding: 12px;
+    }
+
+    .status-item {
+      font-size: 11px;
+      margin-bottom: 8px;
+      color: #b8a7ff;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .status-label {
+      color: #ff69b4;
+      font-weight: 700;
+    }
+
+    .status-value {
+      color: #00ffff;
+    }
+
+    /* Geometric Decoration */
+    .decoration {
+      position: absolute;
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    .triangle {
+      width: 0;
+      height: 0;
+      border-left: 60px solid transparent;
+      border-right: 60px solid transparent;
+      border-bottom: 100px solid #00ffff;
+    }
+
+    .pyramid {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background: linear-gradient(135deg, #ff69b4 0%, #00ffff 100%);
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    }
+
+    .grid-bg {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      background:
+        linear-gradient(0deg, transparent 24%, rgba(0, 255, 255, 0.05) 25%, rgba(0, 255, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(255, 20, 147, 0.05) 75%, rgba(255, 20, 147, 0.05) 76%, transparent 77%, transparent),
+        linear-gradient(90deg, transparent 24%, rgba(0, 255, 255, 0.05) 25%, rgba(0, 255, 255, 0.05) 26%, transparent 27%, transparent 74%, rgba(255, 20, 147, 0.05) 75%, rgba(255, 20, 147, 0.05) 76%, transparent 77%, transparent);
+      background-size: 50px 50px;
+    }
+
+    /* Glitch effect for title */
+    .glitch {
+      position: relative;
+      display: inline-block;
+    }
+
+    .glitch::before,
+    .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .glitch::before {
+      animation: glitch-1 0.2s infinite;
+      color: #ff69b4;
+      z-index: -1;
+      text-shadow: -2px 0 #ff69b4;
+    }
+
+    .glitch::after {
+      animation: glitch-2 0.2s infinite;
+      color: #00ffff;
+      z-index: -2;
+      text-shadow: 2px 0 #00ffff;
+    }
+
+    @keyframes glitch-1 {
+      0% { clip-path: rect(0, 900px, 0, 0); }
+      20% { clip-path: rect(10px, 900px, 25px, 0); }
+      40% { clip-path: rect(5px, 900px, 10px, 0); }
+      60% { clip-path: rect(0, 900px, 0, 0); }
+      100% { clip-path: rect(0, 900px, 0, 0); }
+    }
+
+    @keyframes glitch-2 {
+      0% { clip-path: rect(0, 900px, 0, 0); }
+      20% { clip-path: rect(15px, 900px, 30px, 0); }
+      40% { clip-path: rect(8px, 900px, 20px, 0); }
+      60% { clip-path: rect(0, 900px, 0, 0); }
+      100% { clip-path: rect(0, 900px, 0, 0); }
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #ff69b4, #00ffff);
+      border-radius: 4px;
+    }
+
+    /* Responsive */
+    @media (max-width: 1280px) {
+      .right-column {
+        width: 240px;
+      }
+      .content {
+        gap: 16px;
+        padding: 16px;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 2px solid #ff1493;
+        height: auto;
+        max-height: 100px;
+        display: flex;
+        overflow-x: auto;
+        padding: 12px 0;
+      }
+      .sidebar-group {
+        margin-right: 24px;
+        margin-bottom: 0;
+      }
+      .main {
+        flex: 1;
+        border-left: none;
+        border-top: 1px solid rgba(0, 255, 255, 0.2);
+      }
+      .content {
+        flex-direction: column;
+      }
+      .right-column {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+      }
+      .left-column,
+      .right-column {
+        width: 100%;
+      }
+      .content {
+        gap: 12px;
+        padding: 12px;
+      }
+    }
+
+    /* Mockup label */
+    .mockup-label {
+      position: fixed;
+      bottom: 8px;
+      right: 12px;
+      font-size: 9px;
+      color: rgba(0, 255, 255, 0.3);
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 1px;
+      z-index: 10;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="mockup-label">Mockup 23 · Vaporwave</div>
+
+  <div class="container">
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+      <div class="sidebar-group">
+        <div class="sidebar-group-title">COMPANY</div>
+        <div class="sidebar-item active">Overview</div>
+        <div class="sidebar-item">Inbox</div>
+        <div class="sidebar-item">Financial Core</div>
+        <div class="sidebar-item">CEO Insight</div>
+        <div class="sidebar-item">Assignments</div>
+        <div class="sidebar-item">Conglomerate</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-title">STATION</div>
+        <div class="sidebar-item">Station</div>
+        <div class="sidebar-item">Operations</div>
+        <div class="sidebar-item">Fleet</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-title">INDUSTRY</div>
+        <div class="sidebar-item">Corporate R&D</div>
+        <div class="sidebar-item">Refinery Chains</div>
+        <div class="sidebar-item">Logistics</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-title">MARKET</div>
+        <div class="sidebar-item">Galactic Exchange</div>
+        <div class="sidebar-item">Assets</div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-group-title">COMMS</div>
+        <div class="sidebar-item">Chat</div>
+        <div class="sidebar-item">Forum</div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-left">
+          <div>
+            <div class="logo">∿ ISP</div>
+            <div class="logo-sub">v0.4 · 2147</div>
+          </div>
+          <div class="header-divider"></div>
+          <div class="player-info">
+            <div class="player-name">CEO R. Vance</div>
+            <div class="player-corp">Helix Meridian Holdings [HMH]</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="notices">✉ 23 UNREAD</div>
+          <button class="logout-btn">LOGOUT</button>
+        </div>
+      </div>
+
+      <!-- Content Grid -->
+      <div class="content">
+        <!-- Left Column -->
+        <div class="left-column">
+          <!-- Level Progress -->
+          <div class="level-card">
+            <div class="level-title">⬆ LEVEL PROGRESSION</div>
+            <div class="level-info">Level 2 of 30</div>
+
+            <div class="objective">
+              <div>
+                <div class="objective-text">Sell 300 Silicate on Galactic Exchange</div>
+                <div class="objective-progress">0 / 300</div>
+              </div>
+              <div class="objective-link">→ GEX</div>
+            </div>
+
+            <div class="objective completed">
+              <div>
+                <div class="objective-text">Research Basic Extraction Analytics</div>
+                <div class="objective-progress">✓ 1 / 1</div>
+              </div>
+            </div>
+
+            <div class="unlocks">
+              <strong>Level 3 unlocks:</strong><br>
+              <div class="unlock-item">• Employee cap 45</div>
+              <div class="unlock-item">• Building slots 4</div>
+              <div class="unlock-item">• Fleet cap 22</div>
+              <div class="unlock-item">• Building tier 2</div>
+            </div>
+
+            <div class="level-nav">
+              <button class="level-btn" onclick="prevLevel()">← LVL 1</button>
+              <button class="level-btn" onclick="nextLevel()">LVL 3 →</button>
+            </div>
+          </div>
+
+          <!-- Situation Brief -->
+          <div class="brief-card">
+            <strong>📋 Executive Situation Brief</strong><br><br>
+            ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.
+          </div>
+
+          <!-- Command Feed -->
+          <div class="feed-card">
+            <div class="feed-header">⚡ COMMAND FEEDBACK LOG</div>
+            <div class="feed-body" id="feedBody">
+              <div class="feed-entry">
+                <span class="feed-entry-time">[init]</span> Command uplink standing by.
+              </div>
+              <div class="feed-entry">
+                <span class="feed-entry-time">[14:32]</span> Extractor MX-01 cycle complete: <span class="feed-entry-positive">+48 Silicate</span>
+              </div>
+              <div class="feed-entry">
+                <span class="feed-entry-time">[14:28]</span> Research queued: Refinery Chain I
+              </div>
+              <div class="feed-entry">
+                <span class="feed-entry-time">[14:15]</span> Lease MRS-0419 renewed by ISA Claims & Leases Division
+              </div>
+              <div class="feed-entry">
+                <span class="feed-entry-time">[14:02]</span> Payroll disbursed: <span class="feed-entry-negative">-$4,210</span>
+              </div>
+              <div class="feed-entry">
+                <span class="feed-entry-time">[13:51]</span> Silicate price updated on GEX: 61 cr/unit
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="right-column">
+          <!-- KPIs -->
+          <div class="kpi">
+            <div class="kpi-label">💰 Cash Reserves</div>
+            <div class="kpi-value">$18,061</div>
+          </div>
+
+          <div class="kpi warning">
+            <div class="kpi-label">📉 Net Daily Flow</div>
+            <div class="kpi-value">-$27,915</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-label">🌐 Conglomerate</div>
+            <div class="kpi-value" style="font-size: 14px;">Independent</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-label">⚔️ Military Power</div>
+            <div class="kpi-value" style="font-size: 14px;">0 ATK / 0 DEF</div>
+            <div style="font-size: 10px; color: #b8a7ff; margin-top: 6px;">Readiness: 100%</div>
+          </div>
+
+          <!-- Operations Status -->
+          <div class="status-bar">
+            <div style="font-family: 'Orbitron'; font-size: 11px; color: #ff69b4; margin-bottom: 8px; letter-spacing: 1px;">⚙ OPERATIONS</div>
+
+            <div class="status-item">
+              <span class="status-label">Extractors:</span>
+              <span class="status-value">2 Active</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">MX-01 Cycle:</span>
+              <span class="status-value">72%</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">MX-02 Cycle:</span>
+              <span class="status-value">31%</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Silicate Stock:</span>
+              <span class="status-value">142 units</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Employees:</span>
+              <span class="status-value">18 / 30</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">GEX Price (Si):</span>
+              <span class="status-value">61 cr/unit</span>
+            </div>
+          </div>
+
+          <!-- Research Queue -->
+          <div class="status-bar">
+            <div style="font-family: 'Orbitron'; font-size: 11px; color: #ff69b4; margin-bottom: 8px; letter-spacing: 1px;">🔬 R&D QUEUE</div>
+            <div class="status-item">
+              <span style="color: #00ffff;">Refinery Chain I</span>
+              <span style="color: #ff69b4;">56%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Navigation interactions
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // Level navigation
+    let currentLevel = 2;
+    function prevLevel() {
+      if (currentLevel > 1) {
+        currentLevel--;
+        updateLevelDisplay();
+      }
+    }
+
+    function nextLevel() {
+      if (currentLevel < 30) {
+        currentLevel++;
+        updateLevelDisplay();
+      }
+    }
+
+    function updateLevelDisplay() {
+      document.querySelector('.level-info').textContent = `Level ${currentLevel} of 30`;
+      // In a real app, this would fetch new objectives
+    }
+
+    // Feed ticker
+    const feedMessages = [
+      '<span class="feed-entry-time">[14:45]</span> MX-02 efficiency optimized',
+      '<span class="feed-entry-time">[14:50]</span> New lease opportunity: MRS-0520',
+      '<span class="feed-entry-time">[14:55]</span> Employee satisfaction: nominal',
+      '<span class="feed-entry-time">[15:02]</span> Market volatility index: 34%'
+    ];
+
+    let feedIndex = 0;
+    function tickFeed() {
+      if (Math.random() > 0.7) {
+        const feedBody = document.getElementById('feedBody');
+        const newEntry = document.createElement('div');
+        newEntry.className = 'feed-entry';
+        newEntry.innerHTML = feedMessages[feedIndex % feedMessages.length];
+        feedBody.appendChild(newEntry);
+        feedIndex++;
+
+        // Keep only last 10 entries
+        while (feedBody.children.length > 10) {
+          feedBody.removeChild(feedBody.firstChild);
+        }
+        feedBody.scrollTop = feedBody.scrollHeight;
+      }
+    }
+
+    setInterval(tickFeed, 3000);
+
+    // Animate glitch on load
+    document.addEventListener('DOMContentLoaded', () => {
+      const logo = document.querySelector('.logo');
+      logo.setAttribute('data-text', '∿ ISP');
+    });
+  </script>
+</body>
+</html>

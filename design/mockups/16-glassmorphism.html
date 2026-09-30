@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup 16 — Glassmorphism</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" fallback="sans-serif">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --glass-hover: rgba(255, 255, 255, 0.08);
+      --text-primary: #f0f2f5;
+      --text-secondary: #b0b5be;
+      --text-tertiary: #7a8088;
+      --accent-warning: #ff6b6b;
+      --accent-success: #51cf66;
+      --bg-deep: #0f1419;
+      --bg-surface: #14191f;
+      --bg-hover: #1a2230;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0a0e14 0%, #0f1419 50%, #0d1217 100%);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Glass pane base */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px) saturate(150%);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    /* Layout */
+    .container {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .logo {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+    }
+
+    .version {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      opacity: 0.6;
+    }
+
+    .header-center {
+      text-align: center;
+    }
+
+    .player-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .corp-name {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .notices {
+      background: var(--glass-hover);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border: 1px solid var(--glass-border);
+    }
+
+    .logout-btn {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--glass-border);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .logout-btn:hover {
+      background: var(--glass-hover);
+      color: var(--text-primary);
+    }
+
+    /* Main content */
+    .content {
+      display: grid;
+      grid-template-columns: 280px 1fr 320px;
+      gap: 20px;
+    }
+
+    /* Navigation */
+    nav {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-group-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      padding: 0 12px;
+      opacity: 0.7;
+    }
+
+    .nav-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      background: transparent;
+    }
+
+    .nav-item:hover {
+      background: var(--glass-hover);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      color: var(--text-primary);
+      box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.05);
+    }
+
+    /* Main panel */
+    .main-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Level progress card */
+    .level-card {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .level-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .level-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .level-badge {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    .objectives {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .objective {
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      border-left: 2px solid var(--glass-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .objective.completed {
+      border-left-color: var(--accent-success);
+      opacity: 0.7;
+    }
+
+    .objective-text {
+      font-size: 13px;
+      flex: 1;
+    }
+
+    .objective-progress {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-left: 12px;
+      white-space: nowrap;
+    }
+
+    .objective-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      background: var(--glass-hover);
+      border-radius: 4px;
+      font-size: 11px;
+      margin-left: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .objective-link:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+    }
+
+    .unlocks {
+      background: rgba(81, 207, 102, 0.08);
+      border-left: 2px solid var(--accent-success);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+
+    .unlocks-title {
+      color: var(--accent-success);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    /* Event feed */
+    .feed {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      overflow-y: auto;
+      max-height: 600px;
+    }
+
+    .feed-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+
+    .feed-item {
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-left: 2px solid var(--glass-border);
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+    }
+
+    .feed-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-left-color: var(--glass-border);
+    }
+
+    .feed-item.system {
+      color: var(--text-tertiary);
+      font-style: italic;
+    }
+
+    .feed-item.success {
+      border-left-color: var(--accent-success);
+    }
+
+    .feed-item.warning {
+      border-left-color: var(--accent-warning);
+    }
+
+    /* Right sidebar */
+    .sidebar-right {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .kpi-group {
+      padding: 16px;
+    }
+
+    .kpi-group-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .kpi-item {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .kpi-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 4px;
+    }
+
+    .kpi-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .kpi-value.warning {
+      color: var(--accent-warning);
+    }
+
+    .kpi-delta {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    .situational-brief {
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-left: 2px solid var(--glass-border);
+    }
+
+    .brief-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .brief-text {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-tertiary);
+    }
+
+    /* Level nav */
+    .level-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--glass-border);
+    }
+
+    .level-nav-btn {
+      background: var(--glass-hover);
+      border: 1px solid var(--glass-border);
+      color: var(--text-secondary);
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.2s ease;
+    }
+
+    .level-nav-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+    }
+
+    .level-nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .level-current {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Mockup label */
+    .mockup-label {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      font-size: 10px;
+      color: var(--text-tertiary);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 1280px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar-right {
+        grid-column: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header-center {
+        display: none;
+      }
+
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar-right {
+        grid-template-columns: 1fr;
+      }
+
+      .feed {
+        max-height: 400px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 12px;
+        gap: 12px;
+      }
+
+      header {
+        padding: 12px 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .header-left {
+        gap: 16px;
+      }
+
+      .header-right {
+        align-self: flex-end;
+      }
+
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .nav-group {
+        grid-column: span 2;
+      }
+
+      .nav-item {
+        padding: 8px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-left">
+        <div>
+          <div class="logo">ISP</div>
+          <div class="version">v0.4 · 2147</div>
+        </div>
+      </div>
+      <div class="header-center">
+        <div class="player-name">CEO R. Vance</div>
+        <div class="corp-name">Helix Meridian Holdings (HMH)</div>
+      </div>
+      <div class="header-right">
+        <div class="notices">📬 23 unread</div>
+        <button class="logout-btn">Log out</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- Navigation -->
+      <nav>
+        <div class="nav-group">
+          <div class="nav-group-title">Company</div>
+          <button class="nav-item active" onclick="setActive(this)">Overview</button>
+          <button class="nav-item" onclick="setActive(this)">Inbox</button>
+          <button class="nav-item" onclick="setActive(this)">Financial Core</button>
+          <button class="nav-item" onclick="setActive(this)">CEO Insight</button>
+          <button class="nav-item" onclick="setActive(this)">Assignments</button>
+          <button class="nav-item" onclick="setActive(this)">Conglomerate</button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">Station</div>
+          <button class="nav-item" onclick="setActive(this)">Station</button>
+          <button class="nav-item" onclick="setActive(this)">Operations</button>
+          <button class="nav-item" onclick="setActive(this)">Fleet</button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">Industry</div>
+          <button class="nav-item" onclick="setActive(this)">Corporate R&D</button>
+          <button class="nav-item" onclick="setActive(this)">Refinery Chains</button>
+          <button class="nav-item" onclick="setActive(this)">Logistics</button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">Market</div>
+          <button class="nav-item" onclick="setActive(this)">Galactic Exchange</button>
+          <button class="nav-item" onclick="setActive(this)">Assets</button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">Comms</div>
+          <button class="nav-item" onclick="setActive(this)">Chat</button>
+          <button class="nav-item" onclick="setActive(this)">Forum</button>
+        </div>
+      </nav>
+
+      <!-- Main panel -->
+      <div class="main-panel">
+        <div class="glass level-card">
+          <div class="level-header">
+            <div>
+              <div class="level-title">Corporation Level Progress</div>
+              <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 4px;">Reach Level 3 by completing objectives</div>
+            </div>
+            <div class="level-badge" id="levelDisplay">2/30</div>
+          </div>
+
+          <div class="objectives">
+            <div class="objective">
+              <div>
+                <div class="objective-text">Sell 300 Silicate on the Galactic Exchange</div>
+                <div class="objective-progress">0 / 300</div>
+              </div>
+              <a class="objective-link" onclick="alert('Navigate to Galactic Exchange')">Go →</a>
+            </div>
+            <div class="objective completed">
+              <div>
+                <div class="objective-text">Research Basic Extraction Analytics</div>
+                <div class="objective-progress">1 / 1 ✓</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="unlocks">
+            <div class="unlocks-title">Unlocks at Level 3</div>
+            <div>• Employee cap: 45</div>
+            <div>• Building slots: 4</div>
+            <div>• Fleet cap: 22</div>
+            <div>• Highest building tier: 2</div>
+          </div>
+
+          <div class="level-nav">
+            <button class="level-nav-btn" onclick="changeLevel(-1)">← Level 1</button>
+            <span class="level-current">Level <span id="peekLevel">2</span></span>
+            <button class="level-nav-btn" onclick="changeLevel(1)">Level 3 →</button>
+          </div>
+        </div>
+
+        <div class="glass feed">
+          <div class="feed-title">Command Feedback</div>
+          <div class="feed-item system">Command uplink standing by. Completed actions and queue additions will be logged here.</div>
+          <div class="feed-item success">Extractor MX-01 cycle complete: +48 Silicate</div>
+          <div class="feed-item">Research queued: Refinery Chain I</div>
+          <div class="feed-item">Lease MRS-0419 renewed by ISA Claims & Leases Division</div>
+          <div class="feed-item warning">Payroll disbursed: -$4,210</div>
+          <div class="feed-item">Silicate market price: 61 cr/unit (↓2% from yesterday)</div>
+          <div class="feed-item success">Station resource received: Power core efficiency +8%</div>
+        </div>
+      </div>
+
+      <!-- Right sidebar -->
+      <div class="sidebar-right">
+        <div class="glass kpi-group">
+          <div class="kpi-group-title">Key Figures</div>
+          <div class="kpi-item">
+            <div class="kpi-label">Cash Reserves</div>
+            <div class="kpi-value">$18,061</div>
+            <div class="kpi-delta">⊕ operational credits</div>
+          </div>
+          <div class="kpi-item">
+            <div class="kpi-label">Daily Net Flow</div>
+            <div class="kpi-value warning">−$27,915</div>
+            <div class="kpi-delta">⚠ review costs</div>
+          </div>
+          <div class="kpi-item">
+            <div class="kpi-label">Conglomerate</div>
+            <div class="kpi-value">Independent</div>
+            <div class="kpi-delta">no alliances</div>
+          </div>
+          <div class="kpi-item">
+            <div class="kpi-label">Military Power</div>
+            <div class="kpi-value">0 ATK / 0 DEF</div>
+            <div class="kpi-delta">100% readiness</div>
+          </div>
+        </div>
+
+        <div class="glass situational-brief">
+          <div class="brief-title">Executive Situation Brief</div>
+          <div class="brief-text">ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup-label">Mockup 16 · Glassmorphism</div>
+
+  <script>
+    function setActive(button) {
+      const buttons = document.querySelectorAll('.nav-item');
+      buttons.forEach(b => b.classList.remove('active'));
+      button.classList.add('active');
+    }
+
+    const levels = {
+      1: { reqs: ['Hire 10 employees', 'Complete first assignment'], unlocks: 'Employee cap: 25, Building slots: 2' },
+      2: { reqs: ['Sell 300 Silicate', 'Research Basic Extraction Analytics'], unlocks: 'Employee cap: 45, Building slots: 4, Fleet cap: 22, Highest tier: 2' },
+      3: { reqs: ['Sell 1000 units total', 'Upgrade refinery chain'], unlocks: 'Employee cap: 60, Building slots: 6, Fleet cap: 35' },
+      4: { reqs: ['Establish Mars presence', 'Build trading hub'], unlocks: 'Employee cap: 90, Building slots: 10' }
+    };
+
+    let currentLevel = 2;
+
+    function changeLevel(delta) {
+      const newLevel = currentLevel + delta;
+      if (newLevel < 1 || newLevel > 4) return;
+      currentLevel = newLevel;
+      updateLevelDisplay();
+    }
+
+    function updateLevelDisplay() {
+      document.getElementById('peekLevel').textContent = currentLevel;
+      document.querySelector('.level-badge').textContent = currentLevel + '/30';
+      document.querySelector('.objectives').innerHTML = '';
+      const levelData = levels[currentLevel];
+      levelData.reqs.forEach((req, i) => {
+        const obj = document.createElement('div');
+        obj.className = currentLevel > 2 ? 'objective completed' : 'objective';
+        obj.innerHTML = `<div><div class="objective-text">${req}</div></div>`;
+        document.querySelector('.objectives').appendChild(obj);
+      });
+      const unlocks = document.querySelector('.unlocks');
+      unlocks.innerHTML = `<div class="unlocks-title">Unlocks at Level ${currentLevel}</div><div>${levelData.unlocks.split(', ').map(u => '• ' + u).join('<br>')}</div>`;
+    }
+
+    // Animate daily flow
+    setInterval(() => {
+      const flow = document.querySelector('.kpi-value.warning');
+      if (flow) flow.style.opacity = flow.style.opacity === '0.7' ? '1' : '0.7';
+    }, 1500);
+  </script>
+</body>
+</html>

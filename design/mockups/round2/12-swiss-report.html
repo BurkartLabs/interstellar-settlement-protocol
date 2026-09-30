@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 12 — Annual Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0b0b0c;
+    --ink-1:#111113;
+    --ink-2:#17171a;
+    --paper:#f2f0eb;
+    --paper-dim:#c9c7c0;
+    --paper-faint:#8b8a86;
+    --hair:rgba(242,240,235,0.16);
+    --hair-strong:rgba(242,240,235,0.34);
+    --cobalt:#3e5bff;
+    --cobalt-dim:rgba(62,91,255,0.18);
+    --deficit:#ff4d3e;
+    --deficit-dim:rgba(255,77,62,0.16);
+    --font-text:'Schibsted Grotesk','Hanken Grotesk','Archivo',Arial,sans-serif;
+    --font-num:'JetBrains Mono','IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--font-text);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:24px;
+    padding:18px 28px 14px;
+    border-bottom:1px solid var(--hair-strong);
+  }
+  .masthead-left{display:flex; align-items:baseline; gap:18px;}
+  .brand{
+    font-family:var(--font-text);
+    font-weight:700;
+    font-size:16px;
+    letter-spacing:0.01em;
+  }
+  .brand span{color:var(--cobalt);}
+  .masthead-meta{
+    font-family:var(--font-num);
+    font-size:11px;
+    color:var(--paper-faint);
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+  }
+  .masthead-right{
+    display:flex;
+    align-items:baseline;
+    gap:22px;
+    font-family:var(--font-num);
+    font-size:11px;
+    color:var(--paper-dim);
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+  }
+  .masthead-right b{color:var(--paper); font-weight:500;}
+  .notice-flag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    color:var(--paper);
+  }
+  .notice-dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--cobalt);
+    display:inline-block;
+  }
+  .logout-link{
+    color:var(--paper-faint);
+    text-decoration:none;
+    border-bottom:1px solid transparent;
+  }
+  .logout-link:hover{ color:var(--paper); border-bottom-color:var(--hair-strong); }
+
+  /* ---------- shell: index column + main ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns:232px 1fr;
+    min-height:calc(100vh - 53px);
+  }
+  .index{
+    border-right:1px solid var(--hair-strong);
+    padding:22px 0 22px;
+    overflow-y:auto;
+  }
+  .index-heading{
+    font-family:var(--font-num);
+    font-size:10px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--cobalt);
+    padding:0 24px;
+    margin:0 0 6px;
+  }
+  .index-section{ margin-bottom:22px; }
+  .index-section-title{
+    font-family:var(--font-num);
+    font-size:10px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--cobalt);
+    padding:0 24px;
+    margin:0 0 4px;
+  }
+  .index-item{
+    position:relative;
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    padding:6px 24px 6px 21px;
+    cursor:pointer;
+    text-decoration:none;
+    color:var(--paper-dim);
+    border-left:3px solid transparent;
+  }
+  .index-item .num{
+    font-family:var(--font-num);
+    font-size:11px;
+    color:var(--paper-faint);
+    min-width:20px;
+  }
+  .index-item .label{
+    font-size:13.5px;
+    font-weight:500;
+  }
+  .index-item:hover{ color:var(--paper); }
+  .index-item:hover .num{ color:var(--paper-dim); }
+  .index-item.current{
+    border-left-color:var(--cobalt);
+    color:var(--paper);
+    background:linear-gradient(90deg, var(--cobalt-dim), transparent 70%);
+  }
+  .index-item.current .num{
+    color:var(--cobalt);
+    font-size:15px;
+    font-weight:700;
+  }
+  .index-item.current .label{ font-weight:700; }
+
+  .main{
+    padding:28px 40px 60px;
+    min-width:0;
+  }
+
+  /* ---------- 12-col grid ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(12, 1fr);
+    column-gap:20px;
+  }
+  .gridlines{
+    display:grid;
+    grid-template-columns:repeat(12, 1fr);
+    column-gap:20px;
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+  }
+  .gridlines div{ border-left:1px solid var(--hair); height:100%; }
+  .grid-wrap{ position:relative; }
+
+  .rule{ border:none; border-top:1px solid var(--hair-strong); margin:0; }
+  .rule-faint{ border:none; border-top:1px solid var(--hair); margin:0; }
+
+  /* ---------- page title zone ---------- */
+  .page-head{ grid-column:1 / 13; padding-bottom:16px; margin-bottom:18px; border-bottom:1px solid var(--hair-strong); }
+  .page-kicker{
+    font-family:var(--font-num);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--cobalt);
+    margin:0 0 8px;
+  }
+  .page-title-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap; }
+  .page-title{
+    font-family:var(--font-text);
+    font-weight:700;
+    font-size:34px;
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+  .page-sub{
+    font-family:var(--font-num);
+    font-size:12px;
+    color:var(--paper-dim);
+    max-width:520px;
+    text-align:right;
+    line-height:1.5;
+  }
+
+  /* ---------- key figures ---------- */
+  .figures{ grid-column:1 / 13; display:grid; grid-template-columns:repeat(12,1fr); column-gap:20px; margin-bottom:30px; }
+  .fig{ grid-column:span 3; padding-top:2px; }
+  .fig-cash{ grid-column:span 6; }
+  .fig-cap{
+    font-family:var(--font-num);
+    font-size:10.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--paper-faint);
+    margin:0 0 10px;
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .fig-num{
+    font-family:var(--font-num);
+    font-weight:700;
+    letter-spacing:-0.01em;
+    line-height:0.94;
+    margin:0;
+    font-variant-numeric:tabular-nums;
+  }
+  .fig-cash .fig-num{ font-size:120px; color:var(--paper); }
+  .fig-flow .fig-num{ font-size:44px; color:var(--deficit); }
+  .fig-flow{ display:flex; flex-direction:column; }
+  .fig-flow .fig-tag{
+    margin-top:10px;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    font-family:var(--font-num);
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--deficit);
+    background:var(--deficit-dim);
+    border:1px solid rgba(255,77,62,0.5);
+    padding:4px 9px;
+    width:fit-content;
+  }
+  .fig-tag .tri{ width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent; border-bottom:6px solid var(--deficit); }
+  .fig-static-stack{ grid-column:span 3; display:flex; flex-direction:column; gap:14px; }
+  .fig-static-half{ padding-top:8px; border-top:1px solid var(--hair); }
+  .fig-static-half:first-child{ padding-top:0; border-top:none; }
+  .fig-static-half .fig-num{ color:var(--paper); }
+  .fig-static-half .fig-sub{ font-family:var(--font-num); font-size:11px; color:var(--paper-dim); margin-top:8px; line-height:1.5; }
+  .fig-note{
+    font-size:11.5px;
+    color:var(--paper-faint);
+    margin-top:10px;
+    line-height:1.45;
+    max-width:34ch;
+  }
+
+  /* ---------- level progress ---------- */
+  .level-block{ grid-column:1 / 13; margin-bottom:32px; }
+  .level-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+  .level-current-wrap{ display:flex; align-items:baseline; gap:18px; }
+  .level-num-huge{
+    font-family:var(--font-num);
+    font-weight:700;
+    font-size:164px;
+    line-height:0.82;
+    color:var(--paper);
+    letter-spacing:-0.02em;
+  }
+  .level-of{
+    font-family:var(--font-num);
+    font-size:14px;
+    color:var(--paper-dim);
+  }
+  .level-of b{ color:var(--paper); font-weight:700; }
+  .level-nav{ display:flex; gap:10px; }
+  .level-nav button{
+    font-family:var(--font-num);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    background:transparent;
+    border:1px solid var(--hair-strong);
+    color:var(--paper-dim);
+    padding:7px 13px;
+    cursor:pointer;
+  }
+  .level-nav button:hover{ border-color:var(--cobalt); color:var(--paper); }
+  .level-nav button:disabled{ opacity:0.3; cursor:default; }
+  .level-nav button:disabled:hover{ border-color:var(--hair-strong); color:var(--paper-dim); }
+
+  .tickscale{
+    display:grid;
+    grid-template-columns:repeat(30, 1fr);
+    gap:3px;
+    margin:6px 0 8px;
+  }
+  .tick{
+    height:26px;
+    background:var(--hair);
+    position:relative;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+  }
+  .tick.filled{ background:var(--cobalt); }
+  .tick-label{
+    position:absolute;
+    top:100%;
+    margin-top:4px;
+    font-family:var(--font-num);
+    font-size:8.5px;
+    color:var(--paper-faint);
+  }
+  .tickscale-cap{
+    display:flex;
+    justify-content:space-between;
+    font-family:var(--font-num);
+    font-size:10px;
+    color:var(--paper-faint);
+    margin-top:18px;
+    letter-spacing:0.04em;
+  }
+
+  .level-body{ display:grid; grid-template-columns:repeat(12,1fr); column-gap:20px; margin-top:26px; align-items:start; }
+  .level-reqs{ grid-column:1 / 8; }
+  .level-unlocks{ grid-column:8 / 13; border-left:1px solid var(--hair-strong); padding-left:20px; }
+
+  .subhead{
+    font-family:var(--font-num);
+    font-size:10.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--cobalt);
+    margin:0 0 12px;
+  }
+
+  .req-row{
+    display:grid;
+    grid-template-columns:1fr auto auto;
+    align-items:center;
+    gap:16px;
+    padding:12px 0;
+    border-bottom:1px solid var(--hair);
+  }
+  .req-row:first-child{ padding-top:0; }
+  .req-name{ font-size:14px; font-weight:500; }
+  .req-name .req-note{ display:block; font-family:var(--font-num); font-size:10.5px; color:var(--paper-faint); margin-top:3px; font-weight:400; }
+  .req-progress{ font-family:var(--font-num); font-size:13px; color:var(--paper-dim); text-align:right; white-space:nowrap; }
+  .req-progress b{ color:var(--paper); font-weight:700; }
+  .req-status{
+    font-family:var(--font-num);
+    font-size:10px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:3px 8px;
+    white-space:nowrap;
+  }
+  .req-status.open{ color:var(--cobalt); border:1px solid rgba(62,91,255,0.5); background:var(--cobalt-dim); }
+  .req-status.done{ color:var(--ink); background:var(--paper); }
+  .req-bar-track{ grid-column:1/4; height:3px; background:var(--hair); margin-top:8px; position:relative; }
+  .req-bar-fill{ position:absolute; left:0; top:0; height:100%; background:var(--cobalt); width:0%; }
+  .req-bar-fill.done{ background:var(--paper); }
+
+  .primary-action{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    margin-top:18px;
+    background:var(--cobalt);
+    color:var(--paper);
+    border:none;
+    font-family:var(--font-text);
+    font-weight:700;
+    font-size:14px;
+    padding:12px 20px;
+    cursor:pointer;
+    letter-spacing:0.01em;
+  }
+  .primary-action:hover{ background:#5a72ff; }
+  .primary-action .arrow{ font-family:var(--font-num); }
+
+  .unlock-list{ list-style:none; margin:0; padding:0; }
+  .unlock-list li{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding:9px 0;
+    border-bottom:1px solid var(--hair);
+    font-size:12.5px;
+    color:var(--paper-dim);
+  }
+  .unlock-list li:last-child{ border-bottom:none; }
+  .unlock-list b{ font-family:var(--font-num); color:var(--paper); font-weight:700; font-size:13px; }
+
+  /* ---------- two-column: brief + feed ---------- */
+  .row-2col{ grid-column:1 / 13; display:grid; grid-template-columns:repeat(12,1fr); column-gap:20px; margin-bottom:32px; }
+  .brief-col{ grid-column:1 / 6; }
+  .feed-col{ grid-column:6 / 13; border-left:1px solid var(--hair-strong); padding-left:20px; }
+
+  .brief-text{
+    font-size:14.5px;
+    line-height:1.6;
+    color:var(--paper-dim);
+    margin:0;
+    max-width:46ch;
+  }
+  .brief-quote{
+    margin:18px 0 0;
+    padding-left:16px;
+    border-left:2px solid var(--cobalt);
+    font-size:13px;
+    font-style:normal;
+    color:var(--paper-faint);
+    line-height:1.55;
+  }
+
+  .feed-list{ list-style:none; margin:0; padding:0; }
+  .feed-row{
+    display:grid;
+    grid-template-columns:64px 1fr;
+    gap:14px;
+    padding:10px 0;
+    border-bottom:1px solid var(--hair);
+    font-size:12.5px;
+  }
+  .feed-row:first-child{ padding-top:0; }
+  .feed-time{ font-family:var(--font-num); font-size:10.5px; color:var(--paper-faint); padding-top:2px; }
+  .feed-text{ color:var(--paper-dim); line-height:1.45; }
+  .feed-text b{ color:var(--paper); font-weight:600; }
+  .feed-standby{
+    font-family:var(--font-num);
+    font-size:11px;
+    color:var(--paper-faint);
+    padding:10px 0 4px;
+    border-bottom:1px solid var(--hair);
+  }
+
+  /* ---------- station / ops table strip ---------- */
+  .strip{ grid-column:1 / 13; display:grid; grid-template-columns:repeat(12,1fr); column-gap:20px; margin-bottom:32px; }
+  .card{ grid-column:span 4; }
+  .card-wide{ grid-column:span 4; }
+
+  table.rpt{ width:100%; border-collapse:collapse; }
+  table.rpt th{
+    text-align:left;
+    font-family:var(--font-num);
+    font-size:10px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--paper-faint);
+    font-weight:400;
+    padding:0 0 8px;
+    border-bottom:1px solid var(--hair-strong);
+  }
+  table.rpt th.num, table.rpt td.num{ text-align:right; }
+  table.rpt td{
+    font-size:12.5px;
+    color:var(--paper-dim);
+    padding:9px 0;
+    border-bottom:1px solid var(--hair);
+  }
+  table.rpt td.num{ font-family:var(--font-num); color:var(--paper); }
+  table.rpt tr:last-child td{ border-bottom:none; }
+  .rpt-mini-bar{ display:inline-block; width:44px; height:5px; background:var(--hair); position:relative; vertical-align:middle; margin-left:8px; }
+  .rpt-mini-bar span{ position:absolute; left:0; top:0; height:100%; background:var(--cobalt); }
+
+  .sparkline{ display:flex; align-items:flex-end; gap:3px; height:38px; margin-top:6px; }
+  .sparkline .bar{ flex:1; background:var(--cobalt); opacity:0.85; }
+  .sparkline .bar:last-child{ background:var(--paper); opacity:1; }
+
+  .inbox-item{ padding:11px 0; border-bottom:1px solid var(--hair); }
+  .inbox-item:last-child{ border-bottom:none; }
+  .inbox-from{ font-family:var(--font-num); font-size:10px; letter-spacing:0.06em; text-transform:uppercase; color:var(--cobalt); margin-bottom:4px; }
+  .inbox-subj{ font-size:13px; color:var(--paper); font-weight:500; }
+
+  .mil-figs{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:6px; }
+  .mil-fig-num{ font-family:var(--font-num); font-weight:700; font-size:28px; color:var(--paper); }
+  .mil-fig-label{ font-family:var(--font-num); font-size:10px; color:var(--paper-faint); text-transform:uppercase; letter-spacing:0.06em; margin-top:2px; }
+  .readiness-row{ margin-top:14px; font-family:var(--font-num); font-size:11px; color:var(--paper-dim); }
+  .readiness-track{ height:3px; background:var(--hair); margin-top:6px; position:relative; }
+  .readiness-fill{ position:absolute; left:0; top:0; height:100%; background:var(--paper); width:100%; }
+
+  /* ---------- footer ---------- */
+  .footer{ grid-column:1/13; display:flex; justify-content:space-between; align-items:baseline; padding-top:18px; margin-top:6px; border-top:1px solid var(--hair-strong); font-family:var(--font-num); font-size:10.5px; color:var(--paper-faint); letter-spacing:0.03em; }
+
+  @media (max-width: 900px){
+    .shell{ grid-template-columns:1fr; }
+    .index{ display:none; }
+    .main{ padding:22px 18px 40px; }
+    .fig, .fig-cash, .fig-flow, .fig-static-stack{ grid-column:1 / 13; }
+    .fig-cash{ padding-bottom:16px; border-bottom:1px solid var(--hair); margin-bottom:4px; }
+    .fig-cash .fig-num{ font-size:64px; }
+    .fig-flow{ padding-bottom:14px; border-bottom:1px solid var(--hair); margin-bottom:4px; }
+    .fig-static-stack{ flex-direction:row; gap:24px; }
+    .fig-static-half{ flex:1; border-top:none; padding-top:0; }
+    .level-num-huge{ font-size:88px; }
+    .level-reqs, .level-unlocks{ grid-column:1/13; }
+    .level-unlocks{ border-left:none; padding-left:0; margin-top:18px; padding-top:18px; border-top:1px solid var(--hair-strong); }
+    .brief-col, .feed-col{ grid-column:1/13; }
+    .feed-col{ border-left:none; padding-left:0; margin-top:22px; padding-top:18px; border-top:1px solid var(--hair-strong); }
+    .card, .card-wide{ grid-column:1/13; }
+    .page-sub{ text-align:left; }
+    .masthead-right{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-left">
+    <div class="brand"><span>ISP</span> // Annual Operating Report</div>
+    <div class="masthead-meta">v0.4 &middot; est. 2147</div>
+  </div>
+  <div class="masthead-right">
+    <div>HELIX MERIDIAN HOLDINGS <b>HMH</b></div>
+    <div>CEO <b>R. VANCE</b></div>
+    <div class="notice-flag"><span class="notice-dot"></span> <b id="noticeCount">23</b> UNREAD</div>
+    <a href="#" class="logout-link">LOG OUT</a>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="index" id="indexNav">
+    <div class="index-heading">Contents</div>
+
+    <div class="index-section">
+      <div class="index-section-title">Company</div>
+      <a href="#" class="index-item current" data-page="Overview"><span class="num">01</span><span class="label">Overview</span></a>
+      <a href="#" class="index-item" data-page="Inbox"><span class="num">02</span><span class="label">Inbox</span></a>
+      <a href="#" class="index-item" data-page="Financial Core"><span class="num">03</span><span class="label">Financial Core</span></a>
+      <a href="#" class="index-item" data-page="CEO Insight"><span class="num">04</span><span class="label">CEO Insight</span></a>
+      <a href="#" class="index-item" data-page="Assignments"><span class="num">05</span><span class="label">Assignments</span></a>
+      <a href="#" class="index-item" data-page="Conglomerate"><span class="num">06</span><span class="label">Conglomerate</span></a>
+    </div>
+
+    <div class="index-section">
+      <div class="index-section-title">Station</div>
+      <a href="#" class="index-item" data-page="Station"><span class="num">07</span><span class="label">Station</span></a>
+      <a href="#" class="index-item" data-page="Operations"><span class="num">08</span><span class="label">Operations</span></a>
+      <a href="#" class="index-item" data-page="Fleet"><span class="num">09</span><span class="label">Fleet</span></a>
+    </div>
+
+    <div class="index-section">
+      <div class="index-section-title">Industry</div>
+      <a href="#" class="index-item" data-page="Corporate R&amp;D"><span class="num">10</span><span class="label">Corporate R&amp;D</span></a>
+      <a href="#" class="index-item" data-page="Refinery Chains"><span class="num">11</span><span class="label">Refinery Chains</span></a>
+      <a href="#" class="index-item" data-page="Logistics"><span class="num">12</span><span class="label">Logistics</span></a>
+    </div>
+
+    <div class="index-section">
+      <div class="index-section-title">Market</div>
+      <a href="#" class="index-item" data-page="Galactic Exchange"><span class="num">13</span><span class="label">Galactic Exchange</span></a>
+      <a href="#" class="index-item" data-page="Assets"><span class="num">14</span><span class="label">Assets</span></a>
+    </div>
+
+    <div class="index-section">
+      <div class="index-section-title">Comms</div>
+      <a href="#" class="index-item" data-page="Chat"><span class="num">15</span><span class="label">Chat</span></a>
+      <a href="#" class="index-item" data-page="Forum"><span class="num">16</span><span class="label">Forum</span></a>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="grid-wrap">
+      <div class="gridlines" aria-hidden="true">
+        <div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+      </div>
+
+      <div class="grid">
+        <div class="page-head">
+          <p class="page-kicker">Section 01 &mdash; Company</p>
+          <div class="page-title-row">
+            <h1 class="page-title" id="pageTitleText">Overview</h1>
+            <p class="page-sub">The Interstellar Settlement Protocol &mdash; report compiled for CEO R. Vance, Helix Meridian Holdings (HMH), Earth Station Prime.</p>
+          </div>
+        </div>
+
+        <div class="figures">
+          <div class="fig fig-cash">
+            <p class="fig-cap"><span>Cash Reserves</span><span>Total corporate credits on hand</span></p>
+            <p class="fig-num" id="cashNum">$18,061</p>
+          </div>
+          <div class="fig fig-flow">
+            <p class="fig-cap"><span>Net Daily Flow</span><span>Last 24h</span></p>
+            <p class="fig-num">&minus;$27,915</p>
+            <span class="fig-tag"><span class="tri"></span> Deficit &mdash; costs exceed income</span>
+          </div>
+          <div class="fig fig-static-stack">
+            <div class="fig-static-half">
+              <p class="fig-cap"><span>Conglomerate</span></p>
+              <p class="fig-num" style="font-size:18px;">Independent</p>
+            </div>
+            <div class="fig-static-half">
+              <p class="fig-cap"><span>Military</span><span>ATK / DEF</span></p>
+              <p class="fig-num" style="font-size:18px;">0 / 0</p>
+              <div class="readiness-row">
+                Readiness 100%
+                <div class="readiness-track"><div class="readiness-fill"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="level-block">
+          <hr class="rule">
+          <div class="level-head" style="margin-top:20px;">
+            <div class="level-current-wrap">
+              <div class="level-num-huge" id="levelNumHuge">02</div>
+              <div class="level-of">Corporation Level <b id="levelOfNum">2</b> of 30 &mdash; <span id="levelOfName">Helix Meridian Holdings</span></div>
+            </div>
+            <div class="level-nav">
+              <button id="levelPrev" type="button">&larr; Prev</button>
+              <button id="levelNext" type="button">Next &rarr;</button>
+            </div>
+          </div>
+
+          <div class="tickscale" id="tickscale"></div>
+          <div class="tickscale-cap"><span>01</span><span>Milestone-gated progression, 30 levels</span><span>30</span></div>
+
+          <div class="level-body" id="levelBody">
+            <div class="level-reqs">
+              <p class="subhead">Requirements to Advance &mdash; Level 3</p>
+
+              <div class="req-row">
+                <div class="req-name">Sell 300 Silicate on the Galactic Exchange
+                  <span class="req-note">Open market order, cumulative units sold</span>
+                  <div class="req-bar-track" style="grid-column:1/2; width:220px;"><div class="req-bar-fill" style="width:0%;"></div></div>
+                </div>
+                <div class="req-progress"><b>0</b> / 300</div>
+                <div class="req-status open">Open</div>
+              </div>
+
+              <div class="req-row">
+                <div class="req-name">Research Basic Extraction Analytics
+                  <span class="req-note">Corporate R&amp;D &mdash; tier 1</span>
+                  <div class="req-bar-track" style="grid-column:1/2; width:220px;"><div class="req-bar-fill done" style="width:100%;"></div></div>
+                </div>
+                <div class="req-progress"><b>1</b> / 1</div>
+                <div class="req-status done">Complete</div>
+              </div>
+
+              <button class="primary-action" type="button" id="gexAction">Go to Galactic Exchange <span class="arrow">&rarr;</span></button>
+            </div>
+
+            <div class="level-unlocks">
+              <p class="subhead">Level 3 Unlocks</p>
+              <ul class="unlock-list">
+                <li>Employee cap <b>45</b></li>
+                <li>Building slots <b>4</b></li>
+                <li>Fleet cap <b>22</b></li>
+                <li>Highest building tier <b>2</b></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="row-2col">
+          <div class="brief-col">
+            <p class="subhead">Executive Situation Brief</p>
+            <p class="brief-text">ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.</p>
+            <p class="brief-quote">&ldquo;Humanity didn&rsquo;t reach the stars for freedom. It reached them for market share.&rdquo;</p>
+          </div>
+          <div class="feed-col">
+            <p class="subhead">Command Feedback Log</p>
+            <div class="feed-standby" id="feedStandby">Command uplink standing by. Completed actions and queue additions will be logged here.</div>
+            <ul class="feed-list" id="feedList">
+              <li class="feed-row"><span class="feed-time">00:02</span><span class="feed-text">Extractor <b>MX-01</b> cycle complete: <b>+48 Silicate</b></span></li>
+              <li class="feed-row"><span class="feed-time">00:14</span><span class="feed-text">Research queued: <b>Refinery Chain I</b></span></li>
+              <li class="feed-row"><span class="feed-time">01:47</span><span class="feed-text">Lease <b>MRS-0419</b> renewed by ISA Claims &amp; Leases Division</span></li>
+              <li class="feed-row"><span class="feed-time">03:12</span><span class="feed-text">Payroll disbursed: <b>&minus;$4,210</b></span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="strip">
+          <div class="card">
+            <p class="subhead">Station &mdash; Mars Lease MRS-0419</p>
+            <table class="rpt">
+              <thead><tr><th>Extractor</th><th class="num">Cycle</th></tr></thead>
+              <tbody>
+                <tr><td>MX-01</td><td class="num">72%<span class="rpt-mini-bar"><span style="width:72%;"></span></span></td></tr>
+                <tr><td>MX-02</td><td class="num">31%<span class="rpt-mini-bar"><span style="width:31%;"></span></span></td></tr>
+              </tbody>
+            </table>
+            <table class="rpt" style="margin-top:14px;">
+              <tbody>
+                <tr><td>Silicate stock</td><td class="num">142 units</td></tr>
+                <tr><td>Employees</td><td class="num">18 / 30</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card-wide">
+            <p class="subhead">Galactic Exchange &mdash; Silicate Peg</p>
+            <table class="rpt">
+              <tbody>
+                <tr><td>Peg price</td><td class="num">61 cr / unit</td></tr>
+              </tbody>
+            </table>
+            <div class="sparkline" aria-hidden="true">
+              <div class="bar" style="height:52%;"></div>
+              <div class="bar" style="height:61%;"></div>
+              <div class="bar" style="height:47%;"></div>
+              <div class="bar" style="height:68%;"></div>
+              <div class="bar" style="height:58%;"></div>
+              <div class="bar" style="height:73%;"></div>
+              <div class="bar" style="height:66%;"></div>
+              <div class="bar" style="height:80%;"></div>
+              <div class="bar" style="height:70%;"></div>
+              <div class="bar" style="height:100%;"></div>
+            </div>
+            <p class="feed-standby" style="border-bottom:none; margin-top:8px;">10-cycle price history, indexed to range</p>
+          </div>
+
+          <div class="card">
+            <p class="subhead">Inbox &mdash; 2 New</p>
+            <div class="inbox-item">
+              <div class="inbox-from">ISA &mdash; Claims &amp; Leases</div>
+              <div class="inbox-subj">Lease MRS-0419 renewal confirmed</div>
+            </div>
+            <div class="inbox-item">
+              <div class="inbox-from">STA &mdash; Station Administration</div>
+              <div class="inbox-subj">Berth allocation notice, Earth Station Prime</div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="rule-faint">
+        <div class="footer">
+          <span>Mockup 12 &mdash; Annual Report</span>
+          <span id="clockLine">Report compiled 2147.03.09 &middot; ISA/STA/GEX/IGSA jurisdiction</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- level data: prev / next peek ---- */
+  var levels = [
+    { n: 1, title: 'Milestone: Foothold', reqs: [
+        { name: 'Lease a Mars extraction site', note: 'ISA Claims & Leases Division', cur: 1, max: 1, done: true },
+        { name: 'Hire 5 employees', note: 'Station Administration payroll', cur: 5, max: 5, done: true }
+      ], unlocks: { emp: 20, bld: 2, fleet: 8, tier: 1 } },
+    { n: 2, title: 'Milestone: First Yield', reqs: [
+        { name: 'Sell 300 Silicate on the Galactic Exchange', note: 'Open market order, cumulative units sold', cur: 0, max: 300, done: false },
+        { name: 'Research Basic Extraction Analytics', note: 'Corporate R&D — tier 1', cur: 1, max: 1, done: true }
+      ], unlocks: { emp: 45, bld: 4, fleet: 22, tier: 2 } },
+    { n: 3, title: 'Milestone: Refinement', reqs: [
+        { name: 'Commission a Refinery Chain I', note: 'Industry — first processing line', cur: 0, max: 1, done: false },
+        { name: 'Maintain positive daily flow for 3 cycles', note: 'Financial Core ledger', cur: 1, max: 3, done: false }
+      ], unlocks: { emp: 70, bld: 6, fleet: 34, tier: 3 } },
+    { n: 4, title: 'Milestone: Fleet Expansion', reqs: [
+        { name: 'Field 3 logistics vessels', note: 'Fleet registry, active hulls', cur: 1, max: 3, done: false },
+        { name: 'Sign a second lease', note: 'ISA Claims & Leases Division', cur: 0, max: 1, done: false }
+      ], unlocks: { emp: 96, bld: 8, fleet: 50, tier: 3 } }
+  ];
+  var current = 1; // index into levels[] for level 2
+
+  var levelNumHuge = document.getElementById('levelNumHuge');
+  var levelOfNum = document.getElementById('levelOfNum');
+  var levelBody = document.getElementById('levelBody');
+  var tickscale = document.getElementById('tickscale');
+  var prevBtn = document.getElementById('levelPrev');
+  var nextBtn = document.getElementById('levelNext');
+
+  function pad(n){ return n < 10 ? '0' + n : String(n); }
+
+  function renderTicks(filledCount){
+    var html = '';
+    for (var i = 1; i <= 30; i++){
+      html += '<div class="tick' + (i <= filledCount ? ' filled' : '') + '"></div>';
+    }
+    tickscale.innerHTML = html;
+  }
+
+  function renderLevel(idx, animate){
+    var lv = levels[idx];
+    levelNumHuge.textContent = pad(lv.n);
+    levelOfNum.textContent = lv.n;
+    renderTicks(lv.n);
+
+    var reqsHtml = '<p class="subhead">Requirements to Advance &mdash; Level ' + (lv.n + 1) + '</p>';
+    lv.reqs.forEach(function(r){
+      var pct = Math.round((r.cur / r.max) * 100);
+      reqsHtml += '<div class="req-row">' +
+        '<div class="req-name">' + r.name +
+          '<span class="req-note">' + r.note + '</span>' +
+          '<div class="req-bar-track" style="grid-column:1/2; width:220px;"><div class="req-bar-fill' + (r.done ? ' done' : '') + '" data-pct="' + pct + '" style="width:' + (animate ? '0%' : pct + '%') + ';"></div></div>' +
+        '</div>' +
+        '<div class="req-progress"><b>' + r.cur + '</b> / ' + r.max + '</div>' +
+        '<div class="req-status ' + (r.done ? 'done">Complete' : 'open">Open') + '</div>' +
+      '</div>';
+    });
+    reqsHtml += '<button class="primary-action" type="button" id="gexAction2">Go to Galactic Exchange <span class="arrow">&rarr;</span></button>';
+
+    var unlocksHtml = '<p class="subhead">Level ' + (lv.n + 1) + ' Unlocks</p><ul class="unlock-list">' +
+      '<li>Employee cap <b>' + lv.unlocks.emp + '</b></li>' +
+      '<li>Building slots <b>' + lv.unlocks.bld + '</b></li>' +
+      '<li>Fleet cap <b>' + lv.unlocks.fleet + '</b></li>' +
+      '<li>Highest building tier <b>' + lv.unlocks.tier + '</b></li>' +
+    '</ul>';
+
+    levelBody.innerHTML = '<div class="level-reqs">' + reqsHtml + '</div><div class="level-unlocks">' + unlocksHtml + '</div>';
+
+    if (animate && !reduceMotion){
+      requestAnimationFrame(function(){
+        var fills = levelBody.querySelectorAll('.req-bar-fill');
+        fills.forEach(function(f){
+          var pct = f.getAttribute('data-pct');
+          requestAnimationFrame(function(){ f.style.transition = 'width 700ms ease'; f.style.width = pct + '%'; });
+        });
+      });
+    }
+
+    prevBtn.disabled = idx === 0;
+    nextBtn.disabled = idx === levels.length - 1;
+  }
+
+  prevBtn.addEventListener('click', function(){
+    if (current > 0){ current--; renderLevel(current, true); }
+  });
+  nextBtn.addEventListener('click', function(){
+    if (current < levels.length - 1){ current++; renderLevel(current, true); }
+  });
+
+  renderLevel(current, true);
+
+  /* ---- nav selection ---- */
+  var indexItems = document.querySelectorAll('.index-item');
+  var pageTitleText = document.getElementById('pageTitleText');
+  var pageKicker = document.querySelector('.page-kicker');
+  var sectionOf = {
+    'Overview':'Company','Inbox':'Company','Financial Core':'Company','CEO Insight':'Company','Assignments':'Company','Conglomerate':'Company',
+    'Station':'Station','Operations':'Station','Fleet':'Station',
+    'Corporate R&D':'Industry','Refinery Chains':'Industry','Logistics':'Industry',
+    'Galactic Exchange':'Market','Assets':'Market',
+    'Chat':'Comms','Forum':'Comms'
+  };
+  indexItems.forEach(function(item){
+    item.addEventListener('click', function(e){
+      e.preventDefault();
+      indexItems.forEach(function(i){ i.classList.remove('current'); });
+      item.classList.add('current');
+      var page = item.getAttribute('data-page');
+      pageTitleText.textContent = page;
+      var num = item.querySelector('.num').textContent;
+      pageKicker.textContent = 'Section ' + num + ' — ' + (sectionOf[page] || '');
+    });
+  });
+
+  levelBody.addEventListener('click', function(e){
+    if (e.target && e.target.id === 'gexAction2'){
+      document.querySelector('.index-item[data-page="Galactic Exchange"]').click();
+    }
+  });
+
+  /* ---- ticking feed ---- */
+  var feedList = document.getElementById('feedList');
+  var feedEntries = [
+    'Extractor <b>MX-02</b> cycle complete: <b>+21 Silicate</b>',
+    'Sell order posted: <b>40 Silicate</b> @ 61 cr/unit',
+    'Notice received from <b>STA</b>: berth allocation update',
+    'Payroll accrual updated: employees 18 / 30'
+  ];
+  var feedIdx = 0;
+  function pushFeed(){
+    var li = document.createElement('li');
+    li.className = 'feed-row';
+    var now = new Date();
+    var t = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    li.innerHTML = '<span class="feed-time">' + t + '</span><span class="feed-text">' + feedEntries[feedIdx % feedEntries.length] + '</span>';
+    li.style.opacity = '0';
+    feedList.insertBefore(li, feedList.firstChild);
+    requestAnimationFrame(function(){
+      li.style.transition = reduceMotion ? 'none' : 'opacity 500ms ease';
+      li.style.opacity = '1';
+    });
+    while (feedList.children.length > 6){ feedList.removeChild(feedList.lastChild); }
+    feedIdx++;
+  }
+  if (!reduceMotion){
+    setInterval(pushFeed, 9000);
+  }
+
+  /* ---- cash reserves counter animate-in ---- */
+  var cashNum = document.getElementById('cashNum');
+  var target = 18061;
+  if (!reduceMotion){
+    var start = null;
+    var dur = 900;
+    function frame(ts){
+      if (start === null) start = ts;
+      var p = Math.min(1, (ts - start) / dur);
+      var val = Math.round(target * (1 - Math.pow(1 - p, 3)));
+      cashNum.textContent = '$' + val.toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---- notice counter (static, but wired for parity with dynamic UI) ---- */
+  document.getElementById('noticeCount').textContent = '23';
+})();
+</script>
+</body>
+</html>

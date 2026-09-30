@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 19 — Keynote</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght@400..900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===================================================================
+     Mockup 19 — Keynote. Near-black, one accent, dot-matrix figures.
+     =================================================================== */
+
+  :root{
+    --bg:            #000000;
+    --tile:          #0e0e10;
+    --tile-2:        #131316;
+    --edge:          #1f1f22;
+    --edge-soft:     #2b2b2f;
+    --text:          #ffffff;
+    --text-dim:      #a7a7ad;
+    --text-faint:    #84848a;
+    --accent:        #ff4d1f;
+    --accent-ink:    #100603;
+    --accent-wash:   rgba(255,77,31,0.12);
+    --accent-edge:   rgba(255,77,31,0.4);
+    --deficit-bg-1:  #1c0d07;
+    --deficit-bg-2:  #0e0e10;
+    --deficit-edge:  rgba(255,77,31,0.32);
+    --radius-lg:     24px;
+    --radius-md:     16px;
+    --radius-sm:     10px;
+    --font-ui:       'Space Grotesk', 'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-dot:      'Doto', 'Space Grotesk', ui-monospace, monospace;
+    --ease:          cubic-bezier(.2,.7,.2,1);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-ui);
+    height:100vh;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  @media (prefers-reduced-motion:no-preference){
+    .anim-ready .ring-value,
+    .anim-ready .bar-fill,
+    .anim-ready .dot.filled{ transition:stroke-dasharray 1.1s var(--ease), width 1.1s var(--ease), background-color .4s var(--ease); }
+    .feed-list li.enter{ animation:feedIn .38s var(--ease); }
+  }
+  @keyframes feedIn{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:translateY(0); } }
+
+  button{ font-family:inherit; }
+
+  /* ---------------- Top bar (<=56px) ---------------- */
+
+  .topbar{
+    flex:0 0 56px;
+    height:56px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    padding:0 24px;
+    border-bottom:1px solid var(--edge);
+    background:var(--bg);
+  }
+  .topbar-left{ display:flex; align-items:center; gap:12px; min-width:0; overflow:hidden; }
+  .brand-mark{ width:9px; height:9px; border-radius:2px; background:var(--accent); flex-shrink:0; }
+  .brand-text{
+    font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--text-dim); white-space:nowrap; flex-shrink:0;
+  }
+  .brand-text .dim{ color:var(--text-faint); font-weight:500; }
+  .mockup-tag{ font-size:11px; color:var(--text-faint); white-space:nowrap; flex-shrink:0; }
+  .crumb-sep{ width:1px; height:18px; background:var(--edge-soft); flex-shrink:0; }
+  .page-title{ font-size:17px; font-weight:600; margin:0; white-space:nowrap; flex-shrink:0; }
+
+  .topbar-right{ display:flex; align-items:center; gap:14px; flex-shrink:0; }
+  .icon-btn{
+    display:flex; align-items:center; justify-content:center;
+    width:34px; height:34px; border-radius:var(--radius-sm);
+    border:1px solid var(--edge); background:var(--tile); color:var(--text-dim);
+    cursor:pointer; position:relative; flex-shrink:0;
+  }
+  .icon-btn:hover{ border-color:var(--edge-soft); color:var(--text); }
+  .icon-btn svg{ width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .notice-badge{
+    position:absolute; top:-6px; right:-7px; min-width:16px; height:16px; padding:0 4px;
+    background:var(--accent); color:#000; font-size:10px; font-weight:700;
+    border-radius:8px; display:flex; align-items:center; justify-content:center; line-height:1;
+  }
+  .head-sep{ width:1px; height:24px; background:var(--edge-soft); }
+  .ceo{ display:flex; flex-direction:column; line-height:1.3; }
+  .ceo-name{ font-size:13px; font-weight:600; }
+  .ceo-corp{ font-size:11px; color:var(--text-dim); }
+  .ceo-corp b{ color:var(--text-dim); font-weight:600; }
+  .logout-btn{
+    font-size:12px; font-weight:500; color:var(--text-dim);
+    background:transparent; border:1px solid var(--edge); padding:7px 13px;
+    border-radius:var(--radius-sm); cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .logout-btn:hover{ border-color:var(--edge-soft); color:var(--text); }
+  .logout-btn svg{ width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:1.7; }
+
+  /* ---------------- Main / bento grid ---------------- */
+
+  .main{ flex:1 1 auto; min-height:0; overflow-y:auto; padding:18px 24px 20px; }
+
+  .bento{
+    display:grid;
+    height:100%;
+    min-height:640px;
+    grid-template-columns:repeat(6,1fr);
+    grid-template-rows:1.12fr 1.12fr 1fr 1fr .82fr;
+    grid-template-areas:
+      "cash    cash    flow    flow    level  level"
+      "cash    cash    status  status  level  level"
+      "extract extract feed    feed    inbox  inbox"
+      "gex     gex     feed    feed    inbox  inbox"
+      "employ  research brief  brief  brief  brief";
+    gap:14px;
+  }
+
+  .tile{
+    background:var(--tile);
+    border:1px solid var(--edge);
+    border-radius:var(--radius-lg);
+    padding:18px 20px;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    min-width:0;
+    position:relative;
+    overflow:hidden;
+  }
+  .tile-label{
+    font-size:12px; font-weight:600; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--text-dim); display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  .tile-label .tile-sub-inline{ color:var(--text-faint); text-transform:none; letter-spacing:0; font-weight:500; }
+  .tile-sub{ font-size:12px; color:var(--text-faint); margin-top:auto; padding-top:8px; }
+  .tile-sub b{ color:var(--text-dim); font-weight:600; }
+
+  .dot-num{ font-family:var(--font-dot); font-variation-settings:'ROND' 100; font-weight:700; letter-spacing:.01em; line-height:1; color:var(--text); }
+
+  .chip{ font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 8px; border-radius:20px; }
+  .chip-warn{ background:var(--accent-wash); color:var(--accent); border:1px solid var(--accent-edge); }
+  .chip-accent{ background:var(--accent); color:#000; }
+
+  /* Cash reserves */
+  .t-cash{ grid-area:cash; }
+  .cash-value{ font-size:clamp(44px,5.8vw,82px); margin:8px 0 2px; white-space:nowrap; flex-shrink:0; }
+  .cash-trend{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:flex-end; gap:6px; }
+  .cash-spark{ width:100%; height:46px; display:block; }
+  .cash-spark .spark-line{ fill:none; stroke:var(--accent); stroke-width:1.5; opacity:.5; }
+  .cash-spark .spark-dot{ fill:var(--accent); opacity:.5; }
+  .cash-spark .spark-dot.is-last{ opacity:1; }
+  .cash-trend-label{ font-size:11px; color:var(--text-faint); flex-shrink:0; }
+
+  /* Net daily flow (deficit) */
+  .t-flow{ grid-area:flow; background:linear-gradient(160deg,var(--deficit-bg-1),var(--deficit-bg-2) 72%); border-color:var(--deficit-edge); }
+  .flow-row{ display:flex; align-items:center; gap:12px; margin:8px 0 2px; }
+  .flow-arrow{ width:30px; height:30px; stroke:var(--accent); fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+  .flow-value{ font-size:clamp(26px,3vw,38px); color:var(--accent); }
+
+  /* Level */
+  .t-level{ grid-area:level; }
+  .level-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .level-nav{ display:flex; gap:6px; }
+  .level-nav .icon-btn{ width:28px; height:28px; }
+  .level-nav .icon-btn:disabled{ opacity:.35; cursor:not-allowed; }
+  .level-nav .icon-btn:disabled:hover{ border-color:var(--edge); color:var(--text-dim); }
+  .level-sub{ font-size:12px; color:var(--text-faint); margin-top:2px; }
+  .level-sub.is-current{ color:var(--accent); font-weight:600; }
+  .level-track{ display:flex; flex-wrap:wrap; gap:4px; margin:14px 0 16px; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--edge-soft); flex-shrink:0; }
+  .dot.filled{ background:var(--accent); }
+  .dot.viewed{ box-shadow:0 0 0 2px var(--text) inset, 0 0 0 2px var(--text); background:var(--edge-soft); }
+  .dot.viewed.filled{ background:var(--accent); }
+  .level-body{ display:flex; flex-direction:column; gap:14px; flex:1; min-height:0; overflow-y:auto; }
+  .level-section{ flex-shrink:0; }
+  .level-col-title{ font-size:12px; color:var(--text-faint); margin-bottom:9px; flex-shrink:0; }
+  .req-list{ list-style:none; margin:0 0 12px; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .req{ display:flex; align-items:center; gap:10px; font-size:14px; }
+  .req-check{
+    width:18px; height:18px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    font-size:11px; border:1.5px solid var(--edge-soft); color:transparent;
+  }
+  .req.done .req-check{ background:var(--accent); border-color:var(--accent); color:#000; }
+  .req-text{ flex:1; min-width:0; }
+  .req.done .req-text{ color:var(--text-dim); }
+  .req-progress{ font-size:12px; color:var(--text-faint); flex-shrink:0; font-family:var(--font-dot); font-variation-settings:'ROND' 100; }
+  .req.done .req-progress{ color:var(--accent); }
+  .btn-primary{
+    background:var(--accent); color:#100603; border:none; border-radius:var(--radius-sm);
+    font-size:13px; font-weight:700; padding:10px 16px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    align-self:flex-start;
+    flex-shrink:0;
+  }
+  .btn-primary:hover{ filter:brightness(1.08); }
+  .unlock-list{ list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:8px 24px; font-size:13px; color:var(--text-dim); }
+  .unlock-list b{ color:var(--text); font-family:var(--font-dot); font-variation-settings:'ROND' 100; font-weight:700; margin-left:4px; }
+
+  /* Corporate status */
+  .t-status{ grid-area:status; }
+  .status-grid{ display:flex; flex-direction:column; gap:10px; margin-top:10px; justify-content:center; flex:1; }
+  .status-item{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .status-key{ font-size:13px; color:var(--text-dim); }
+  .status-val{ font-size:14px; font-weight:600; text-align:right; }
+
+  /* Extractors */
+  .t-extract{ grid-area:extract; }
+  .ring-row{ display:flex; gap:22px; margin:10px 0 4px; align-items:center; }
+  .ring-wrap{ position:relative; width:78px; height:78px; flex-shrink:0; }
+  .ring{ width:78px; height:78px; transform:rotate(-90deg); }
+  .ring-track{ fill:none; stroke:var(--edge-soft); stroke-width:7; }
+  .ring-value{ fill:none; stroke:var(--accent); stroke-width:7; stroke-linecap:round; stroke-dasharray:0 100; }
+  .ring-label{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring-pct{ font-size:16px; }
+  .ring-name{ font-size:10px; color:var(--text-faint); margin-top:2px; }
+
+  /* GEX */
+  .t-gex{ grid-area:gex; }
+  .gex-row{ display:flex; align-items:center; gap:16px; margin:8px 0 2px; flex:1; }
+  .gex-price{ font-size:34px; display:flex; align-items:baseline; gap:6px; flex-shrink:0; }
+  .gex-unit{ font-family:var(--font-ui); font-size:11px; color:var(--text-faint); font-weight:500; }
+  .sparkline{ flex:1; height:38px; width:100%; }
+  .sparkline polyline{ fill:none; stroke:var(--accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+
+  /* Employees / research (small tiles) */
+  .t-employ{ grid-area:employ; }
+  .t-research{ grid-area:research; }
+  .employ-value{ font-size:30px; display:flex; align-items:baseline; gap:6px; margin:8px 0 10px; }
+  .employ-of{ font-family:var(--font-ui); font-size:13px; color:var(--text-faint); font-weight:500; }
+  .research-name{ font-size:14px; font-weight:600; margin:8px 0 10px; }
+  .bar{ height:6px; border-radius:4px; background:var(--edge-soft); overflow:hidden; }
+  .bar-fill{ height:100%; width:0%; background:var(--accent); border-radius:4px; }
+
+  /* Feed */
+  .t-feed{ grid-area:feed; }
+  .feed-standby{ font-size:12px; color:var(--text-faint); margin:8px 0 10px; line-height:1.4; }
+  .feed-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; overflow-y:auto; flex:1; min-height:0; }
+  .feed-list li{ display:flex; align-items:flex-start; gap:9px; font-size:13px; }
+  .feed-dot{ width:6px; height:6px; border-radius:50%; background:var(--accent); margin-top:6px; flex-shrink:0; }
+  .feed-text{ flex:1; color:var(--text-dim); line-height:1.4; }
+  .feed-text b{ color:var(--text); font-weight:600; }
+  .feed-time{ font-size:11px; color:var(--text-faint); flex-shrink:0; white-space:nowrap; }
+
+  /* Inbox */
+  .t-inbox{ grid-area:inbox; }
+  .inbox-list{ list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:12px; overflow-y:auto; flex:1; min-height:0; }
+  .inbox-item{ display:flex; gap:10px; padding-bottom:12px; border-bottom:1px solid var(--edge); }
+  .inbox-item:last-child{ border-bottom:none; padding-bottom:0; }
+  .inbox-unread{ width:7px; height:7px; border-radius:50%; background:var(--accent); margin-top:6px; flex-shrink:0; }
+  .inbox-body{ min-width:0; }
+  .inbox-from{ display:block; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--text-faint); margin-bottom:3px; }
+  .inbox-msg{ font-size:13px; color:var(--text-dim); line-height:1.4; }
+
+  /* Brief */
+  .t-brief{ grid-area:brief; flex-direction:row; align-items:center; gap:16px; padding:14px 22px; }
+  .brief-mark{ font-size:11px; font-weight:700; letter-spacing:.09em; color:var(--accent); flex-shrink:0; border-right:1px solid var(--edge); padding-right:16px; white-space:nowrap; }
+  .brief-text{ font-size:13.5px; color:var(--text-dim); line-height:1.5; margin:0; }
+
+  /* ---------------- Bottom dock ---------------- */
+
+  .dock{
+    flex:0 0 auto;
+    position:relative;
+    border-top:1px solid var(--edge);
+    background:rgba(10,10,11,.78);
+    backdrop-filter:blur(18px) saturate(140%);
+    -webkit-backdrop-filter:blur(18px) saturate(140%);
+  }
+  .dock::before, .dock::after{
+    content:''; position:absolute; top:1px; bottom:0; width:40px; z-index:2;
+    pointer-events:none; opacity:0; transition:opacity .25s var(--ease);
+  }
+  .dock::before{ left:0; background:linear-gradient(90deg, rgba(10,10,11,.95), transparent); }
+  .dock::after{ right:0; background:linear-gradient(270deg, rgba(10,10,11,.95), transparent); }
+  .dock.fade-start::before{ opacity:1; }
+  .dock.fade-end::after{ opacity:1; }
+  .dock-scroll{
+    display:flex; align-items:center; gap:12px;
+    padding:7px 18px; overflow-x:auto; scrollbar-width:none;
+  }
+  .dock-scroll::-webkit-scrollbar{ display:none; }
+  .dock-group{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; flex-shrink:0; }
+  .dock-caption{
+    font-size:9.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--text-faint); margin:0 0 0 2px; flex-shrink:0; white-space:nowrap;
+  }
+  .dock-group-items{ display:flex; align-items:center; gap:1px; }
+  .dock-sep{ width:1px; height:38px; background:var(--edge-soft); flex-shrink:0; margin:0 1px; align-self:center; }
+  .dock-item{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    padding:4px 7px; border-radius:11px; border:1px solid transparent;
+    background:transparent; color:var(--text-dim); cursor:pointer; flex-shrink:0;
+  }
+  .dock-item:hover{ background:var(--tile-2); color:var(--text); }
+  .dock-item svg{ width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+  .dock-item span{ font-size:9.5px; font-weight:600; white-space:nowrap; }
+  .dock-item.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .dock-item.active svg{ stroke:var(--accent-ink); }
+
+  /* ---------------- Responsive ---------------- */
+
+  @media (max-width:1180px){
+    .bento{
+      grid-template-columns:repeat(4,1fr);
+      grid-template-rows:auto auto auto auto auto auto auto;
+      grid-template-areas:
+        "cash    cash    flow    flow"
+        "cash    cash    level   level"
+        "status  status  level   level"
+        "extract extract gex     gex"
+        "employ  research feed   feed"
+        "inbox   inbox   inbox   inbox"
+        "brief   brief   brief   brief";
+      min-height:0;
+      height:auto;
+    }
+    .main{ overflow-y:auto; }
+    .tile{ min-height:150px; }
+    .t-feed .feed-list, .t-inbox .inbox-list{ max-height:220px; }
+  }
+
+  @media (max-width:700px){
+    .bento{
+      grid-template-columns:1fr;
+      grid-template-areas:
+        "cash" "flow" "level" "status" "extract" "gex" "employ" "research" "feed" "inbox" "brief";
+    }
+    .mockup-tag{ display:none; }
+    .brand-text{ display:none; }
+    .ceo{ display:none; }
+    .t-brief{ flex-direction:column; align-items:flex-start; gap:8px; }
+    .brief-mark{ border-right:none; padding-right:0; }
+  }
+
+  @media (max-width:430px){
+    .topbar{ padding:0 14px; }
+    .main{ padding:14px 14px 16px; }
+    .dock-scroll{ padding:10px 14px; }
+    .tile{ padding:16px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ Top bar ============ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand-mark" aria-hidden="true"></div>
+      <div class="brand-text">The Interstellar Settlement Protocol <span class="dim">· v0.4 · est. 2147</span></div>
+      <span class="mockup-tag">Mockup 19 — Keynote</span>
+      <div class="crumb-sep"></div>
+      <h1 class="page-title">Overview</h1>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" id="noticeBtn" aria-label="Notices, 23 unread">
+        <svg viewBox="0 0 24 24"><path d="M6 10a6 6 0 1 1 12 0c0 3.2 1 5 2 6.2H4c1-1.2 2-3 2-6.2z"/><path d="M9.5 19.5a2.5 2.5 0 0 0 5 0"/></svg>
+        <span class="notice-badge">23</span>
+      </button>
+      <div class="head-sep"></div>
+      <div class="ceo">
+        <span class="ceo-name">R. Vance</span>
+        <span class="ceo-corp">Helix Meridian Holdings <b>HMH</b></span>
+      </div>
+      <button class="logout-btn">
+        <svg viewBox="0 0 24 24"><path d="M9 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H9"/><path d="M15 16l4-4-4-4"/><path d="M19 12H9"/></svg>
+        Log out
+      </button>
+    </div>
+  </header>
+
+  <!-- ============ Main bento grid ============ -->
+  <main class="main">
+    <div class="bento" id="bento">
+
+      <section class="tile t-cash">
+        <div class="tile-label">Cash Reserves</div>
+        <div class="cash-value dot-num" id="cashValue">$0</div>
+        <div class="cash-trend">
+          <svg class="cash-spark" viewBox="0 0 140 40" preserveAspectRatio="none" aria-hidden="true">
+            <polyline class="spark-line" points="3,11.9 25.3,19.3 47.7,4 70,16.1 92.3,36 114.7,21.6 137,27.4"/>
+            <circle class="spark-dot" cx="3" cy="11.9" r="2"/>
+            <circle class="spark-dot" cx="25.3" cy="19.3" r="2"/>
+            <circle class="spark-dot" cx="47.7" cy="4" r="2"/>
+            <circle class="spark-dot" cx="70" cy="16.1" r="2"/>
+            <circle class="spark-dot" cx="92.3" cy="36" r="2"/>
+            <circle class="spark-dot" cx="114.7" cy="21.6" r="2"/>
+            <circle class="spark-dot is-last" cx="137" cy="27.4" r="2.6"/>
+          </svg>
+          <div class="cash-trend-label">7-day trend</div>
+        </div>
+        <div class="tile-sub">Total corporate credits on hand</div>
+      </section>
+
+      <section class="tile t-flow">
+        <div class="tile-label">Net Daily Flow <span class="chip chip-warn">Deficit</span></div>
+        <div class="flow-row">
+          <svg class="flow-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v16"/><path d="M5 12l7 7 7-7"/></svg>
+          <div class="flow-value dot-num" id="flowValue">-$0</div>
+        </div>
+        <div class="tile-sub">Income minus costs booked, last 24h</div>
+      </section>
+
+      <section class="tile t-level">
+        <div class="level-head">
+          <div>
+            <div class="tile-label" id="levelLabel">Level 2 of 30</div>
+            <div class="level-sub is-current" id="levelSub">Current</div>
+          </div>
+          <div class="level-nav">
+            <button class="icon-btn" id="levelPrev" aria-label="Peek previous level">
+              <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+            </button>
+            <button class="icon-btn" id="levelNext" aria-label="Peek next level">
+              <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="level-track" id="levelTrack"></div>
+        <div class="level-body">
+          <div class="level-section">
+            <div class="level-col-title" id="reqTitle">Advancing to Level 3 requires</div>
+            <ul class="req-list" id="reqList"></ul>
+            <button class="btn-primary" id="reqAction">Go to Galactic Exchange →</button>
+          </div>
+          <div class="level-section">
+            <div class="level-col-title" id="unlockTitle">Unlocks at Level 3</div>
+            <ul class="unlock-list" id="unlockList"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="tile t-status">
+        <div class="tile-label">Corporate Status</div>
+        <div class="status-grid">
+          <div class="status-item"><span class="status-key">Conglomerate</span><span class="status-val">Independent</span></div>
+          <div class="status-item"><span class="status-key">Military Power</span><span class="status-val dot-num" style="font-size:15px">0 ATK / 0 DEF</span></div>
+          <div class="status-item"><span class="status-key">Readiness</span><span class="status-val dot-num" style="font-size:15px">100%</span></div>
+        </div>
+      </section>
+
+      <section class="tile t-extract">
+        <div class="tile-label">Silicate Extractors <span class="tile-sub-inline">Lease MRS-0419</span></div>
+        <div class="ring-row">
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 78 78" aria-hidden="true">
+              <circle class="ring-track" cx="39" cy="39" r="33"/>
+              <circle class="ring-value" cx="39" cy="39" r="33" pathLength="100" data-target="72"/>
+            </svg>
+            <div class="ring-label"><span class="ring-pct dot-num">72%</span><span class="ring-name">MX-01</span></div>
+          </div>
+          <div class="ring-wrap">
+            <svg class="ring" viewBox="0 0 78 78" aria-hidden="true">
+              <circle class="ring-track" cx="39" cy="39" r="33"/>
+              <circle class="ring-value" cx="39" cy="39" r="33" pathLength="100" data-target="31"/>
+            </svg>
+            <div class="ring-label"><span class="ring-pct dot-num">31%</span><span class="ring-name">MX-02</span></div>
+          </div>
+        </div>
+        <div class="tile-sub">Silicate stock <b>142</b> units</div>
+      </section>
+
+      <section class="tile t-gex">
+        <div class="tile-label">Galactic Exchange <span class="tile-sub-inline">Silicate peg</span></div>
+        <div class="gex-row">
+          <div class="gex-price dot-num">61<span class="gex-unit">cr / unit</span></div>
+          <svg class="sparkline" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">
+            <polyline points="0,20 12,16 24,22 36,12 48,18 60,6 72,13 84,9 96,15 108,10 120,7"/>
+          </svg>
+        </div>
+        <div class="tile-sub">24h price history</div>
+      </section>
+
+      <section class="tile t-employ">
+        <div class="tile-label">Employees</div>
+        <div class="employ-value dot-num">18<span class="employ-of">/ 30</span></div>
+        <div class="bar"><div class="bar-fill" id="employBar" data-target="60"></div></div>
+      </section>
+
+      <section class="tile t-research">
+        <div class="tile-label">R&amp;D Queue</div>
+        <div class="research-name">Refinery Chain I</div>
+        <div class="bar"><div class="bar-fill" id="researchBar" data-target="63"></div></div>
+      </section>
+
+      <section class="tile t-feed">
+        <div class="tile-label">Command Feedback</div>
+        <div class="feed-standby">Command uplink standing by. Completed actions and queue additions will be logged here.</div>
+        <ul class="feed-list" id="feedList">
+          <li><span class="feed-dot"></span><span class="feed-text">Extractor MX-01 cycle complete: <b>+48 Silicate</b></span><span class="feed-time">2m</span></li>
+          <li><span class="feed-dot"></span><span class="feed-text">Research queued: <b>Refinery Chain I</b></span><span class="feed-time">17m</span></li>
+          <li><span class="feed-dot"></span><span class="feed-text">Lease MRS-0419 renewed by ISA Claims &amp; Leases Division</span><span class="feed-time">1h</span></li>
+          <li><span class="feed-dot"></span><span class="feed-text">Payroll disbursed: <b>-$4,210</b></span><span class="feed-time">3h</span></li>
+        </ul>
+      </section>
+
+      <section class="tile t-inbox">
+        <div class="tile-label">Inbox <span class="chip chip-accent">2 new</span></div>
+        <ul class="inbox-list">
+          <li class="inbox-item">
+            <span class="inbox-unread"></span>
+            <div class="inbox-body">
+              <span class="inbox-from">ISA · Claims &amp; Leases Division</span>
+              <span class="inbox-msg">Lease MRS-0419 renewal confirmed — next review cycle in 90 days.</span>
+            </div>
+          </li>
+          <li class="inbox-item">
+            <span class="inbox-unread"></span>
+            <div class="inbox-body">
+              <span class="inbox-from">STA · Station Administration</span>
+              <span class="inbox-msg">Docking bay maintenance window scheduled, Earth Station Prime, 03:00–05:00 UTC.</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <section class="tile t-brief">
+        <div class="brief-mark">Exec Brief</div>
+        <p class="brief-text">"ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach."</p>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ============ Bottom dock ============ -->
+  <nav class="dock" aria-label="Primary navigation">
+    <div class="dock-scroll">
+
+      <div class="dock-group">
+        <span class="dock-caption">Company</span>
+        <div class="dock-group-items">
+          <button class="dock-item active" data-nav="overview">
+            <svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+            <span>Overview</span>
+          </button>
+          <button class="dock-item" data-nav="inbox">
+            <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M4 7l8 6 8-6"/></svg>
+            <span>Inbox</span>
+          </button>
+          <button class="dock-item" data-nav="financial">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M9.2 9.6c.3-1 1.4-1.6 2.8-1.6s2.6.6 2.6 1.7c0 2.3-5.6 1.7-5.6 4 0 1.1 1.2 1.7 2.6 1.7s2.5-.6 2.8-1.6"/><path d="M12 6.5v11"/></svg>
+            <span>Financial Core</span>
+          </button>
+          <button class="dock-item" data-nav="insight">
+            <svg viewBox="0 0 24 24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.4"/></svg>
+            <span>CEO Insight</span>
+          </button>
+          <button class="dock-item" data-nav="assignments">
+            <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3.5h6v2H9z"/><path d="M8 10h8M8 13.5h8M8 17h5"/></svg>
+            <span>Assignments</span>
+          </button>
+          <button class="dock-item" data-nav="conglomerate">
+            <svg viewBox="0 0 24 24"><circle cx="6" cy="7" r="2"/><circle cx="18" cy="7" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7.6 8.2 10.6 16M16.4 8.2 13.4 16M8 7h8"/></svg>
+            <span>Conglomerate</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dock-sep"></div>
+
+      <div class="dock-group">
+        <span class="dock-caption">Station</span>
+        <div class="dock-group-items">
+          <button class="dock-item" data-nav="station">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+            <span>Station</span>
+          </button>
+          <button class="dock-item" data-nav="operations">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M18.8 5.2l-2.1 2.1M7.3 16.7l-2.1 2.1"/></svg>
+            <span>Operations</span>
+          </button>
+          <button class="dock-item" data-nav="fleet">
+            <svg viewBox="0 0 24 24"><path d="M12 3l7 15-7-4-7 4 7-15z"/></svg>
+            <span>Fleet</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dock-sep"></div>
+
+      <div class="dock-group">
+        <span class="dock-caption">Industry</span>
+        <div class="dock-group-items">
+          <button class="dock-item" data-nav="rnd">
+            <svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M8.5 15h7"/></svg>
+            <span>Corporate R&amp;D</span>
+          </button>
+          <button class="dock-item" data-nav="refinery">
+            <svg viewBox="0 0 24 24"><rect x="3" y="9" width="8" height="6" rx="3"/><rect x="13" y="9" width="8" height="6" rx="3"/></svg>
+            <span>Refinery Chains</span>
+          </button>
+          <button class="dock-item" data-nav="logistics">
+            <svg viewBox="0 0 24 24"><rect x="3" y="8" width="12" height="10" rx="1.5"/><path d="M9 8V5.5A1.5 1.5 0 0 1 10.5 4h2"/><path d="M17 12h4m-2-2 2 2-2 2"/></svg>
+            <span>Logistics</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dock-sep"></div>
+
+      <div class="dock-group">
+        <span class="dock-caption">Market</span>
+        <div class="dock-group-items">
+          <button class="dock-item" data-nav="gex">
+            <svg viewBox="0 0 24 24"><path d="M4 8h13M13 4l4 4-4 4"/><path d="M20 16H7M11 12l-4 4 4 4"/></svg>
+            <span>Galactic Exchange</span>
+          </button>
+          <button class="dock-item" data-nav="assets">
+            <svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+            <span>Assets</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dock-sep"></div>
+
+      <div class="dock-group">
+        <span class="dock-caption">Comms</span>
+        <div class="dock-group-items">
+          <button class="dock-item" data-nav="chat">
+            <svg viewBox="0 0 24 24"><path d="M4 5h16v10H9l-4 4V5z"/></svg>
+            <span>Chat</span>
+          </button>
+          <button class="dock-item" data-nav="forum">
+            <svg viewBox="0 0 24 24"><path d="M3 5h11v7H8l-3 3V5z"/><path d="M12 9h9v6h-3l-3 3v-3h-3z"/></svg>
+            <span>Forum</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </nav>
+
+<script>
+(function(){
+  "use strict";
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduceMotion) document.body.classList.add('anim-ready');
+
+  /* ---------- helpers ---------- */
+  function money(n){
+    var neg = n < 0;
+    var abs = Math.round(Math.abs(n)).toLocaleString('en-US');
+    return (neg ? '-$' : '$') + abs;
+  }
+
+  /* ---------- count-up: cash reserves & net daily flow ---------- */
+  function countUp(el, target, formatter, duration){
+    if (reduceMotion){ el.textContent = formatter(target); return; }
+    var start = performance.now();
+    function step(now){
+      var t = Math.min(1, (now - start) / duration);
+      var eased = 1 - Math.pow(1 - t, 3);
+      var val = target * eased;
+      el.textContent = formatter(val);
+      if (t < 1) requestAnimationFrame(step);
+      else el.textContent = formatter(target);
+    }
+    requestAnimationFrame(step);
+  }
+  countUp(document.getElementById('cashValue'), 18061, money, 1100);
+  countUp(document.getElementById('flowValue'), -27915, money, 1100);
+
+  /* ---------- ring gauges & bars: fill in on load ---------- */
+  function primeFills(){
+    document.querySelectorAll('.ring-value').forEach(function(c){
+      var target = c.getAttribute('data-target') || '0';
+      if (reduceMotion){ c.setAttribute('stroke-dasharray', target + ' 100'); return; }
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ c.setAttribute('stroke-dasharray', target + ' 100'); });
+      });
+    });
+    document.querySelectorAll('.bar-fill').forEach(function(b){
+      var target = b.getAttribute('data-target') || '0';
+      if (reduceMotion){ b.style.width = target + '%'; return; }
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ b.style.width = target + '%'; });
+      });
+    });
+  }
+  primeFills();
+
+  /* ---------- corporation level: 30-segment track + prev/next peek ---------- */
+  var CURRENT_LEVEL = 2;
+  var TOTAL_LEVELS = 30;
+  var levelData = {
+    1: {
+      requirementsTitle: 'Advancing to Level 2 required',
+      requirements: [
+        { text: 'Sign the first Mars extraction lease', progress: '1 / 1', done: true },
+        { text: 'Hire 5 employees at Earth Station Prime', progress: '5 / 5', done: true }
+      ],
+      action: null,
+      unlockTitle: 'Unlocked at Level 2',
+      unlocks: [
+        ['Employee cap', '20'], ['Building slots', '2'], ['Fleet cap', '10'], ['Highest building tier', '1']
+      ]
+    },
+    2: {
+      requirementsTitle: 'Advancing to Level 3 requires',
+      requirements: [
+        { text: 'Sell 300 Silicate on the Galactic Exchange', progress: '0 / 300', done: false },
+        { text: 'Research Basic Extraction Analytics', progress: '1 / 1', done: true }
+      ],
+      action: 'Go to Galactic Exchange →',
+      unlockTitle: 'Unlocks at Level 3',
+      unlocks: [
+        ['Employee cap', '45'], ['Building slots', '4'], ['Fleet cap', '22'], ['Highest building tier', '2']
+      ]
+    },
+    3: {
+      requirementsTitle: 'Advancing to Level 4 requires',
+      requirements: [
+        { text: 'Sell 750 Silicate on the Galactic Exchange', progress: '0 / 750', done: false },
+        { text: 'Research Refinery Chain I', progress: '0 / 1', done: false }
+      ],
+      action: 'Go to Galactic Exchange →',
+      unlockTitle: 'Unlocks at Level 4',
+      unlocks: [
+        ['Employee cap', '70'], ['Building slots', '6'], ['Fleet cap', '35'], ['Highest building tier', '3']
+      ]
+    },
+    4: {
+      requirementsTitle: 'Advancing to Level 5 requires',
+      requirements: [
+        { text: 'Commission a second Mars lease', progress: '0 / 1', done: false },
+        { text: 'Research Structural Alloys I', progress: '0 / 1', done: false }
+      ],
+      action: 'Go to Assets →',
+      unlockTitle: 'Unlocks at Level 5',
+      unlocks: [
+        ['Employee cap', '95'], ['Building slots', '7'], ['Fleet cap', '48'], ['Highest building tier', '3']
+      ]
+    }
+  };
+  var MIN_PEEK = 1, MAX_PEEK = 4;
+  var viewedLevel = CURRENT_LEVEL;
+
+  var trackEl = document.getElementById('levelTrack');
+  for (var i = 1; i <= TOTAL_LEVELS; i++){
+    var d = document.createElement('span');
+    d.className = 'dot';
+    d.dataset.level = i;
+    trackEl.appendChild(d);
+  }
+
+  function renderLevel(){
+    var data = levelData[viewedLevel];
+    var isCurrent = viewedLevel === CURRENT_LEVEL;
+
+    document.getElementById('levelLabel').textContent = isCurrent
+      ? 'Level ' + CURRENT_LEVEL + ' of ' + TOTAL_LEVELS
+      : 'Viewing Level ' + viewedLevel;
+    var sub = document.getElementById('levelSub');
+    sub.textContent = isCurrent ? 'Current' : (viewedLevel < CURRENT_LEVEL ? 'Completed' : 'Not yet reached');
+    sub.classList.toggle('is-current', isCurrent);
+
+    document.getElementById('reqTitle').textContent = data.requirementsTitle;
+    document.getElementById('unlockTitle').textContent = data.unlockTitle;
+
+    var reqList = document.getElementById('reqList');
+    reqList.innerHTML = '';
+    data.requirements.forEach(function(r){
+      var li = document.createElement('li');
+      li.className = 'req' + (r.done ? ' done' : '');
+      li.innerHTML = '<span class="req-check">' + (r.done ? '✓' : '') + '</span>' +
+                      '<span class="req-text">' + r.text + '</span>' +
+                      '<span class="req-progress">' + r.progress + '</span>';
+      reqList.appendChild(li);
+    });
+
+    var actionBtn = document.getElementById('reqAction');
+    if (data.action){
+      actionBtn.style.display = '';
+      actionBtn.textContent = data.action;
+    } else {
+      actionBtn.style.display = 'none';
+    }
+
+    var unlockList = document.getElementById('unlockList');
+    unlockList.innerHTML = '';
+    data.unlocks.forEach(function(u){
+      var li = document.createElement('li');
+      li.innerHTML = u[0] + ' <b>' + u[1] + '</b>';
+      unlockList.appendChild(li);
+    });
+
+    trackEl.querySelectorAll('.dot').forEach(function(dot){
+      var lvl = parseInt(dot.dataset.level, 10);
+      dot.classList.toggle('filled', lvl <= CURRENT_LEVEL);
+      dot.classList.toggle('viewed', lvl === viewedLevel);
+    });
+
+    document.getElementById('levelPrev').disabled = viewedLevel <= MIN_PEEK;
+    document.getElementById('levelNext').disabled = viewedLevel >= MAX_PEEK;
+  }
+
+  document.getElementById('levelPrev').addEventListener('click', function(){
+    if (viewedLevel > MIN_PEEK){ viewedLevel--; renderLevel(); }
+  });
+  document.getElementById('levelNext').addEventListener('click', function(){
+    if (viewedLevel < MAX_PEEK){ viewedLevel++; renderLevel(); }
+  });
+  renderLevel();
+
+  /* ---------- dock: nav selection ---------- */
+  document.querySelectorAll('.dock-item').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.dock-item').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  });
+
+  /* ---------- dock: edge fades hint that it scrolls ---------- */
+  var dockEl = document.querySelector('.dock');
+  var dockScroll = document.querySelector('.dock-scroll');
+  function updateDockFades(){
+    var atStart = dockScroll.scrollLeft <= 1;
+    var atEnd = dockScroll.scrollLeft + dockScroll.clientWidth >= dockScroll.scrollWidth - 1;
+    dockEl.classList.toggle('fade-start', !atStart);
+    dockEl.classList.toggle('fade-end', !atEnd);
+  }
+  dockScroll.addEventListener('scroll', updateDockFades, { passive: true });
+  window.addEventListener('resize', updateDockFades);
+  updateDockFades();
+
+  /* ---------- command feedback: ticking feed ---------- */
+  var feedPool = [
+    'Extractor MX-02 cycle complete: <b>+21 Silicate</b>',
+    'Sell order posted: <b>40 Silicate @ 61 cr</b>',
+    'ISA compliance check passed: Lease MRS-0419',
+    'Fleet status nominal: 0 vessels in transit',
+    'Research milestone logged: Refinery Chain I 63%'
+  ];
+  var feedIdx = 0;
+  var feedList = document.getElementById('feedList');
+  function tickFeed(){
+    var li = document.createElement('li');
+    if (!reduceMotion) li.classList.add('enter');
+    li.innerHTML = '<span class="feed-dot"></span><span class="feed-text">' + feedPool[feedIdx % feedPool.length] + '</span><span class="feed-time">now</span>';
+    feedList.insertBefore(li, feedList.firstChild);
+    feedIdx++;
+    while (feedList.children.length > 6){ feedList.removeChild(feedList.lastChild); }
+  }
+  window.setInterval(tickFeed, 7000);
+})();
+</script>
+</body>
+</html>

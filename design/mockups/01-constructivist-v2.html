@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 01 v2 — Constructivist Directive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Oswald:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#0e0c0b;
+    --ground-2:#171310;
+    --panel:#1c170f;
+    --panel-2:#241d13;
+    --red:#e0341f;
+    --red-bright:#ff5136;
+    --red-dim:#8f2015;
+    --bone:#f5eeda;
+    --bone-bright:#fdf6e3;
+    --bone-dim:#d3c8ac;
+    --ochre:#8a6a3a;
+    --ochre-bright:#e0ac5c;
+    --line:#4d4330;
+    --line-soft:#332c1e;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ground);
+    color:var(--bone);
+    font-family:"Oswald",sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* ============ TEXTURE LAYERS ============ */
+  .grain{
+    position:fixed; inset:0; pointer-events:none; z-index:500; mix-blend-mode:overlay; opacity:0.5;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 3px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 3px);
+  }
+  .halftone{
+    position:fixed; inset:0; pointer-events:none; z-index:1;
+    background-image: radial-gradient(circle at center, rgba(232,224,208,0.05) 0.6px, transparent 0.6px);
+    background-size: 4px 4px;
+    opacity:0.6;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:499;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.28) 100%);
+  }
+
+  /* ============ TOP DIRECTIVE BAR ============ */
+  .top-bar{
+    position:relative; z-index:20;
+    background:var(--ground-2);
+    border-bottom:3px solid var(--red);
+    padding:14px 28px 10px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+  }
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand .star{width:38px; height:38px; position:relative; flex-shrink:0;}
+  .brand .star svg{width:100%;height:100%;display:block;}
+  .brand-text .name{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:800; font-size:22px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--bone-bright); line-height:1;
+  }
+  .brand-text .sub{
+    font-family:"Space Mono",monospace; font-size:10.5px; color:var(--bone-dim);
+    letter-spacing:1.5px; text-transform:uppercase; margin-top:3px;
+  }
+  .top-right{display:flex; align-items:center; gap:22px;}
+  .ceo-block{text-align:right; font-family:"Space Mono",monospace;}
+  .ceo-block .who{font-size:13px; color:var(--bone-bright); font-weight:700; letter-spacing:0.5px;}
+  .ceo-block .corp{font-size:10.5px; color:var(--bone-dim); margin-top:2px;}
+  .notices{
+    position:relative;
+    background:var(--red);
+    color:var(--ground);
+    font-family:"Space Mono",monospace;
+    font-weight:700; font-size:12px;
+    padding:8px 14px;
+    transform:skewX(-8deg);
+    cursor:pointer;
+    border:1px solid var(--red-bright);
+    box-shadow:0 0 14px rgba(224,52,31,0.45);
+    transition:filter 0.15s;
+  }
+  .notices:hover{filter:brightness(1.15);}
+  .notices span{display:inline-block; transform:skewX(8deg);}
+  .logout-btn{
+    font-family:"Space Mono",monospace; font-size:11px; color:var(--bone-dim);
+    border:1px solid var(--line); padding:7px 12px; background:transparent; cursor:pointer;
+    letter-spacing:1px; text-transform:uppercase; transition:all 0.15s;
+  }
+  .logout-btn:hover{border-color:var(--red); color:var(--red-bright);}
+
+  /* ============ ANGLED NAV TABS ============ */
+  .nav-wrap{
+    position:relative; z-index:20;
+    background:var(--ground);
+    border-bottom:1px solid var(--line);
+    padding:9px 28px 6px 28px;
+    display:flex; flex-wrap:wrap; row-gap:8px; column-gap:18px;
+  }
+  .nav-group{display:flex; flex-direction:column; flex-shrink:0;}
+  .nav-group-label{
+    font-family:"Space Mono",monospace; font-size:8.5px; letter-spacing:2px;
+    color:var(--ochre-bright); text-transform:uppercase; margin-bottom:5px; padding-left:3px;
+  }
+  .nav-tabs{display:flex; flex-wrap:wrap; gap:2px; row-gap:2px;}
+  .nav-tab{
+    position:relative;
+    font-family:"Oswald",sans-serif; font-weight:600; font-size:11px; letter-spacing:0.3px;
+    text-transform:uppercase; color:var(--bone-dim); background:var(--panel); border:none;
+    padding:7px 10px 8px 10px; cursor:pointer; transform:skewX(-12deg); transition:all 0.12s;
+    white-space:nowrap; border-top:2px solid var(--line);
+  }
+  .nav-tab span{display:inline-block; transform:skewX(12deg);}
+  .nav-tab:hover{background:var(--panel-2); color:var(--bone-bright);}
+  .nav-tab.active{
+    background:var(--red);
+    color:var(--ground);
+    border-top:2px solid var(--bone-bright);
+    font-weight:700;
+    box-shadow:0 0 16px rgba(224,52,31,0.55);
+  }
+
+  /* ============ LAYOUT ============ */
+  .stage{
+    position:relative; z-index:5; max-width:1400px; margin:0 auto; padding:26px 28px 20px 28px;
+  }
+  .zone{margin-bottom:32px;}
+
+  /* ============ PAGE TITLE ZONE (poster hero) ============ */
+  .title-zone{
+    position:relative;
+    overflow:hidden;
+    background:var(--panel);
+    border-left:10px solid var(--red);
+    box-shadow:0 0 0 1px var(--line);
+    padding:28px 30px 28px 26px;
+    margin-bottom:14px;
+    min-height:196px;
+  }
+  .title-zone .wedge{
+    position:absolute; z-index:1;
+    top:-30%; right:6%; width:34%; height:160%;
+    background:var(--red);
+    transform:skewX(-20deg);
+    box-shadow:0 0 50px rgba(224,52,31,0.3);
+  }
+  .title-zone .wedge-gap{
+    position:absolute; z-index:1;
+    top:-30%; right:calc(6% + 34% + 2%); width:2.4%; height:160%;
+    background:var(--ground);
+    transform:skewX(-20deg);
+  }
+  .title-zone .lissitzky{
+    position:absolute; z-index:1; top:-30px; right:2%;
+    width:230px; height:230px; opacity:0.9; pointer-events:none;
+  }
+  .title-zone .numeral{
+    position:absolute;
+    top:-0.22em; right:-0.1em;
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:900; font-size:320px; line-height:1;
+    color:rgba(253,246,227,0.10);
+    -webkit-text-stroke:4px rgba(253,246,227,0.4);
+    letter-spacing:-14px;
+    z-index:1;
+    pointer-events:none;
+    user-select:none;
+    mix-blend-mode:screen;
+  }
+  .title-content{position:relative; z-index:3; max-width:54%;}
+  .crumb{
+    font-family:"Space Mono",monospace; font-size:11px; letter-spacing:2.5px;
+    text-transform:uppercase; color:var(--ochre-bright); margin-bottom:8px;
+  }
+  .crumb .sep{color:var(--line); margin:0 6px;}
+  .crumb .here{color:var(--bone-bright); font-weight:700;}
+  .page-title{
+    font-family:"Big Shoulders Display",sans-serif;
+    font-weight:900; font-size:52px; line-height:0.92; text-transform:uppercase;
+    margin:0; color:var(--bone-bright); letter-spacing:0.5px;
+    text-shadow:0 2px 0 rgba(0,0,0,0.5), 0 0 24px rgba(224,52,31,0.2);
+  }
+  .title-sub{
+    display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+    margin-top:12px; padding-top:10px; border-top:1px solid var(--line);
+  }
+  .title-sub .corp-name{
+    font-family:"Space Mono",monospace; font-weight:700; font-size:13.5px; color:var(--bone-bright);
+    letter-spacing:0.5px;
+  }
+  .title-sub .corp-name .tick{color:var(--red-bright);}
+  .title-sub .dot{color:var(--line);}
+  .title-sub .slogan{
+    font-family:"Oswald",sans-serif; font-style:italic; font-weight:400; font-size:12.5px;
+    color:var(--bone-dim);
+  }
+
+  /* ============ ZONE HEADERS ============ */
+  .zone-head{display:flex; align-items:center; gap:12px; margin:0 0 14px 0;}
+  .zone-head .zn{
+    font-family:"Space Mono",monospace; font-weight:700; font-size:12px; color:var(--ground);
+    background:var(--bone-bright); padding:3px 7px; flex-shrink:0;
+  }
+  .zone-head .tag{
+    font-family:"Big Shoulders Display",sans-serif; font-weight:800; font-size:16px; letter-spacing:1px;
+    text-transform:uppercase; color:var(--ground); background:var(--red);
+    padding:4px 10px 5px 10px; transform:skewX(-10deg);
+    box-shadow:0 0 10px rgba(224,52,31,0.35);
+  }
+  .zone-head .tag span{transform:skewX(10deg); display:inline-block;}
+  .zone-head .rule{flex:1; height:2px; background:repeating-linear-gradient(90deg, var(--line) 0 8px, transparent 8px 12px);}
+  .zone-head .hint{
+    font-family:"Space Mono",monospace; font-size:10.5px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--bone-dim); flex-shrink:0;
+  }
+
+  /* ============ CONSISTENT PANEL HEADER (used inside every panel) ============ */
+  .panel-head{
+    display:flex; align-items:center; gap:10px; margin-bottom:12px;
+    padding-bottom:9px; border-bottom:1px solid var(--line-soft);
+  }
+  .panel-head .pn{
+    font-family:"Space Mono",monospace; font-weight:700; font-size:10.5px; color:var(--ground);
+    background:var(--ochre-bright); padding:2px 6px; flex-shrink:0; letter-spacing:0.5px;
+  }
+  .panel-head .pt{
+    font-family:"Big Shoulders Display",sans-serif; font-weight:800; font-size:13px;
+    text-transform:uppercase; letter-spacing:0.5px; color:var(--bone-bright); flex:1; min-width:0;
+  }
+  .panel-head .pd{width:7px; height:7px; border-radius:50%; background:var(--red); flex-shrink:0; animation:blink 1.4s steps(2) infinite;}
+  @keyframes blink{50%{opacity:0.15;}}
+
+  /* ============ PANEL BASE ============ */
+  .panel{background:var(--panel); border:1px solid var(--line); position:relative;}
+
+  /* ============ HERO ROW: LEVEL (left ~62%) + KEY FIGURES (right ~38%) ============ */
+  .hero-grid{
+    display:grid;
+    grid-template-columns: 1.63fr 1fr;
+    gap:20px;
+    align-items:start;
+  }
+  .hero-left{min-width:0;}
+  .hero-right{display:flex; flex-direction:column; gap:12px; min-width:0;}
+
+  /* ---- Level panel, tightened ---- */
+  .level-panel{padding:20px 22px; position:relative; overflow:hidden;}
+  .level-panel::after{
+    content:""; position:absolute; top:-40%; right:-20%; width:280px; height:280px;
+    border:2px dashed rgba(224,52,31,0.22); border-radius:50%; z-index:0;
+  }
+  .level-head{
+    display:flex; justify-content:flex-start; align-items:center; flex-wrap:wrap; gap:28px;
+    position:relative; z-index:2;
+  }
+  .level-peek{display:flex; align-items:center; gap:12px;}
+  .peek-btn{
+    width:32px; height:32px; border:1px solid var(--line); background:var(--panel-2); color:var(--bone-dim);
+    font-family:"Space Mono",monospace; font-size:16px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:all 0.15s; flex-shrink:0;
+  }
+  .peek-btn:hover{border-color:var(--red); color:var(--red-bright);}
+  .level-current{
+    font-family:"Big Shoulders Display",sans-serif; font-weight:900; font-size:28px; text-transform:uppercase;
+    color:var(--bone-bright); letter-spacing:0.5px; text-align:center; white-space:nowrap;
+  }
+  .level-current .of{color:var(--bone-dim); font-size:16px; font-weight:600;}
+  .level-current .lvl-num{color:var(--red-bright);}
+  .progress-arc-wrap{display:flex; align-items:center; gap:14px;}
+  .progress-arc-wrap .pct-label{font-family:"Space Mono",monospace; font-size:20px; font-weight:700; color:var(--red-bright);}
+  .progress-arc-wrap .pct-label small{font-size:10px; color:var(--bone-dim); display:block; font-weight:400; letter-spacing:1px;}
+
+  .directives{margin-top:18px; display:flex; flex-direction:column; gap:10px; position:relative; z-index:2;}
+  .directive{
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; background:var(--panel-2);
+    border-left:4px solid var(--ochre); padding:12px 15px; position:relative;
+  }
+  .directive.done{border-left-color:#6f9152;}
+  .directive .dnum{
+    font-family:"Big Shoulders Display",sans-serif; font-weight:800; font-size:12px; color:var(--ground);
+    background:var(--ochre-bright); padding:3px 7px; letter-spacing:0.5px; flex-shrink:0;
+  }
+  .directive.done .dnum{background:#8fb572;}
+  .directive .dtext{flex:1; min-width:0;}
+  .directive .dtext .label{
+    font-family:"Oswald",sans-serif; font-weight:600; font-size:13.5px; text-transform:uppercase;
+    color:var(--bone-bright); letter-spacing:0.3px;
+  }
+  .directive .dtext .meta{font-family:"Space Mono",monospace; font-size:10.5px; color:var(--bone-dim); margin-top:3px;}
+  .directive .dprogress{font-family:"Space Mono",monospace; font-size:12.5px; font-weight:700; color:var(--red-bright); white-space:nowrap;}
+  .directive.done .dprogress{color:#9cc17c;}
+  .directive .golink{
+    font-family:"Space Mono",monospace; font-size:10.5px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--ground); background:var(--red); border:none; padding:8px 13px; cursor:pointer;
+    white-space:nowrap; flex-shrink:0; transition:filter 0.15s; box-shadow:0 0 12px rgba(224,52,31,0.4);
+    font-weight:700;
+  }
+  .directive .golink:hover{filter:brightness(1.15);}
+
+  .unlocks-row{
+    margin-top:16px; padding-top:13px; border-top:1px solid var(--line);
+    display:flex; flex-wrap:wrap; align-items:center; gap:0 18px; position:relative; z-index:2;
+  }
+  .unlocks-row .ur-label{
+    font-family:"Space Mono",monospace; font-size:9px; letter-spacing:1.3px; text-transform:uppercase;
+    color:var(--ochre-bright); flex-shrink:0; margin-right:4px;
+  }
+  .unlock-item{
+    font-family:"Space Mono",monospace; font-size:10.5px; color:var(--bone-dim);
+    padding-left:18px; border-left:1px solid var(--line-soft);
+  }
+  .unlock-item:first-of-type{padding-left:0; border-left:none;}
+  .unlock-item b{color:var(--bone-bright); font-size:17px; display:block; font-family:"Big Shoulders Display",sans-serif; font-weight:800; line-height:1.1;}
+
+  /* ---- Right column key figures ---- */
+  .fig-cash-poster{background:var(--panel); border:1px solid var(--line); padding:16px 20px 18px;}
+  .fig-cash-poster .fig-value{
+    font-family:"Big Shoulders Display",sans-serif; font-weight:900; font-size:60px; color:var(--bone-bright);
+    line-height:0.95;
+  }
+  .fig-cash-poster .fig-value sup{font-size:26px; color:var(--bone-dim); font-weight:600;}
+  .fig-cash-poster .fig-sub{font-family:"Space Mono",monospace; font-size:10px; color:var(--bone-dim); margin-top:6px;}
+
+  .fig-flow-slab{
+    background:var(--red); border:1px solid var(--red-bright); padding:16px 20px 18px;
+    box-shadow:0 0 24px rgba(224,52,31,0.4);
+    clip-path:polygon(0 0, 100% 0, 100% 84%, 88% 100%, 0 100%);
+  }
+  .fig-flow-slab .panel-head{border-bottom:1px solid rgba(14,12,11,0.3);}
+  .fig-flow-slab .panel-head .pn{background:var(--ground); color:var(--red-bright);}
+  .fig-flow-slab .panel-head .pt{color:var(--ground);}
+  .fig-flow-slab .fig-value{
+    display:flex; align-items:center; gap:9px;
+    font-family:"Big Shoulders Display",sans-serif; font-weight:900; font-size:36px; color:var(--ground); line-height:1;
+  }
+  .flow-arrow{
+    width:0; height:0; border-left:11px solid transparent; border-right:11px solid transparent;
+    border-top:17px solid var(--ground); animation:dropPulse 1.6s ease-in-out infinite; flex-shrink:0;
+  }
+  @keyframes dropPulse{0%,100%{transform:translateY(0); opacity:1;} 50%{transform:translateY(4px); opacity:0.6;}}
+  .fig-flow-slab .fig-sub{font-family:"Space Mono",monospace; font-size:10px; color:rgba(14,12,11,0.75); margin-top:6px;}
+
+  .fig-pair{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .fig-mini{background:var(--panel); border:1px solid var(--line); padding:12px 14px;}
+  .fig-mini .panel-head{margin-bottom:8px; padding-bottom:7px;}
+  .fig-mini .panel-head .pt{font-size:11px;}
+  .fig-mini .fig-value{font-family:"Big Shoulders Display",sans-serif; font-weight:800; font-size:19px; color:var(--bone-bright); line-height:1.15;}
+  .fig-mini .fig-value .mil{color:var(--ochre-bright);}
+  .fig-mini .fig-sub{font-family:"Space Mono",monospace; font-size:9.5px; color:var(--bone-dim); margin-top:5px;}
+
+  .readiness-bar{margin-top:7px; height:4px; background:var(--panel-2); border:1px solid var(--line); overflow:hidden;}
+  .readiness-fill{height:100%; background:var(--ochre-bright); width:0%; transition:width 1.2s ease-out;}
+
+  /* ============ ZONE 03: OPERATIONS STATUS ============ */
+  .ops-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;}
+  .ops-panel{background:var(--panel); border:1px solid var(--line); padding:18px 20px;}
+
+  .sta-row{
+    display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--line-soft);
+    font-family:"Space Mono",monospace; font-size:12px;
+  }
+  .sta-row:last-child{border-bottom:none;}
+  .sta-row .k{color:var(--bone-dim);}
+  .sta-row .v{color:var(--bone-bright); font-weight:700; margin-left:auto;}
+  .sta-row .v.pct{color:var(--ochre-bright);}
+
+  .extractor{padding:10px 0; border-bottom:1px solid var(--line-soft);}
+  .extractor:last-child{border-bottom:none;}
+  .extractor .exname{
+    font-family:"Oswald",sans-serif; font-weight:600; font-size:12.5px; text-transform:uppercase;
+    color:var(--bone-bright); display:flex; justify-content:space-between;
+  }
+  .extractor .exname .exp{color:var(--red-bright); font-family:"Space Mono",monospace; font-weight:700;}
+  .cycle-bar{margin-top:7px; height:6px; background:var(--panel-2); border:1px solid var(--line); position:relative; overflow:hidden;}
+  .cycle-fill{height:100%; background:repeating-linear-gradient(-45deg, var(--red-bright) 0 6px, var(--red-dim) 6px 12px); width:0%; transition:width 1.4s ease-out;}
+
+  .gex-row{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px;}
+  .gex-row .gprice{font-family:"Big Shoulders Display",sans-serif; font-weight:800; font-size:28px; color:var(--bone-bright);}
+  .gex-row .gunit{font-family:"Space Mono",monospace; font-size:10.5px; color:var(--bone-dim);}
+  .spark{display:block; width:100%; height:44px;}
+
+  /* ============ ZONE 04: INBOX / RESEARCH / FEEDBACK ============ */
+  .comm-grid{display:grid; grid-template-columns:1fr 1fr 1.3fr; gap:16px;}
+  .comm-panel{background:var(--panel); border:1px solid var(--line); padding:18px 20px;}
+
+  .inbox-item{padding:10px 0; border-bottom:1px solid var(--line-soft); display:flex; gap:10px; cursor:pointer;}
+  .inbox-item:last-child{border-bottom:none;}
+  .inbox-item .isrc{
+    font-family:"Space Mono",monospace; font-size:9.5px; font-weight:700; color:var(--ground);
+    background:var(--ochre-bright); padding:2px 6px; height:16px; flex-shrink:0; letter-spacing:0.5px;
+  }
+  .inbox-item .itxt{font-family:"Oswald",sans-serif; font-size:12px; color:var(--bone-dim); line-height:1.4;}
+  .inbox-item:hover .itxt{color:var(--bone-bright);}
+
+  .rd-item{padding:6px 0;}
+  .rd-item .rdname{font-family:"Oswald",sans-serif; font-weight:600; font-size:12.5px; color:var(--bone-bright); text-transform:uppercase;}
+  .rd-bar{margin-top:8px; height:6px; background:var(--panel-2); border:1px solid var(--line);}
+  .rd-fill{height:100%; background:var(--ochre-bright); width:0%; transition:width 1.4s ease-out;}
+  .rd-eta{font-family:"Space Mono",monospace; font-size:10.5px; color:var(--bone-dim); margin-top:6px;}
+
+  .comm-panel.feed-panel{background:var(--ground-2); padding:16px 18px 8px 18px;}
+  .feed-body{
+    font-family:"Space Mono",monospace; font-size:12.5px; line-height:1.85; max-height:180px; overflow-y:auto;
+    color:var(--bone-dim);
+  }
+  .feed-body .fline{display:flex; gap:10px;}
+  .feed-body .fline .ts{color:var(--ochre-bright); flex-shrink:0;}
+  .feed-body .fline .tx{color:var(--bone-bright);}
+  .feed-body .fline.standby .tx{color:var(--bone-dim); font-style:normal;}
+  .feed-body .fline.new{animation:feedIn 0.4s ease-out;}
+  @keyframes feedIn{from{opacity:0; transform:translateX(-6px);} to{opacity:1; transform:translateX(0);}}
+
+  /* ============ FOOTER / EXEC BRIEF ============ */
+  .footer-brief{
+    border-top:4px solid var(--ochre-bright); background:var(--panel); padding:18px 22px; margin-bottom:0;
+  }
+  .footer-brief .btitle{
+    font-family:"Big Shoulders Display",sans-serif; font-weight:800; font-size:14px; text-transform:uppercase;
+    letter-spacing:0.5px; color:var(--bone-bright); margin:0 0 8px 0;
+  }
+  .footer-brief p{font-family:"Oswald",sans-serif; font-size:13px; line-height:1.6; color:var(--bone-dim); margin:0;}
+
+  .mockup-label{
+    position:relative; z-index:5; max-width:1400px; margin:0 auto; padding:14px 28px 22px 28px;
+    border-top:1px solid var(--line); text-align:right; font-family:"Space Mono",monospace; font-size:10px;
+    color:rgba(211,200,172,0.6); letter-spacing:1.5px; text-transform:uppercase;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width:1280px){
+    .hero-grid{grid-template-columns:1fr;}
+    .ops-grid{grid-template-columns:1fr 1fr;}
+    .comm-grid{grid-template-columns:1fr 1fr;}
+    .comm-grid .feed-panel{grid-column:1 / -1;}
+    .title-zone .numeral{font-size:220px;}
+  }
+  @media (max-width:900px){
+    .stage{padding:20px 16px 12px;}
+    .ops-grid{grid-template-columns:1fr;}
+    .comm-grid{grid-template-columns:1fr;}
+    .title-zone .numeral, .title-zone .wedge, .title-zone .wedge-gap, .title-zone .lissitzky{display:none;}
+    .title-content{max-width:100%;}
+    .top-bar{flex-wrap:wrap; gap:12px;}
+    .nav-group{flex:1 1 100%; min-width:0;}
+    .nav-tabs{flex-wrap:wrap;}
+    .fig-pair{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width:600px){
+    .page-title{font-size:32px;}
+    .level-current{font-size:22px;}
+    .level-head{gap:16px;}
+    .fig-cash-poster .fig-value{font-size:42px;}
+    .fig-flow-slab .fig-value{font-size:28px;}
+    .nav-wrap{column-gap:14px; row-gap:10px;}
+    .directive .golink{flex:1 1 100%; text-align:center;}
+    .mockup-label{text-align:left;}
+  }
+</style>
+</head>
+<body>
+
+<div class="halftone"></div>
+<div class="grain"></div>
+
+<!-- ============ TOP BAR ============ -->
+<header class="top-bar">
+  <div class="brand">
+    <div class="star">
+      <svg viewBox="0 0 100 100">
+        <polygon points="50,4 61,38 96,38 68,59 79,94 50,73 21,94 32,59 4,38 39,38"
+          fill="none" stroke="#ff5136" stroke-width="4"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <div class="name">Interstellar Settlement Protocol</div>
+      <div class="sub">v0.4 &nbsp;·&nbsp; est. 2147 &nbsp;·&nbsp; ISA-registered instrument</div>
+    </div>
+  </div>
+  <div class="top-right">
+    <div class="ceo-block">
+      <div class="who">CEO R. VANCE</div>
+      <div class="corp">HELIX MERIDIAN HOLDINGS — HMH</div>
+    </div>
+    <div class="notices" id="noticesBtn"><span>23 NOTICES ▸</span></div>
+    <button class="logout-btn" id="logoutBtn">Log Out</button>
+  </div>
+</header>
+
+<!-- ============ NAV ============ -->
+<nav class="nav-wrap" id="navWrap">
+  <div class="nav-group">
+    <div class="nav-group-label">Company</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-nav="Overview"><span>Overview</span></button>
+      <button class="nav-tab" data-nav="Inbox"><span>Inbox</span></button>
+      <button class="nav-tab" data-nav="Financial Core"><span>Financial Core</span></button>
+      <button class="nav-tab" data-nav="CEO Insight"><span>CEO Insight</span></button>
+      <button class="nav-tab" data-nav="Assignments"><span>Assignments</span></button>
+      <button class="nav-tab" data-nav="Conglomerate"><span>Conglomerate</span></button>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Station</div>
+    <div class="nav-tabs">
+      <button class="nav-tab" data-nav="Station"><span>Station</span></button>
+      <button class="nav-tab" data-nav="Operations"><span>Operations</span></button>
+      <button class="nav-tab" data-nav="Fleet"><span>Fleet</span></button>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Industry</div>
+    <div class="nav-tabs">
+      <button class="nav-tab" data-nav="Corporate R&D"><span>Corporate R&amp;D</span></button>
+      <button class="nav-tab" data-nav="Refinery Chains"><span>Refinery Chains</span></button>
+      <button class="nav-tab" data-nav="Logistics"><span>Logistics</span></button>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Market</div>
+    <div class="nav-tabs">
+      <button class="nav-tab" data-nav="Galactic Exchange"><span>Galactic Exchange</span></button>
+      <button class="nav-tab" data-nav="Assets"><span>Assets</span></button>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Comms</div>
+    <div class="nav-tabs">
+      <button class="nav-tab" data-nav="Chat"><span>Chat</span></button>
+      <button class="nav-tab" data-nav="Forum"><span>Forum</span></button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ STAGE ============ -->
+<div class="stage">
+
+  <!-- PAGE TITLE ZONE (poster hero) -->
+  <div class="title-zone">
+    <div class="wedge-gap"></div>
+    <div class="wedge"></div>
+    <svg class="lissitzky" viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r="78" fill="none" stroke="rgba(253,246,227,0.4)" stroke-width="3"/>
+      <path d="M100,22 A78,78 0 0,1 178,100 L100,100 Z" fill="var(--ground)" opacity="0.55"/>
+    </svg>
+    <div class="numeral">02</div>
+    <div class="title-content">
+      <div class="crumb">Company <span class="sep">/</span> <span class="here">Overview</span></div>
+      <h1 class="page-title">Overview</h1>
+      <div class="title-sub">
+        <span class="corp-name">Helix Meridian Holdings <span class="tick">HMH</span></span>
+        <span class="dot">·</span>
+        <span class="slogan">"The stars belong to no one. That is why we have lawyers."</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO ROW: ZONE 01 CORPORATION LEVEL (left) + ZONE 02 KEY FIGURES (right) -->
+  <div class="zone hero-grid">
+    <div class="hero-left">
+      <div class="zone-head"><div class="zn">01</div><div class="tag"><span>Corporation Level — What To Do Next</span></div><div class="rule"></div></div>
+      <div class="panel level-panel">
+        <div class="panel-head"><div class="pn">A</div><div class="pt">Directive Progress — Level Advancement</div></div>
+        <div class="level-head">
+          <div class="level-peek">
+            <button class="peek-btn" id="peekPrev">‹</button>
+            <div class="level-current" id="levelCurrentLabel">LEVEL <span class="lvl-num">2</span> <span class="of">OF 30</span></div>
+            <button class="peek-btn" id="peekNext">›</button>
+          </div>
+          <div class="progress-arc-wrap">
+            <svg width="60" height="60" viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="30" fill="none" stroke="#3a332a" stroke-width="6"/>
+              <circle id="arcProgress" cx="36" cy="36" r="30" fill="none" stroke="#ff5136" stroke-width="6"
+                stroke-dasharray="188.5" stroke-dashoffset="188.5" stroke-linecap="butt" transform="rotate(-90 36 36)"/>
+            </svg>
+            <div class="pct-label" id="pctLabel">0%<small>DIRECTIVES</small></div>
+          </div>
+        </div>
+
+        <div class="directives" id="directivesList"></div>
+
+        <div class="unlocks-row" id="unlocksRow"></div>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <div class="zone-head"><div class="zn">02</div><div class="tag"><span>Key Figures</span></div><div class="rule"></div></div>
+
+      <div class="fig-cash-poster">
+        <div class="panel-head"><div class="pn">01</div><div class="pt">Cash Reserves</div></div>
+        <div class="fig-value"><sup>$</sup><span id="cashValue">0</span></div>
+        <div class="fig-sub">Total corporate credits on hand</div>
+      </div>
+
+      <div class="fig-flow-slab">
+        <div class="panel-head"><div class="pn">⚠</div><div class="pt">Net Daily Flow</div></div>
+        <div class="fig-value"><div class="flow-arrow"></div><span id="flowValue">−$0</span></div>
+        <div class="fig-sub">Payroll and lease renewal exceeded receipts</div>
+      </div>
+
+      <div class="fig-pair">
+        <div class="fig-mini">
+          <div class="panel-head"><div class="pn">02</div><div class="pt">Conglomerate</div></div>
+          <div class="fig-value">Independent</div>
+          <div class="fig-sub">No charter but its own</div>
+        </div>
+        <div class="fig-mini">
+          <div class="panel-head"><div class="pn">03</div><div class="pt">Military</div></div>
+          <div class="fig-value"><span class="mil">0</span> ATK / <span class="mil">0</span> DEF</div>
+          <div class="fig-sub">Readiness 100%</div>
+          <div class="readiness-bar"><div class="readiness-fill" id="readinessFill"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONE 03: OPERATIONS STATUS -->
+  <div class="zone">
+    <div class="zone-head"><div class="zn">03</div><div class="tag"><span>Operations Status</span></div><div class="rule"></div></div>
+    <div class="ops-grid">
+      <div class="ops-panel">
+        <div class="panel-head"><div class="pn">04</div><div class="pt">Extraction — Lease MRS-0419</div></div>
+        <div class="extractor">
+          <div class="exname">Extractor MX-01 <span class="exp" id="mx01pct">72%</span></div>
+          <div class="cycle-bar"><div class="cycle-fill" id="mx01fill"></div></div>
+        </div>
+        <div class="extractor">
+          <div class="exname">Extractor MX-02 <span class="exp" id="mx02pct">31%</span></div>
+          <div class="cycle-bar"><div class="cycle-fill" id="mx02fill"></div></div>
+        </div>
+      </div>
+      <div class="ops-panel">
+        <div class="panel-head"><div class="pn">05</div><div class="pt">Stock &amp; Crew</div></div>
+        <div class="sta-row"><span class="k">Silicate Stock</span><span class="v">142 units</span></div>
+        <div class="sta-row"><span class="k">Employees</span><span class="v">18 / 30</span></div>
+        <div class="sta-row"><span class="k">Fleet</span><span class="v pct">0 / 22 docked</span></div>
+      </div>
+      <div class="ops-panel">
+        <div class="panel-head"><div class="pn">06</div><div class="pt">Galactic Exchange — Silicate</div></div>
+        <div class="gex-row">
+          <div class="gprice">61<span class="gunit">cr/unit</span></div>
+          <div class="gunit" style="color:#7ec27e;">▲ peg stable</div>
+        </div>
+        <svg class="spark" viewBox="0 0 260 44" preserveAspectRatio="none">
+          <polyline points="0,30 30,26 60,32 90,20 120,24 150,14 180,18 210,10 240,16 260,8"
+            fill="none" stroke="#ff5136" stroke-width="2"/>
+          <polyline points="0,30 30,26 60,32 90,20 120,24 150,14 180,18 210,10 240,16 260,8 260,44 0,44"
+            fill="rgba(224,52,31,0.14)" stroke="none"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONE 04: INBOX / RESEARCH / COMMAND FEEDBACK -->
+  <div class="zone">
+    <div class="zone-head"><div class="zn">04</div><div class="tag"><span>Inbox · Research · Command Feedback</span></div><div class="rule"></div></div>
+    <div class="comm-grid">
+      <div class="comm-panel">
+        <div class="panel-head"><div class="pn">07</div><div class="pt">Inbox — Priority</div></div>
+        <div class="inbox-item">
+          <div class="isrc">ISA</div>
+          <div class="itxt">Claims &amp; Leases Division: MRS-0419 renewal confirmed. Fees assessed.</div>
+        </div>
+        <div class="inbox-item">
+          <div class="isrc">STA</div>
+          <div class="itxt">Station Administration: berth inspection scheduled, Earth Station Prime.</div>
+        </div>
+      </div>
+      <div class="comm-panel">
+        <div class="panel-head"><div class="pn">08</div><div class="pt">Research Queue</div></div>
+        <div class="rd-item">
+          <div class="rdname">Refinery Chain I — In Progress</div>
+          <div class="rd-bar"><div class="rd-fill" id="rdFill"></div></div>
+          <div class="rd-eta">ETA 06:42:10 — Corporate R&amp;D</div>
+        </div>
+      </div>
+      <div class="comm-panel feed-panel">
+        <div class="panel-head"><div class="pn">09</div><div class="pt">Command Feedback — Live Uplink</div><div class="pd"></div></div>
+        <div class="feed-body" id="feedBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXECUTIVE SITUATION BRIEF (low priority context) -->
+  <div class="footer-brief">
+    <p class="btitle">Executive Situation Brief — Directive Standing Order No. 2147-A</p>
+    <p>ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each
+    unlock expands market access, infrastructure depth, and interstellar reach. Compliance is not optional. Growth is.</p>
+  </div>
+
+</div>
+
+<div class="mockup-label">Mockup 01 v2 — Constructivist Directive</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Level data (peekable) ----------
+  var levels = {
+    1: {
+      unlocks: {cap:30, slots:3, fleet:14, tier:1},
+      directives: [
+        {label:"Sign Initial Lease on Mars", meta:"MRS-0419 — ISA Claims & Leases Division", done:true, progText:"1 / 1"},
+        {label:"Hire First Extraction Crew", meta:"Station personnel office", done:true, progText:"6 / 6"}
+      ]
+    },
+    2: {
+      unlocks: {cap:45, slots:4, fleet:22, tier:2},
+      directives: [
+        {label:"Sell 300 Silicate on the Galactic Exchange", meta:"Open market order — GEX peg 61 cr/unit", done:false, progText:"0 / 300", cur:0, tgt:300, link:true},
+        {label:"Research Basic Extraction Analytics", meta:"Corporate R&D — completed", done:true, progText:"1 / 1", cur:1, tgt:1}
+      ]
+    },
+    3: {
+      unlocks: {cap:60, slots:5, fleet:30, tier:2},
+      directives: [
+        {label:"Commission a Third Extractor Unit", meta:"Requires Building Slot — Mars lease", done:false, progText:"0 / 1", cur:0, tgt:1},
+        {label:"Reach 500 Cumulative Payroll Cycles", meta:"HR Directorate", done:false, progText:"210 / 500", cur:210, tgt:500}
+      ]
+    },
+    4: {
+      unlocks: {cap:80, slots:6, fleet:40, tier:3},
+      directives: [
+        {label:"Establish a Refinery Chain", meta:"Industry Directorate — silicate to alloy", done:false, progText:"0 / 1", cur:0, tgt:1},
+        {label:"Sign a Second Lease", meta:"ISA Claims & Leases Division", done:false, progText:"0 / 1", cur:0, tgt:1}
+      ]
+    }
+  };
+  var currentLevel = 2;
+
+  function renderLevel(lv){
+    var data = levels[lv] || levels[2];
+    document.getElementById("levelCurrentLabel").innerHTML =
+      'LEVEL <span class="lvl-num">' + lv + '</span> <span class="of">OF 30</span>';
+
+    var list = document.getElementById("directivesList");
+    list.innerHTML = "";
+    var doneCount = 0;
+    data.directives.forEach(function(d, i){
+      if(d.done) doneCount++;
+      var row = document.createElement("div");
+      row.className = "directive" + (d.done ? " done" : "");
+      row.innerHTML =
+        '<div class="dnum">DIRECTIVE ' + (i+1) + '</div>' +
+        '<div class="dtext"><div class="label">' + d.label + '</div><div class="meta">' + d.meta + '</div></div>' +
+        '<div class="dprogress">' + d.progText + (d.done ? " ✓" : "") + '</div>' +
+        (d.link ? '<button class="golink" data-goto="Galactic Exchange">Go to Galactic Exchange ▸</button>' : "");
+      list.appendChild(row);
+    });
+
+    var pct = Math.round((doneCount / data.directives.length) * 100);
+    var circumference = 188.5;
+    var offset = circumference - (circumference * pct / 100);
+    document.getElementById("arcProgress").style.strokeDashoffset = offset;
+    document.getElementById("pctLabel").innerHTML = pct + "%<small>DIRECTIVES</small>";
+
+    var unlocksRow = document.getElementById("unlocksRow");
+    unlocksRow.innerHTML =
+      '<div class="ur-label">Level ' + (lv+1) + ' Unlocks</div>' +
+      '<div class="unlock-item"><b>' + data.unlocks.cap + '</b>Employee Cap</div>' +
+      '<div class="unlock-item"><b>' + data.unlocks.slots + '</b>Building Slots</div>' +
+      '<div class="unlock-item"><b>' + data.unlocks.fleet + '</b>Fleet Cap</div>' +
+      '<div class="unlock-item"><b>Tier ' + data.unlocks.tier + '</b>Bldg Tier</div>';
+
+    document.querySelectorAll("[data-goto]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        setActiveNav(btn.getAttribute("data-goto"));
+        pushFeed("Navigating to " + btn.getAttribute("data-goto") + " per directive order.");
+      });
+    });
+  }
+  renderLevel(currentLevel);
+
+  document.getElementById("peekPrev").addEventListener("click", function(){
+    if(levels[currentLevel-1]){ currentLevel--; renderLevel(currentLevel); }
+  });
+  document.getElementById("peekNext").addEventListener("click", function(){
+    if(levels[currentLevel+1]){ currentLevel++; renderLevel(currentLevel); }
+  });
+
+  // ---------- Nav selection ----------
+  function setActiveNav(name){
+    document.querySelectorAll(".nav-tab").forEach(function(t){
+      t.classList.toggle("active", t.getAttribute("data-nav") === name);
+    });
+  }
+  document.querySelectorAll(".nav-tab").forEach(function(tab){
+    tab.addEventListener("click", function(){
+      setActiveNav(tab.getAttribute("data-nav"));
+      pushFeed("Console focus shifted to " + tab.getAttribute("data-nav") + ".");
+    });
+  });
+
+  // ---------- Animated counters ----------
+  function animateCount(el, target, prefix, duration){
+    var start = 0;
+    var startTime = null;
+    function step(ts){
+      if(!startTime) startTime = ts;
+      var progress = Math.min((ts - startTime) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var val = Math.round(start + (target - start) * eased);
+      el.textContent = prefix + val.toLocaleString();
+      if(progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  animateCount(document.getElementById("cashValue"), 18061, "", 1400);
+  animateCount(document.getElementById("flowValue"), 27915, "−$", 1400);
+
+  // ---------- Bars / arcs ----------
+  requestAnimationFrame(function(){
+    setTimeout(function(){
+      document.getElementById("readinessFill").style.width = "100%";
+      document.getElementById("mx01fill").style.width = "72%";
+      document.getElementById("mx02fill").style.width = "31%";
+      document.getElementById("rdFill").style.width = "64%";
+    }, 150);
+  });
+
+  // ---------- Command feedback teletype ----------
+  var feedBody = document.getElementById("feedBody");
+  var initialFeed = [
+    {ts:"00:00:00", tx:"Command uplink standing by. Completed actions and queue additions will be logged here.", standby:true},
+    {ts:"—04:12", tx:"Extractor MX-01 cycle complete: +48 Silicate"},
+    {ts:"—19:03", tx:"Research queued: Refinery Chain I"},
+    {ts:"—41:55", tx:"Lease MRS-0419 renewed by ISA Claims & Leases Division"},
+    {ts:"—58:20", tx:"Payroll disbursed: −$4,210"}
+  ];
+  initialFeed.forEach(function(f){ appendFeedLine(f.ts, f.tx, f.standby); });
+
+  function appendFeedLine(ts, tx, standby){
+    var row = document.createElement("div");
+    row.className = "fline" + (standby ? " standby" : "") + " new";
+    row.innerHTML = '<span class="ts">' + ts + '</span><span class="tx">' + tx + '</span>';
+    feedBody.appendChild(row);
+    feedBody.scrollTop = feedBody.scrollHeight;
+  }
+  function pushFeed(msg){
+    var now = new Date();
+    var ts = "T+" + now.toLocaleTimeString([], {hour12:false});
+    appendFeedLine(ts, msg, false);
+  }
+
+  // Live-ish ticking additions
+  var tickMessages = [
+    "Extractor MX-02 cycle progressing nominally.",
+    "GEX peg holding at 61 cr/unit for Silicate.",
+    "STA berth inspection notice acknowledged.",
+    "Fleet status: all vessels docked, Earth Station Prime.",
+    "Employee shift rotation logged."
+  ];
+  var tickIndex = 0;
+  setInterval(function(){
+    pushFeed(tickMessages[tickIndex % tickMessages.length]);
+    tickIndex++;
+  }, 9000);
+
+  // ---------- Notices / Logout (mock, non-destructive) ----------
+  document.getElementById("noticesBtn").addEventListener("click", function(){
+    pushFeed("Notices panel requested — 23 unread items pending review.");
+  });
+  document.getElementById("logoutBtn").addEventListener("click", function(){
+    pushFeed("Logout request intercepted for this directive session. No action taken in mockup.");
+  });
+
+})();
+</script>
+
+</body>
+</html>

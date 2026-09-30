@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 14 — Command &amp; Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ==========================================================================
+     TOKENS
+     ========================================================================== */
+  :root{
+    --bg:#050606;
+    --panel:#111313;
+    --panel-2:#171a1a;
+    --panel-3:#1c2121;
+    --rule:rgba(203,191,154,0.14);
+    --rule-strong:rgba(203,191,154,0.30);
+    --rule-hair:rgba(255,255,255,0.06);
+    --sand:#cbbf9a;
+    --sand-dim:rgba(203,191,154,0.58);
+    --sand-faint:rgba(203,191,154,0.32);
+    --white:#f2f3ee;
+    --white-dim:rgba(242,243,238,0.62);
+    --white-faint:rgba(242,243,238,0.36);
+    --lime:#9ef01a;
+    --lime-dim:rgba(158,240,26,0.16);
+    --lime-faint:rgba(158,240,26,0.08);
+    --red:#ff4433;
+    --red-dim:rgba(255,68,51,0.16);
+    --red-faint:rgba(255,68,51,0.09);
+    --f-cond:'Barlow Condensed',sans-serif;
+    --f-ui:'Barlow',sans-serif;
+    --f-mono:'JetBrains Mono',monospace;
+    --topbar-h:56px;
+    --nav-w:220px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--white);
+    font-family:var(--f-ui);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;}
+  .mono{font-family:var(--f-mono);}
+  .cond{font-family:var(--f-cond);}
+  ::selection{background:var(--lime-dim);color:var(--white);}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:var(--panel);}
+  ::-webkit-scrollbar-thumb{background:var(--panel-3);border:1px solid var(--rule);}
+
+  /* ==========================================================================
+     TOP BAR  (<=56px total: classification band + main row)
+     ========================================================================== */
+  .topbar{
+    position:relative;
+    height:var(--topbar-h);
+    display:flex; flex-direction:column;
+    background:var(--panel-2);
+    border-bottom:1px solid var(--rule-strong);
+    z-index:20;
+  }
+  .classband{
+    height:18px; flex:0 0 18px;
+    display:flex; align-items:center; justify-content:center;
+    gap:10px;
+    background:var(--panel-3);
+    border-bottom:1px solid var(--rule);
+    font-family:var(--f-mono); font-size:9.5px; letter-spacing:0.18em;
+    color:var(--sand); text-transform:uppercase;
+  }
+  .classband .dot{width:4px;height:4px;border-radius:50%;background:var(--lime);box-shadow:0 0 4px var(--lime);}
+  .topmain{
+    flex:1;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px;
+    min-height:0;
+  }
+  .brandblock{display:flex;align-items:baseline;gap:10px;}
+  .brandmark{
+    width:16px;height:16px;border:1px solid var(--lime);
+    display:inline-flex;align-items:center;justify-content:center;
+    font-family:var(--f-mono);font-size:9px;color:var(--lime);
+    flex:0 0 auto;
+  }
+  .brandtitle{font-family:var(--f-cond);font-weight:700;font-size:14px;letter-spacing:0.06em;text-transform:uppercase;color:var(--white);}
+  .brandver{font-family:var(--f-mono);font-size:10px;color:var(--sand-dim);letter-spacing:0.03em;}
+  .topright{display:flex;align-items:center;gap:18px;}
+  .utcblock{text-align:right;line-height:1.15;}
+  .utcblock .lbl{font-family:var(--f-mono);font-size:9px;letter-spacing:0.14em;color:var(--sand-dim);}
+  .utcblock .val{font-family:var(--f-mono);font-size:13px;color:var(--white);letter-spacing:0.02em;}
+  .notice{
+    display:flex;align-items:center;gap:6px;
+    border:1px solid var(--rule-strong);background:var(--panel-3);
+    padding:5px 9px;font-family:var(--f-mono);font-size:11px;color:var(--white);
+  }
+  .notice .n{color:var(--lime);font-weight:600;}
+  .notice .bell{color:var(--sand);}
+  .idblock{text-align:right;line-height:1.2;}
+  .idblock .nm{font-family:var(--f-cond);font-weight:600;font-size:12.5px;color:var(--white);letter-spacing:0.02em;}
+  .idblock .co{font-family:var(--f-mono);font-size:10.5px;color:var(--sand-dim);}
+  .idblock .co b{color:var(--sand);font-weight:600;}
+  .logout{
+    border:1px solid var(--rule-strong);background:transparent;color:var(--white-dim);
+    padding:6px 10px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;
+  }
+  .logout:hover{color:var(--white);border-color:var(--white-faint);}
+
+  /* ==========================================================================
+     SHELL
+     ========================================================================== */
+  .shell{display:flex;align-items:stretch;height:calc(100vh - var(--topbar-h));}
+
+  /* ---------- LEFT: layer-tree nav ---------- */
+  .navpanel{
+    width:var(--nav-w); flex:0 0 var(--nav-w);
+    background:var(--panel);
+    border-right:1px solid var(--rule-strong);
+    display:flex; flex-direction:column;
+    overflow-y:auto;
+  }
+  .navhead{
+    padding:10px 12px 8px;
+    border-bottom:1px solid var(--rule);
+    font-family:var(--f-mono);font-size:10px;letter-spacing:0.16em;color:var(--sand-dim);text-transform:uppercase;
+  }
+  .layergroup{border-bottom:1px solid var(--rule-hair);}
+  .layergroup-head{
+    display:flex;align-items:center;gap:8px;
+    padding:9px 12px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .layergroup-head:hover{background:var(--panel-2);}
+  .chk{
+    width:11px;height:11px;flex:0 0 11px;
+    border:1px solid var(--sand-dim);
+    position:relative;
+    background:var(--panel-2);
+  }
+  .layergroup.open .chk{border-color:var(--lime);background:var(--lime-faint);}
+  .layergroup.open .chk::after{
+    content:'';position:absolute;left:2px;top:0px;width:4px;height:6px;
+    border-right:2px solid var(--lime);border-bottom:2px solid var(--lime);
+    transform:rotate(40deg);
+  }
+  .layergroup-name{
+    font-family:var(--f-cond);font-weight:600;font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--sand); flex:1;
+  }
+  .chev{font-family:var(--f-mono);font-size:9px;color:var(--sand-faint);transition:transform .15s ease;}
+  .layergroup.open .chev{transform:rotate(90deg);}
+  .sublayers{max-height:0;overflow:hidden;transition:max-height .18s ease;}
+  .layergroup.open .sublayers{max-height:400px;}
+  .sublayer{
+    display:flex;align-items:center;gap:9px;
+    padding:7px 12px 7px 26px;
+    font-size:12px; color:var(--white-dim);
+    border-left:2px solid transparent;
+    cursor:pointer;
+  }
+  .sublayer:hover{background:var(--panel-2);color:var(--white);}
+  .sublayer .sw{width:7px;height:7px;flex:0 0 7px;border:1px solid var(--sand-faint);background:transparent;}
+  .sublayer .lbl{flex:1;}
+  .sublayer .badge{
+    font-family:var(--f-mono);font-size:9.5px;color:var(--lime);
+    background:var(--lime-faint);border:1px solid var(--lime-dim);
+    padding:1px 5px;
+  }
+  .sublayer.active{
+    background:var(--lime-faint); border-left-color:var(--lime); color:var(--white);
+  }
+  .sublayer.active .sw{background:var(--lime);border-color:var(--lime);}
+  .sublayer.active .tick{color:var(--lime);font-family:var(--f-mono);font-size:11px;margin-left:-2px;}
+  .navfoot{
+    margin-top:auto; padding:10px 12px; border-top:1px solid var(--rule);
+    display:flex;align-items:center;gap:7px;
+    font-family:var(--f-mono);font-size:10px;color:var(--sand-dim);letter-spacing:0.06em;
+  }
+  .navfoot .d{width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 5px var(--lime);}
+
+  /* ---------- RIGHT: main content ---------- */
+  .main{
+    flex:1; min-width:0;
+    overflow-y:auto;
+    padding:14px 16px 24px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+
+  /* title zone */
+  .titlezone{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:10px 14px;
+    background:var(--panel);
+    border:1px solid var(--rule);
+    flex:0 0 auto;
+  }
+  .titlezone .crumb{font-family:var(--f-mono);font-size:10px;letter-spacing:0.14em;color:var(--sand-dim);text-transform:uppercase;margin-bottom:3px;}
+  .titlezone h1{
+    margin:0; font-family:var(--f-cond); font-weight:700; font-size:19px; letter-spacing:0.04em;
+    text-transform:uppercase; color:var(--white);
+  }
+  .titlezone .sub{font-family:var(--f-mono);font-size:10.5px;color:var(--sand-dim);margin-top:2px;}
+  .sitrep{
+    flex:1; max-width:560px;
+    font-size:11.5px; color:var(--white-dim); line-height:1.4;
+    border-left:1px solid var(--rule-strong); padding-left:14px;
+  }
+  .sitrep b{color:var(--sand);font-weight:600;font-family:var(--f-mono);font-size:10px;letter-spacing:0.1em;display:block;margin-bottom:2px;text-transform:uppercase;}
+
+  /* key figures — one continuous segmented status bar, not equal cards */
+  .figrow{
+    display:flex; align-items:stretch;
+    background:var(--panel); border:1px solid var(--rule);
+    flex:0 0 auto;
+  }
+  .fig{
+    flex:1 1 0%; min-width:0;
+    padding:11px 16px; position:relative;
+    border-left:1px solid var(--rule);
+  }
+  .fig:first-child{border-left:none;}
+  .fig.cash{flex:1.65 1 0%;}
+  .fig.flow{flex:1.3 1 0%;}
+  .fig.conglom{flex:0.95 1 0%;}
+  .fig.military{flex:0.95 1 0%;}
+  .fig .flbl{font-family:var(--f-mono);font-size:10px;letter-spacing:0.1em;color:var(--sand-dim);text-transform:uppercase;}
+  .fig .fval{font-family:var(--f-mono);font-weight:600;font-size:22px;color:var(--white);margin-top:5px;letter-spacing:0.01em;white-space:nowrap;}
+  .fig .fnote{font-size:10.5px;color:var(--white-faint);margin-top:5px;line-height:1.3;}
+  .fig.warn{
+    border-left:3px solid var(--red);
+    background:linear-gradient(90deg,var(--red-faint),transparent 80%);
+    padding-left:14px;
+  }
+  .fig.warn .fval{color:var(--red);}
+  .fig.warn::before{
+    content:'DEFICIT'; position:absolute; top:11px; right:16px;
+    font-family:var(--f-mono); font-size:9px; letter-spacing:0.1em;
+    color:var(--red); border:1px solid rgba(255,68,51,0.5); padding:2px 6px;
+    background:var(--red-faint);
+  }
+  .fig .okchip{
+    display:inline-flex;align-items:center;gap:5px;margin-top:6px;
+    font-family:var(--f-mono);font-size:9.5px;color:var(--lime);letter-spacing:0.06em;
+  }
+  .fig .okchip .d{width:5px;height:5px;border-radius:50%;background:var(--lime);box-shadow:0 0 4px var(--lime);}
+
+  /* phase / tasking */
+  .phasepanel{background:var(--panel);border:1px solid var(--rule);flex:0 0 auto;}
+  .phasehead{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:10px 14px; border-bottom:1px solid var(--rule);
+  }
+  .phasehead .ph-title{font-family:var(--f-mono);font-size:10.5px;letter-spacing:0.14em;color:var(--sand-dim);text-transform:uppercase;}
+  .phasenav{display:flex;align-items:center;gap:10px;}
+  .phbtn{
+    width:22px;height:22px;border:1px solid var(--rule-strong);background:var(--panel-2);
+    color:var(--sand);display:flex;align-items:center;justify-content:center;font-size:11px;
+  }
+  .phbtn:hover{color:var(--lime);border-color:var(--lime-dim);}
+  .phbtn:disabled{opacity:0.3;cursor:default;}
+  .phasenum{font-family:var(--f-cond);font-weight:700;font-size:15px;color:var(--white);letter-spacing:0.03em;min-width:118px;text-align:center;}
+  .phasenum .n{color:var(--lime);}
+  .phasebody{display:flex;gap:0;}
+  .phasebar-wrap{padding:12px 14px 6px;border-bottom:1px solid var(--rule-hair);}
+  .phasebar{height:5px;background:var(--panel-2);border:1px solid var(--rule);overflow:hidden;}
+  .phasebar i{display:block;height:100%;background:var(--lime);width:0%;transition:width .8s ease;box-shadow:0 0 6px var(--lime-dim);}
+  .phasebar-cap{display:flex;justify-content:space-between;margin-top:4px;font-family:var(--f-mono);font-size:9.5px;color:var(--sand-faint);}
+  .taskrow{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 14px; border-bottom:1px solid var(--rule-hair);
+  }
+  .taskrow:last-of-type{border-bottom:none;}
+  .taskicon{
+    width:16px;height:16px;flex:0 0 16px;border:1px solid var(--sand-faint);
+    display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:10px;color:transparent;
+  }
+  .taskrow.done .taskicon{border-color:var(--lime);background:var(--lime-faint);color:var(--lime);}
+  .taskname{flex:1;font-size:12.5px;color:var(--white);}
+  .taskfrac{font-family:var(--f-mono);font-size:11.5px;color:var(--sand-dim);min-width:64px;text-align:right;}
+  .taskrow.done .taskfrac{color:var(--lime);}
+  .taskstate{
+    font-family:var(--f-mono);font-size:9.5px;letter-spacing:0.08em;text-transform:uppercase;
+    padding:2px 7px;border:1px solid var(--rule-strong);color:var(--sand-dim);min-width:56px;text-align:center;
+  }
+  .taskrow.done .taskstate{color:var(--lime);border-color:var(--lime-dim);background:var(--lime-faint);}
+  .taskgo{
+    font-family:var(--f-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;
+    background:var(--lime);color:#0a0d02;border:none;padding:5px 10px;white-space:nowrap;font-weight:600;
+  }
+  .taskgo:hover{background:#b4ff35;}
+  .unlockline{
+    display:flex;gap:16px;flex-wrap:wrap;padding:9px 14px;background:var(--panel-2);
+    font-family:var(--f-mono);font-size:10.5px;color:var(--white-dim);
+  }
+  .unlockline b{color:var(--sand);font-weight:600;}
+  .unlockline .ttl{color:var(--sand-dim);letter-spacing:0.08em;text-transform:uppercase;font-size:9.5px;margin-right:4px;}
+
+  /* lower grid: tactical + intel */
+  .lowergrid{display:grid;grid-template-columns:1fr 340px;gap:10px;flex:1 0 auto;min-height:480px;}
+  .col{display:flex;flex-direction:column;gap:10px;min-width:0;}
+
+  .panel{background:var(--panel);border:1px solid var(--rule);display:flex;flex-direction:column;min-width:0;}
+  .panelhead{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 13px;border-bottom:1px solid var(--rule);flex:0 0 auto;
+  }
+  .panelhead .pt{font-family:var(--f-mono);font-size:10.5px;letter-spacing:0.14em;color:var(--sand-dim);text-transform:uppercase;}
+  .panelhead .pt b{color:var(--sand);}
+  .panelhead .meta{font-family:var(--f-mono);font-size:9.5px;color:var(--sand-faint);}
+
+  /* tactical map */
+  .mapwrap{flex:1 1 auto;min-height:400px;position:relative;background:#07090a;}
+  .mapwrap svg{width:100%;height:100%;display:block;}
+  .maplegend{
+    position:absolute;left:10px;bottom:10px;
+    display:flex;gap:12px;flex-wrap:wrap;
+    background:rgba(5,6,6,0.78);border:1px solid var(--rule);padding:6px 9px;
+    font-family:var(--f-mono);font-size:9.5px;color:var(--sand-dim);
+  }
+  .maplegend span{display:inline-flex;align-items:center;gap:5px;}
+  .maplegend i{width:9px;height:9px;border:1px solid var(--lime);display:inline-block;}
+  .maplegend i.link{border:none;border-top:1px dashed var(--sand);width:12px;height:0;}
+  .mapscale{
+    position:absolute;right:10px;bottom:10px;
+    font-family:var(--f-mono);font-size:9.5px;color:var(--sand-faint);
+    background:rgba(5,6,6,0.78);border:1px solid var(--rule);padding:5px 8px;
+  }
+
+  /* track table */
+  .tracktable{width:100%;border-collapse:collapse;font-family:var(--f-mono);font-size:11px;}
+  .tracktable th{
+    text-align:left;padding:7px 12px;border-bottom:1px solid var(--rule-strong);
+    color:var(--sand-dim);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;
+  }
+  .tracktable td{padding:7px 12px;border-bottom:1px solid var(--rule-hair);color:var(--white-dim);white-space:nowrap;}
+  .tracktable tr:last-child td{border-bottom:none;}
+  .tracktable .tid{color:var(--white);font-weight:600;}
+  .statusdot{display:inline-flex;align-items:center;gap:6px;}
+  .statusdot i{width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 4px var(--lime);}
+  .tablewrap{overflow-x:auto;}
+
+  /* command feedback log */
+  .feedlist{flex:1 1 auto;overflow-y:auto;max-height:230px;}
+  .feeditem{
+    display:flex;gap:8px;align-items:flex-start;
+    padding:8px 13px;border-bottom:1px solid var(--rule-hair);
+    font-size:11.5px;
+  }
+  .feeditem .ts{font-family:var(--f-mono);font-size:10px;color:var(--sand-faint);flex:0 0 50px;padding-top:1px;}
+  .chip{
+    flex:0 0 auto;font-family:var(--f-mono);font-size:9px;letter-spacing:0.06em;text-transform:uppercase;
+    padding:1px 5px;border:1px solid var(--rule-strong);color:var(--sand-dim);height:15px;line-height:13px;
+  }
+  .chip.ok{color:var(--lime);border-color:var(--lime-dim);background:var(--lime-faint);}
+  .chip.warn{color:var(--red);border-color:rgba(255,68,51,0.4);background:var(--red-faint);}
+  .chip.info{color:var(--sand);border-color:var(--rule-strong);}
+  .feeditem .msg{color:var(--white-dim);flex:1;line-height:1.35;}
+  .feedintro{padding:9px 13px;font-size:11px;color:var(--white-faint);border-bottom:1px solid var(--rule-hair);font-style:italic;}
+
+  /* sitrep panel (executive) */
+  .brieftext{padding:10px 13px;font-size:11.5px;color:var(--white-dim);line-height:1.5;}
+
+  /* ops summary mini cards */
+  .opsgrid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);}
+  .opscard{background:var(--panel);padding:10px 11px;}
+  .opscard .ot{font-family:var(--f-mono);font-size:9.5px;letter-spacing:0.1em;color:var(--sand-dim);text-transform:uppercase;margin-bottom:6px;}
+  .opsline{display:flex;justify-content:space-between;font-size:11px;color:var(--white-dim);margin-bottom:4px;}
+  .opsline b{color:var(--white);font-family:var(--f-mono);font-weight:600;}
+  .opsline.lime b{color:var(--lime);}
+  .spark{margin-top:4px;}
+  .inboxrow{font-size:10.8px;color:var(--white-dim);margin-bottom:5px;line-height:1.3;}
+  .inboxrow b{color:var(--sand);font-family:var(--f-mono);font-size:9.5px;letter-spacing:0.04em;}
+  .barmini{height:4px;background:var(--panel-2);border:1px solid var(--rule);margin-top:5px;overflow:hidden;}
+  .barmini i{display:block;height:100%;background:var(--lime);width:0%;transition:width .8s ease;}
+  .opsline.stacked{display:flex;flex-direction:column;align-items:flex-start;gap:5px;}
+  .statuschip{
+    font-family:var(--f-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;
+    padding:2px 7px;border:1px solid var(--rule-strong);color:var(--sand-dim);
+  }
+  .statuschip.active{color:var(--lime);border-color:var(--lime-dim);background:var(--lime-faint);}
+
+  .footlabel{
+    flex:0 0 auto;padding:6px 16px;font-family:var(--f-mono);font-size:9.5px;color:var(--sand-faint);
+    letter-spacing:0.08em;
+  }
+
+  /* ==========================================================================
+     RESPONSIVE
+     ========================================================================== */
+  @media (max-width: 1180px){
+    .lowergrid{grid-template-columns:1fr;min-height:auto;}
+  }
+  @media (max-width: 900px){
+    .figrow{flex-wrap:wrap;}
+    .fig{flex:1 1 50%!important;border-left:1px solid var(--rule);border-top:1px solid var(--rule);}
+    .fig:nth-child(1),.fig:nth-child(2){border-top:none;}
+    .fig:nth-child(odd){border-left:none;}
+    .fig.warn{border-left:3px solid var(--red)!important;padding-left:14px;}
+    .fig .fval{font-size:18px;white-space:normal;}
+    .sitrep{display:none;}
+  }
+  @media (max-width: 760px){
+    :root{--nav-w:0px;}
+    .shell{flex-direction:column;height:auto;}
+    .navpanel{width:100%;flex:0 0 auto;height:auto;max-height:none;border-right:none;border-bottom:1px solid var(--rule-strong);}
+    .navpanel{overflow-x:auto;overflow-y:visible;}
+    .navhead{display:none;}
+    .layergroup{border-bottom:none;border-right:1px solid var(--rule-hair);flex:0 0 auto;}
+    .navpanel{display:flex;flex-direction:row;}
+    .sublayers{max-height:none !important;}
+    .layergroup:not(.open) .sublayers{display:none;}
+    .navfoot{display:none;}
+    .main{height:auto;overflow-y:visible;padding:10px;}
+    .titlezone{flex-direction:column;align-items:flex-start;gap:8px;}
+    .sitrep{display:block;border-left:none;padding-left:0;max-width:none;}
+  }
+  @media (max-width: 600px){
+    .taskrow{flex-wrap:wrap;}
+    .taskname{flex:1 1 100%;min-width:0;}
+    .taskgo{flex:1 1 100%;text-align:center;margin-top:2px;}
+    .unlockline{gap:4px 12px;}
+    .tracktable{font-size:10px;}
+    .tracktable td,.tracktable th{white-space:normal;padding:6px 8px;}
+  }
+  @media (max-width: 480px){
+    .opsgrid{grid-template-columns:1fr;}
+    .phasebody{flex-direction:column;}
+    .topright{gap:10px;}
+    .utcblock{display:none;}
+    .brandver{display:none;}
+    .brandtitle{font-size:11.5px;}
+    .notice .bell{display:none;}
+    .idblock .co{display:none;}
+    .classband{font-size:8.5px;letter-spacing:0.1em;white-space:nowrap;overflow:hidden;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;animation:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="classband"><span class="dot"></span>ISA // CORPORATE // HMH-INTERNAL<span class="dot"></span></div>
+  <div class="topmain">
+    <div class="brandblock">
+      <span class="brandmark">I</span>
+      <span class="brandtitle">The Interstellar Settlement Protocol</span>
+      <span class="brandver mono">v0.4 // EST. 2147</span>
+    </div>
+    <div class="topright">
+      <div class="utcblock">
+        <div class="lbl">UTC</div>
+        <div class="val" id="utcClock">00:00:00</div>
+      </div>
+      <div class="notice"><span class="bell mono">NOTICES</span><span class="n mono" id="noticeCount">23</span></div>
+      <div class="idblock">
+        <div class="nm">R. VANCE // CEO</div>
+        <div class="co">HELIX MERIDIAN HOLDINGS <b>HMH</b></div>
+      </div>
+      <button class="logout mono">LOG OUT</button>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- ================= LEFT: LAYER TREE NAV ================= -->
+  <nav class="navpanel" id="navpanel">
+    <div class="navhead">LAYER STACK // NAV</div>
+
+    <div class="layergroup open" data-group="company">
+      <div class="layergroup-head" onclick="toggleGroup(this)">
+        <span class="chk"></span>
+        <span class="layergroup-name">Company</span>
+        <span class="chev">&#9656;</span>
+      </div>
+      <div class="sublayers">
+        <div class="sublayer active" data-page="Overview"><span class="tick">&#10003;</span><span class="lbl">Overview</span></div>
+        <div class="sublayer" data-page="Inbox"><span class="sw"></span><span class="lbl">Inbox</span><span class="badge mono">23</span></div>
+        <div class="sublayer" data-page="Financial Core"><span class="sw"></span><span class="lbl">Financial Core</span></div>
+        <div class="sublayer" data-page="CEO Insight"><span class="sw"></span><span class="lbl">CEO Insight</span></div>
+        <div class="sublayer" data-page="Assignments"><span class="sw"></span><span class="lbl">Assignments</span></div>
+        <div class="sublayer" data-page="Conglomerate"><span class="sw"></span><span class="lbl">Conglomerate</span></div>
+      </div>
+    </div>
+
+    <div class="layergroup open" data-group="station">
+      <div class="layergroup-head" onclick="toggleGroup(this)">
+        <span class="chk"></span>
+        <span class="layergroup-name">Station</span>
+        <span class="chev">&#9656;</span>
+      </div>
+      <div class="sublayers">
+        <div class="sublayer" data-page="Station"><span class="sw"></span><span class="lbl">Station</span></div>
+        <div class="sublayer" data-page="Operations"><span class="sw"></span><span class="lbl">Operations</span></div>
+        <div class="sublayer" data-page="Fleet"><span class="sw"></span><span class="lbl">Fleet</span></div>
+      </div>
+    </div>
+
+    <div class="layergroup open" data-group="industry">
+      <div class="layergroup-head" onclick="toggleGroup(this)">
+        <span class="chk"></span>
+        <span class="layergroup-name">Industry</span>
+        <span class="chev">&#9656;</span>
+      </div>
+      <div class="sublayers">
+        <div class="sublayer" data-page="Corporate R&D"><span class="sw"></span><span class="lbl">Corporate R&amp;D</span></div>
+        <div class="sublayer" data-page="Refinery Chains"><span class="sw"></span><span class="lbl">Refinery Chains</span></div>
+        <div class="sublayer" data-page="Logistics"><span class="sw"></span><span class="lbl">Logistics</span></div>
+      </div>
+    </div>
+
+    <div class="layergroup open" data-group="market">
+      <div class="layergroup-head" onclick="toggleGroup(this)">
+        <span class="chk"></span>
+        <span class="layergroup-name">Market</span>
+        <span class="chev">&#9656;</span>
+      </div>
+      <div class="sublayers">
+        <div class="sublayer" data-page="Galactic Exchange"><span class="sw"></span><span class="lbl">Galactic Exchange</span></div>
+        <div class="sublayer" data-page="Assets"><span class="sw"></span><span class="lbl">Assets</span></div>
+      </div>
+    </div>
+
+    <div class="layergroup" data-group="comms">
+      <div class="layergroup-head" onclick="toggleGroup(this)">
+        <span class="chk"></span>
+        <span class="layergroup-name">Comms</span>
+        <span class="chev">&#9656;</span>
+      </div>
+      <div class="sublayers">
+        <div class="sublayer" data-page="Chat"><span class="sw"></span><span class="lbl">Chat</span></div>
+        <div class="sublayer" data-page="Forum"><span class="sw"></span><span class="lbl">Forum</span></div>
+      </div>
+    </div>
+
+    <div class="navfoot"><span class="d"></span>UPLINK NOMINAL // LAT: 0.9s</div>
+  </nav>
+
+  <!-- ================= MAIN ================= -->
+  <main class="main">
+
+    <div class="titlezone">
+      <div>
+        <div class="crumb">COMPANY / OVERVIEW</div>
+        <h1 id="pageTitle">Corporation Overview</h1>
+        <div class="sub">HELIX MERIDIAN HOLDINGS &middot; TICKER HMH &middot; LEASE MRS-0419</div>
+      </div>
+      <div class="sitrep">
+        <b>Executive Situation Brief</b>
+        ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.
+      </div>
+    </div>
+
+    <div class="figrow">
+      <div class="fig cash">
+        <div class="flbl">Cash Reserves</div>
+        <div class="fval mono" data-count="18061">$0</div>
+        <div class="fnote">Total corporate credits on hand</div>
+      </div>
+      <div class="fig flow warn">
+        <div class="flbl">Net Daily Flow</div>
+        <div class="fval mono" data-count="-27915">$0</div>
+        <div class="fnote">Income minus costs booked, trailing 24h</div>
+      </div>
+      <div class="fig conglom">
+        <div class="flbl">Conglomerate</div>
+        <div class="fval cond">INDEPENDENT</div>
+        <div class="fnote">No parent compact on file</div>
+      </div>
+      <div class="fig military">
+        <div class="flbl">Military Power</div>
+        <div class="fval mono">0 ATK / 0 DEF</div>
+        <div class="okchip"><span class="d"></span>READINESS 100%</div>
+      </div>
+    </div>
+
+    <div class="phasepanel">
+      <div class="phasehead">
+        <span class="ph-title">Operation Phase</span>
+        <div class="phasenav">
+          <button class="phbtn" id="phPrev" onclick="shiftPhase(-1)">&#9664;</button>
+          <span class="phasenum cond">PHASE <span class="n" id="phaseNum">2</span> OF 30</span>
+          <button class="phbtn" id="phNext" onclick="shiftPhase(1)">&#9654;</button>
+        </div>
+      </div>
+      <div class="phasebar-wrap">
+        <div class="phasebar"><i id="phaseBar" style="width:0%"></i></div>
+        <div class="phasebar-cap"><span>PROGRESS THROUGH ARC</span><span id="phasePct">6.7%</span></div>
+      </div>
+      <div id="taskList"></div>
+      <div class="unlockline" id="unlockLine"></div>
+    </div>
+
+    <div class="lowergrid">
+
+      <!-- ===== LEFT COL: TACTICAL MAP + TRACK TABLE ===== -->
+      <div class="col">
+        <div class="panel" style="flex:1 1 auto;">
+          <div class="panelhead">
+            <span class="pt">TACTICAL // <b>MRS-0419 — MARS CLAIM</b></span>
+            <span class="meta mono">GRID REF 14.2S / 175.4E &middot; SOL 4471</span>
+          </div>
+          <div class="mapwrap">
+            <svg viewBox="0 0 900 480" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tactical map of Mars claim MRS-0419">
+              <defs>
+                <pattern id="gridpat" width="60" height="60" patternUnits="userSpaceOnUse">
+                  <path d="M60 0 L0 0 0 60" fill="none" stroke="rgba(203,191,154,0.08)" stroke-width="1"/>
+                </pattern>
+              </defs>
+              <rect x="0" y="0" width="900" height="480" fill="#07090a"/>
+              <rect x="0" y="0" width="900" height="480" fill="url(#gridpat)"/>
+
+              <!-- contour lines -->
+              <g fill="none" stroke="rgba(203,191,154,0.22)" stroke-width="1">
+                <path d="M40,380 C160,340 220,410 340,360 C440,320 520,380 640,340 C740,310 800,340 870,300"/>
+                <path d="M60,410 C180,378 250,432 360,400 C460,372 540,410 660,378 C750,352 810,372 860,340" stroke="rgba(203,191,154,0.14)"/>
+                <path d="M120,120 C220,90 300,140 400,110 C480,88 560,120 640,96" stroke="rgba(203,191,154,0.14)"/>
+              </g>
+
+              <!-- lat/long labels -->
+              <g font-family="JetBrains Mono" font-size="10" fill="rgba(203,191,154,0.55)">
+                <text x="8" y="16">14.0S</text>
+                <text x="8" y="136">14.1S</text>
+                <text x="8" y="256">14.2S</text>
+                <text x="8" y="376">14.3S</text>
+                <text x="8" y="474">14.4S</text>
+                <text x="20" y="474">175.2E</text>
+                <text x="200" y="474">175.3E</text>
+                <text x="380" y="474">175.4E</text>
+                <text x="560" y="474">175.5E</text>
+                <text x="740" y="474">175.6E</text>
+              </g>
+              <g stroke="rgba(203,191,154,0.16)" stroke-width="1">
+                <line x1="0" y1="120" x2="900" y2="120"/>
+                <line x1="0" y1="240" x2="900" y2="240"/>
+                <line x1="0" y1="360" x2="900" y2="360"/>
+              </g>
+
+              <!-- claim boundary -->
+              <polygon points="230,150 620,130 690,300 560,400 260,390" fill="rgba(158,240,26,0.03)" stroke="var(--lime)" stroke-width="1.4" stroke-dasharray="6 5" opacity="0.85"/>
+              <text x="300" y="145" font-family="JetBrains Mono" font-size="10.5" fill="#9ef01a" letter-spacing="1">CLAIM BOUNDARY MRS-0419</text>
+
+              <!-- MX-01 symbol -->
+              <g transform="translate(360,235)">
+                <rect x="-16" y="-16" width="32" height="32" fill="rgba(17,19,19,0.9)" stroke="#9ef01a" stroke-width="1.6"/>
+                <line x1="-16" y1="-16" x2="16" y2="16" stroke="#9ef01a" stroke-width="0.75" opacity="0.4"/>
+                <line x1="16" y1="-16" x2="-16" y2="16" stroke="#9ef01a" stroke-width="0.75" opacity="0.4"/>
+                <text x="0" y="4" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#9ef01a" font-weight="700">MX</text>
+                <text x="0" y="34" text-anchor="middle" font-family="JetBrains Mono" font-size="10.5" fill="#f2f3ee">MX-01</text>
+                <text x="0" y="47" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#cbbf9a">CYCLE 72%</text>
+              </g>
+
+              <!-- MX-02 symbol -->
+              <g transform="translate(520,300)">
+                <rect x="-16" y="-16" width="32" height="32" fill="rgba(17,19,19,0.9)" stroke="#9ef01a" stroke-width="1.6"/>
+                <line x1="-16" y1="-16" x2="16" y2="16" stroke="#9ef01a" stroke-width="0.75" opacity="0.4"/>
+                <line x1="16" y1="-16" x2="-16" y2="16" stroke="#9ef01a" stroke-width="0.75" opacity="0.4"/>
+                <text x="0" y="4" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#9ef01a" font-weight="700">MX</text>
+                <text x="0" y="34" text-anchor="middle" font-family="JetBrains Mono" font-size="10.5" fill="#f2f3ee">MX-02</text>
+                <text x="0" y="47" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#cbbf9a">CYCLE 31%</text>
+              </g>
+
+              <!-- lease facility node -->
+              <g transform="translate(430,175)">
+                <path d="M-14,0 L0,-14 L14,0 L0,14 Z" fill="rgba(17,19,19,0.9)" stroke="#cbbf9a" stroke-width="1.4"/>
+                <text x="0" y="30" text-anchor="middle" font-family="JetBrains Mono" font-size="9.5" fill="#cbbf9a">LSE-0419</text>
+              </g>
+
+              <!-- uplink vector to earth station prime -->
+              <g>
+                <line x1="640" y1="150" x2="860" y2="40" stroke="#cbbf9a" stroke-width="1.2" stroke-dasharray="3 4"/>
+                <polygon points="860,40 846,46 850,54" fill="#cbbf9a"/>
+                <rect x="700" y="14" width="188" height="42" fill="rgba(17,19,19,0.88)" stroke="rgba(203,191,154,0.35)"/>
+                <text x="710" y="30" font-family="JetBrains Mono" font-size="9.5" fill="#cbbf9a" letter-spacing="0.5">UPLINK &#8594; EARTH STATION PRIME</text>
+                <text x="710" y="44" font-family="JetBrains Mono" font-size="9" fill="rgba(242,243,238,0.5)">228.4M KM &middot; DELAY 12M 41S</text>
+              </g>
+
+              <!-- compass -->
+              <g transform="translate(852,420)" font-family="JetBrains Mono" fill="rgba(203,191,154,0.6)">
+                <line x1="0" y1="-16" x2="0" y2="16" stroke="rgba(203,191,154,0.4)"/>
+                <line x1="-16" y1="0" x2="16" y2="0" stroke="rgba(203,191,154,0.4)"/>
+                <text x="0" y="-20" text-anchor="middle" font-size="10">N</text>
+              </g>
+            </svg>
+            <div class="maplegend">
+              <span><i></i>FRIENDLY / CORP ASSET</span>
+              <span><i style="border-color:#cbbf9a;"></i>FACILITY / LEASE</span>
+              <span><i class="link"></i>UPLINK VECTOR</span>
+            </div>
+            <div class="mapscale mono">SCALE 1 : 48,000</div>
+          </div>
+        </div>
+
+        <div class="panel" style="flex:0 0 auto;">
+          <div class="panelhead"><span class="pt">TRACK TABLE</span><span class="meta mono">4 TRACKS</span></div>
+          <div class="tablewrap">
+            <table class="tracktable">
+              <thead>
+                <tr><th>Track</th><th>Type</th><th>Status</th><th>Cycle</th><th>Note</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="tid">MX-01</td><td>Extractor</td><td><span class="statusdot"><i></i>ACTIVE</span></td><td>72%</td><td>Silicate, Mars</td></tr>
+                <tr><td class="tid">MX-02</td><td>Extractor</td><td><span class="statusdot"><i></i>ACTIVE</span></td><td>31%</td><td>Silicate, Mars</td></tr>
+                <tr><td class="tid">LNK-01</td><td>Uplink</td><td><span class="statusdot"><i></i>NOMINAL</span></td><td>&mdash;</td><td>Earth Station Prime</td></tr>
+                <tr><td class="tid">LSE-0419</td><td>Claim Lease</td><td><span class="statusdot"><i></i>ACTIVE</span></td><td>&mdash;</td><td>Renewed by ISA C&amp;L</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== RIGHT COL: COMMAND FEEDBACK + OPS SUMMARY ===== -->
+      <div class="col">
+        <div class="panel" style="flex:0 0 auto;">
+          <div class="panelhead"><span class="pt">COMMAND FEEDBACK</span><span class="meta mono" id="feedMeta">LIVE</span></div>
+          <div class="feedintro">Command uplink standing by. Completed actions and queue additions will be logged here.</div>
+          <div class="feedlist" id="feedList">
+            <div class="feeditem"><span class="ts mono">14:02:11</span><span class="chip ok">OK</span><span class="msg">Extractor MX-01 cycle complete: +48 Silicate</span></div>
+            <div class="feeditem"><span class="ts mono">13:47:55</span><span class="chip info">INFO</span><span class="msg">Research queued: Refinery Chain I</span></div>
+            <div class="feeditem"><span class="ts mono">13:20:08</span><span class="chip info">INFO</span><span class="msg">Lease MRS-0419 renewed by ISA Claims &amp; Leases Division</span></div>
+            <div class="feeditem"><span class="ts mono">09:00:00</span><span class="chip warn">WARN</span><span class="msg">Payroll disbursed: -$4,210</span></div>
+          </div>
+        </div>
+
+        <div class="panel" style="flex:1 1 auto;">
+          <div class="panelhead"><span class="pt">OPS SUMMARY</span></div>
+          <div class="opsgrid">
+            <div class="opscard">
+              <div class="ot">Assets // MRS-0419</div>
+              <div class="opsline"><span>Extractors</span><b>2 / 2 online</b></div>
+              <div class="opsline"><span>Silicate stock</span><b>142 units</b></div>
+              <div class="opsline"><span>Employees</span><b>18 / 30</b></div>
+            </div>
+            <div class="opscard">
+              <div class="ot">Market // GEX Peg</div>
+              <div class="opsline lime"><span>Silicate</span><b>61 cr/unit</b></div>
+              <svg class="spark" viewBox="0 0 140 30" width="100%" height="30" preserveAspectRatio="none">
+                <polyline points="0,18 20,15 40,17 60,12 80,14 100,8 120,10 140,6" fill="none" stroke="#9ef01a" stroke-width="1.6"/>
+              </svg>
+            </div>
+            <div class="opscard">
+              <div class="ot">Comms // Inbox</div>
+              <div class="inboxrow"><b>ISA &middot;</b> Claim compliance notice — MRS-0419</div>
+              <div class="inboxrow"><b>STA &middot;</b> Berth allocation update, Earth Station Prime</div>
+            </div>
+            <div class="opscard">
+              <div class="ot">R&amp;D // Queue</div>
+              <div class="opsline stacked">
+                <span>Refinery Chain I</span>
+                <span class="statuschip active">IN PROGRESS</span>
+              </div>
+              <div class="barmini"><i style="width:0%" data-target="42%"></i></div>
+              <div class="opsline" style="margin-top:6px;"><span>Basic Extraction Analytics</span><b class="mono" style="color:var(--lime);">1/1</b></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="flex:0 0 auto;">
+          <div class="panelhead"><span class="pt">DOCTRINE NOTE</span></div>
+          <div class="brieftext">Humanity didn't reach the stars for freedom. It reached them for market share. The stars belong to no one — that is why we have lawyers.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footlabel mono">MOCKUP 14 &mdash; COMMAND &amp; CONTROL</div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- UTC clock ---- */
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function tickClock(){
+    var d = new Date();
+    var s = pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+':'+pad(d.getUTCSeconds());
+    var el = document.getElementById('utcClock');
+    if(el) el.textContent = s;
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  /* ---- layer group collapse ---- */
+  window.toggleGroup = function(headEl){
+    var group = headEl.parentElement;
+    group.classList.toggle('open');
+  };
+
+  /* ---- nav sublayer selection (cosmetic; page stays Overview) ---- */
+  document.querySelectorAll('.sublayer').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.querySelectorAll('.sublayer').forEach(function(s){
+        s.classList.remove('active');
+        var sw = s.querySelector('.sw'); if(sw) s.insertAdjacentHTML && null;
+      });
+      // rebuild markup for previous active back to plain sw
+      document.querySelectorAll('.sublayer').forEach(function(s){
+        if(!s.classList.contains('active')){
+          var tick = s.querySelector('.tick');
+          if(tick){ tick.remove(); s.insertAdjacentHTML('afterbegin','<span class="sw"></span>'); }
+        }
+      });
+      el.classList.add('active');
+      var sw = el.querySelector('.sw');
+      if(sw){ sw.remove(); el.insertAdjacentHTML('afterbegin','<span class="tick">&#10003;</span>'); }
+      var crumbGroup = el.closest('.layergroup').querySelector('.layergroup-name').textContent.toUpperCase();
+      var page = el.getAttribute('data-page');
+      document.querySelector('.crumb').textContent = crumbGroup + ' / ' + page.toUpperCase();
+      document.getElementById('pageTitle').textContent = page === 'Overview' ? 'Corporation Overview' : page;
+    });
+  });
+
+  /* ---- animated counters (cash / net flow) ---- */
+  function animateCount(el){
+    var target = parseInt(el.getAttribute('data-count'), 10);
+    var neg = target < 0;
+    var abs = Math.abs(target);
+    if(reduceMotion){
+      el.textContent = (neg? '-$':'$') + abs.toLocaleString();
+      return;
+    }
+    var dur = 900, start = null;
+    function step(ts){
+      if(!start) start = ts;
+      var p = Math.min(1, (ts-start)/dur);
+      var val = Math.round(abs * p);
+      el.textContent = (neg? '-$':'$') + val.toLocaleString();
+      if(p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  document.querySelectorAll('[data-count]').forEach(animateCount);
+
+  /* ---- mini progress bars ---- */
+  function fillBars(){
+    document.querySelectorAll('.barmini i').forEach(function(i){
+      var t = i.getAttribute('data-target') || '0%';
+      requestAnimationFrame(function(){ i.style.width = t; });
+    });
+  }
+  fillBars();
+
+  /* ---- phase / tasking data ---- */
+  var phases = {
+    1: {
+      pct: 3.3,
+      tasks: [
+        {name:'Lease Mars claim MRS-0419', frac:'1 / 1', done:true},
+        {name:'Deploy Extractor MX-01', frac:'1 / 1', done:true}
+      ],
+      unlock: 'Employee cap 30 &middot; Building slots 2 &middot; Fleet cap 10 &middot; Highest building tier 1'
+    },
+    2: {
+      pct: 6.7,
+      tasks: [
+        {name:'Sell 300 Silicate on the Galactic Exchange', frac:'0 / 300', done:false, go:true},
+        {name:'Research Basic Extraction Analytics', frac:'1 / 1', done:true}
+      ],
+      unlock: 'Employee cap 45 &middot; Building slots 4 &middot; Fleet cap 22 &middot; Highest building tier 2'
+    },
+    3: {
+      pct: 10.0,
+      tasks: [
+        {name:'Acquire Extractor MX-03', frac:'0 / 1', done:false},
+        {name:'Establish Refinery Chain I', frac:'0 / 1', done:false}
+      ],
+      unlock: 'Employee cap 60 &middot; Building slots 5 &middot; Fleet cap 30 &middot; Highest building tier 2'
+    },
+    4: {
+      pct: 13.3,
+      tasks: [
+        {name:'Sell 600 Refined Alloy on the Galactic Exchange', frac:'0 / 600', done:false},
+        {name:'Research Structural Fabrication I', frac:'0 / 1', done:false}
+      ],
+      unlock: 'Employee cap 75 &middot; Building slots 6 &middot; Fleet cap 38 &middot; Highest building tier 3'
+    }
+  };
+  var currentPhase = 2;
+
+  function renderPhase(){
+    var p = phases[currentPhase];
+    document.getElementById('phaseNum').textContent = currentPhase;
+    document.getElementById('phasePct').textContent = p.pct.toFixed(1) + '%';
+    var bar = document.getElementById('phaseBar');
+    bar.style.width = '0%';
+    requestAnimationFrame(function(){ bar.style.width = p.pct + '%'; });
+
+    var list = document.getElementById('taskList');
+    list.innerHTML = '';
+    p.tasks.forEach(function(t){
+      var row = document.createElement('div');
+      row.className = 'taskrow' + (t.done ? ' done' : '');
+      row.innerHTML =
+        '<span class="taskicon">'+(t.done?'&#10003;':'')+'</span>'+
+        '<span class="taskname">'+t.name+'</span>'+
+        '<span class="taskfrac mono">'+t.frac+'</span>'+
+        '<span class="taskstate">'+(t.done?'COMPLETE':'OPEN')+'</span>'+
+        (t.go ? '<button class="taskgo" onclick="location.hash=\'gex\'">GO TO GALACTIC EXCHANGE</button>' : '');
+      list.appendChild(row);
+    });
+
+    document.getElementById('unlockLine').innerHTML =
+      '<span class="ttl">PHASE '+(currentPhase+1)+' UNLOCKS</span><span>'+p.unlock+'</span>';
+
+    document.getElementById('phPrev').disabled = !phases[currentPhase-1];
+    document.getElementById('phNext').disabled = !phases[currentPhase+1];
+  }
+  window.shiftPhase = function(dir){
+    var next = currentPhase + dir;
+    if(phases[next]){ currentPhase = next; renderPhase(); }
+  };
+  renderPhase();
+
+  /* ---- ticking command feedback (adds one synthetic entry, then stops) ---- */
+  var feedEvents = [
+    {chip:'ok', label:'OK', msg:'Extractor MX-02 cycle complete: +21 Silicate'},
+    {chip:'info', label:'INFO', msg:'Uplink sync with Earth Station Prime nominal'}
+  ];
+  var feedIdx = 0;
+  function pushFeed(){
+    if(feedIdx >= feedEvents.length) return;
+    var ev = feedEvents[feedIdx++];
+    var d = new Date();
+    var ts = pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+':'+pad(d.getUTCSeconds());
+    var el = document.createElement('div');
+    el.className = 'feeditem';
+    el.style.opacity = reduceMotion ? '1' : '0';
+    el.innerHTML = '<span class="ts mono">'+ts+'</span><span class="chip '+ev.chip+'">'+ev.label+'</span><span class="msg">'+ev.msg+'</span>';
+    var list = document.getElementById('feedList');
+    list.insertBefore(el, list.firstChild);
+    if(!reduceMotion){
+      requestAnimationFrame(function(){ el.style.transition = 'opacity .4s ease'; el.style.opacity = '1'; });
+    }
+    while(list.children.length > 7) list.removeChild(list.lastChild);
+    setTimeout(pushFeed, 9000);
+  }
+  setTimeout(pushFeed, 6000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 33 — Post-Brutalist</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 50%, #252525 100%);
+            color: #e8e8e8;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Concrete texture overlay via pseudo-elements */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0px, transparent 1px, transparent 2px, rgba(0,0,0,.05) 3px),
+                repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0px, transparent 1px, transparent 2px, rgba(0,0,0,.05) 3px);
+            background-size: 3px 3px, 3px 3px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Header with wood accent */
+        .header {
+            background: linear-gradient(to right, #1a1a1a 0%, #222 50%, #1a1a1a 100%);
+            border-bottom: 4px solid #8B7355;
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        .header-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            color: #c85b3c;
+            text-transform: uppercase;
+        }
+
+        .header-title-main {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #e8e8e8;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .header-player {
+            text-align: right;
+        }
+
+        .header-player-name {
+            font-weight: 600;
+            color: #e8e8e8;
+        }
+
+        .header-player-corp {
+            font-size: 0.75rem;
+            color: #999;
+            letter-spacing: 0.05em;
+        }
+
+        .header-notices {
+            background: #c85b3c;
+            color: #1a1a1a;
+            padding: 0.3rem 0.6rem;
+            border-radius: 3px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .header-logout {
+            cursor: pointer;
+            color: #cc7722;
+            font-weight: 500;
+            transition: color 0.2s;
+            font-size: 0.8rem;
+        }
+
+        .header-logout:hover {
+            color: #d4864d;
+        }
+
+        /* Main container */
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 0;
+        }
+
+        /* Left sidebar (navigation) */
+        .sidebar {
+            width: 220px;
+            background: linear-gradient(180deg, #1f1f1f 0%, #1a1a1a 100%);
+            border-right: 2px solid #3a3a3a;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .nav-group {
+            padding: 1rem 0;
+            border-top: 1px solid #2a2a2a;
+        }
+
+        .nav-group:first-child {
+            border-top: none;
+        }
+
+        .nav-group-title {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: #8B7355;
+            text-transform: uppercase;
+            padding: 0.6rem 1rem 0.4rem;
+        }
+
+        .nav-item {
+            padding: 0.6rem 1rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #aaa;
+            transition: all 0.15s;
+            border-left: 3px solid transparent;
+            margin: 0 0.5rem 0.2rem 0;
+        }
+
+        .nav-item:hover {
+            background: rgba(200, 91, 60, 0.1);
+            color: #e8e8e8;
+        }
+
+        .nav-item.active {
+            background: rgba(200, 91, 60, 0.15);
+            border-left-color: #c85b3c;
+            color: #e8e8e8;
+            font-weight: 500;
+        }
+
+        /* Main content area */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            align-content: start;
+        }
+
+        /* Card style with concrete-like appearance */
+        .card {
+            background: linear-gradient(135deg, #2a2a2a 0%, #232323 100%);
+            border: 1px solid #3a3a3a;
+            border-left: 3px solid #8B7355;
+            padding: 1.2rem;
+            border-radius: 2px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: #cc7722;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-content {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+            margin-top: 0.8rem;
+        }
+
+        .stat-item {
+            background: rgba(0,0,0,0.2);
+            padding: 0.8rem;
+            border: 1px solid #3a3a3a;
+            border-radius: 2px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e8e8e8;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .stat-value.warning {
+            color: #c85b3c;
+        }
+
+        /* Level progress */
+        .level-card {
+            grid-column: 1 / -1;
+        }
+
+        .level-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .level-nav {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .level-nav button {
+            background: rgba(200, 91, 60, 0.2);
+            border: 1px solid #c85b3c;
+            color: #c85b3c;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+
+        .level-nav button:hover {
+            background: rgba(200, 91, 60, 0.35);
+        }
+
+        .level-progress {
+            margin-top: 1rem;
+        }
+
+        .level-requirement {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .requirement-text {
+            font-size: 0.9rem;
+        }
+
+        .requirement-progress {
+            font-size: 0.8rem;
+            color: #888;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .requirement-link {
+            color: #cc7722;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-left: 0.5rem;
+        }
+
+        .requirement-link:hover {
+            color: #d4864d;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 5px;
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 1px;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #c85b3c 0%, #cc7722 100%);
+            transition: width 0.3s ease;
+        }
+
+        .level-unlocks {
+            margin-top: 1rem;
+            padding: 0.8rem;
+            background: rgba(200, 91, 60, 0.08);
+            border-left: 3px solid #cc7722;
+            font-size: 0.85rem;
+        }
+
+        .unlock-title {
+            font-weight: 600;
+            color: #cc7722;
+            margin-bottom: 0.4rem;
+        }
+
+        .unlock-list {
+            color: #aaa;
+            line-height: 1.5;
+        }
+
+        /* Event feed */
+        .feed-card {
+            grid-column: 1 / -1;
+        }
+
+        .feed-entry {
+            padding: 0.7rem 0;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 0.85rem;
+            color: #b8b8b8;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .feed-entry:last-child {
+            border-bottom: none;
+        }
+
+        .feed-time {
+            color: #666;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            margin-left: 1rem;
+        }
+
+        /* Wood accent stripe */
+        .wood-accent {
+            height: 3px;
+            background: #8B7355;
+            margin: 1rem 0;
+        }
+
+        /* Situation brief */
+        .brief-card {
+            grid-column: 1 / -1;
+        }
+
+        .brief-text {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: #c8c8c8;
+        }
+
+        /* Key figures */
+        .figures-grid {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .figure-item {
+            background: rgba(0,0,0,0.3);
+            padding: 1rem;
+            border: 1px solid #3a3a3a;
+            border-top: 3px solid #8B7355;
+            border-radius: 2px;
+            text-align: center;
+        }
+
+        .figure-label {
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.5rem;
+        }
+
+        .figure-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #e8e8e8;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .figure-value.negative {
+            color: #c85b3c;
+        }
+
+        /* Mockup label */
+        .mockup-label {
+            position: fixed;
+            bottom: 0.5rem;
+            right: 1rem;
+            font-size: 0.65rem;
+            color: #555;
+            letter-spacing: 0.05em;
+            z-index: 100;
+        }
+
+        /* Responsive */
+        @media (max-width: 1280px) {
+            .figures-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .content {
+                grid-template-columns: 1fr;
+            }
+            .level-card, .feed-card, .brief-card, .figures-grid {
+                grid-column: 1 !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 180px;
+            }
+            .content {
+                padding: 1rem;
+                gap: 1rem;
+            }
+            .header {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: flex-start;
+            }
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+                font-size: 0.75rem;
+            }
+            .figures-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar {
+                display: none;
+            }
+            .container {
+                flex-direction: column;
+            }
+            .content {
+                padding: 0.8rem;
+                grid-template-columns: 1fr;
+            }
+            .card {
+                padding: 0.8rem;
+            }
+            .figures-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scrollbar styling */
+        .sidebar::-webkit-scrollbar,
+        .content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track,
+        .content::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb,
+        .content::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover,
+        .content::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <div class="header-title">The Interstellar Settlement Protocol</div>
+            <div class="header-title-main">v0.4 | EST. 2147</div>
+        </div>
+        <div class="header-right">
+            <div class="header-player">
+                <div class="header-player-name">CEO R. Vance</div>
+                <div class="header-player-corp">Helix Meridian Holdings (HMH)</div>
+            </div>
+            <div class="header-notices" id="notices">23 Unread</div>
+            <div class="header-logout">Log Out</div>
+        </div>
+    </div>
+
+    <!-- Main container -->
+    <div class="container">
+        <!-- Sidebar navigation -->
+        <div class="sidebar">
+            <div class="nav-group">
+                <div class="nav-group-title">Company</div>
+                <div class="nav-item active" onclick="selectNav(this, 'overview')">Overview</div>
+                <div class="nav-item" onclick="selectNav(this, 'inbox')">Inbox</div>
+                <div class="nav-item" onclick="selectNav(this, 'financial')">Financial Core</div>
+                <div class="nav-item" onclick="selectNav(this, 'insight')">CEO Insight</div>
+                <div class="nav-item" onclick="selectNav(this, 'assignments')">Assignments</div>
+                <div class="nav-item" onclick="selectNav(this, 'conglomerate')">Conglomerate</div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Station</div>
+                <div class="nav-item" onclick="selectNav(this, 'station')">Station</div>
+                <div class="nav-item" onclick="selectNav(this, 'operations')">Operations</div>
+                <div class="nav-item" onclick="selectNav(this, 'fleet')">Fleet</div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Industry</div>
+                <div class="nav-item" onclick="selectNav(this, 'rd')">Corporate R&D</div>
+                <div class="nav-item" onclick="selectNav(this, 'refinery')">Refinery Chains</div>
+                <div class="nav-item" onclick="selectNav(this, 'logistics')">Logistics</div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Market</div>
+                <div class="nav-item" onclick="selectNav(this, 'gex')">Galactic Exchange</div>
+                <div class="nav-item" onclick="selectNav(this, 'assets')">Assets</div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Comms</div>
+                <div class="nav-item" onclick="selectNav(this, 'chat')">Chat</div>
+                <div class="nav-item" onclick="selectNav(this, 'forum')">Forum</div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="main">
+            <div class="content">
+                <!-- Level Progress Card -->
+                <div class="card level-card">
+                    <div class="card-title">
+                        <span>Corporation Level</span>
+                        <span id="levelDisplay">Level 2 of 30</span>
+                    </div>
+                    <div class="level-header">
+                        <span>Advancing to Level 3</span>
+                        <div class="level-nav">
+                            <button onclick="peekLevel(-1)">‹</button>
+                            <button onclick="peekLevel(1)">›</button>
+                        </div>
+                    </div>
+                    <div class="level-progress">
+                        <div class="level-requirement">
+                            <div class="requirement-text">Sell 300 Silicate on the Galactic Exchange</div>
+                            <div>
+                                <span class="requirement-progress" id="req1progress">0 / 300</span>
+                                <span class="requirement-link" onclick="goToGex()">Go to Galactic Exchange</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="req1bar" style="width: 0%"></div>
+                        </div>
+
+                        <div class="level-requirement">
+                            <div class="requirement-text">Research Basic Extraction Analytics</div>
+                            <span class="requirement-progress">1 / 1 ✓</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div class="level-unlocks">
+                        <div class="unlock-title">Reaching Level 3 unlocks:</div>
+                        <div class="unlock-list">
+                            • Employee cap 45 (was 30)<br>
+                            • Building slots 4 (was 3)<br>
+                            • Fleet cap 22 (was 15)<br>
+                            • Highest building tier 2
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Figures -->
+                <div class="figures-grid">
+                    <div class="figure-item">
+                        <div class="figure-label">Cash Reserves</div>
+                        <div class="figure-value" id="cashReserves">$18,061</div>
+                    </div>
+                    <div class="figure-item">
+                        <div class="figure-label">Net Daily Flow</div>
+                        <div class="figure-value negative" id="dailyFlow">-$27,915</div>
+                    </div>
+                    <div class="figure-item">
+                        <div class="figure-label">Conglomerate</div>
+                        <div class="figure-value">Independent</div>
+                    </div>
+                    <div class="figure-item">
+                        <div class="figure-label">Military Power</div>
+                        <div class="figure-value">0 ATK / 0 DEF</div>
+                    </div>
+                </div>
+
+                <!-- Command Feedback Log -->
+                <div class="card feed-card">
+                    <div class="card-title">Command Feedback</div>
+                    <div class="card-content">
+                        <div class="feed-entry">
+                            <span>Command uplink standing by. Completed actions and queue additions will be logged here.</span>
+                            <span class="feed-time">INIT</span>
+                        </div>
+                        <div class="feed-entry">
+                            <span>Extractor MX-01 cycle complete: +48 Silicate</span>
+                            <span class="feed-time" id="time1">14:32</span>
+                        </div>
+                        <div class="feed-entry">
+                            <span>Research queued: Refinery Chain I (ETA 6h 22m)</span>
+                            <span class="feed-time" id="time2">14:28</span>
+                        </div>
+                        <div class="feed-entry">
+                            <span>Lease MRS-0419 renewed by ISA Claims & Leases Division</span>
+                            <span class="feed-time" id="time3">14:15</span>
+                        </div>
+                        <div class="feed-entry">
+                            <span>Payroll disbursed: -$4,210</span>
+                            <span class="feed-time" id="time4">13:47</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Executive Situation Brief -->
+                <div class="card brief-card">
+                    <div class="card-title">Executive Situation Brief</div>
+                    <div class="card-content">
+                        <p class="brief-text">
+                            ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach. You are at Level 2. Focus on commodity sell orders to unlock Level 3 capabilities.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mockup label -->
+    <div class="mockup-label">Mockup 33 – Post-Brutalist</div>
+
+    <script>
+        // Navigation handling
+        function selectNav(element, section) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+        }
+
+        // Level peeking
+        let currentLevelPeek = 2;
+        const levelData = {
+            1: { name: 'Level 1 of 30', req: 'Complete initial onboarding', progress: '1 / 1' },
+            2: { name: 'Level 2 of 30', req: 'Sell 300 Silicate', progress: '0 / 300' },
+            3: { name: 'Level 3 of 30', req: 'Operate 5 extractors', progress: '2 / 5' },
+            4: { name: 'Level 4 of 30', req: 'Research Tier 2 Tech', progress: '0 / 1' }
+        };
+
+        function peekLevel(direction) {
+            let newLevel = currentLevelPeek + direction;
+            if (newLevel >= 1 && newLevel <= 4) {
+                currentLevelPeek = newLevel;
+                updateLevelDisplay();
+            }
+        }
+
+        function updateLevelDisplay() {
+            const data = levelData[currentLevelPeek];
+            document.getElementById('levelDisplay').textContent = data.name;
+            // Update progress for level 2 (current)
+            if (currentLevelPeek === 2) {
+                document.getElementById('req1progress').textContent = '0 / 300';
+                document.getElementById('req1bar').style.width = '0%';
+            } else if (currentLevelPeek === 3) {
+                document.getElementById('req1progress').textContent = '2 / 5';
+                document.getElementById('req1bar').style.width = '40%';
+            } else if (currentLevelPeek === 4) {
+                document.getElementById('req1progress').textContent = '0 / 1';
+                document.getElementById('req1bar').style.width = '0%';
+            } else {
+                document.getElementById('req1progress').textContent = '1 / 1';
+                document.getElementById('req1bar').style.width = '100%';
+            }
+        }
+
+        function goToGex() {
+            console.log('Navigation to Galactic Exchange');
+        }
+
+        // Animate values on load
+        function animateValue(elementId, targetValue, isCurrency = false, isNegative = false) {
+            const element = document.getElementById(elementId);
+            const startValue = isCurrency ? 0 : 0;
+            const duration = 800;
+            const start = Date.now();
+
+            function update() {
+                const elapsed = Date.now() - start;
+                const progress = Math.min(elapsed / duration, 1);
+                let current;
+
+                if (typeof targetValue === 'string' && targetValue.includes('$')) {
+                    const numValue = parseInt(targetValue.replace(/[$,]/g, ''));
+                    current = Math.floor(numValue * progress);
+                    element.textContent = '$' + current.toLocaleString();
+                } else {
+                    current = parseInt(targetValue) * progress;
+                    element.textContent = Math.floor(current);
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    element.textContent = targetValue;
+                }
+            }
+
+            update();
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            animateValue('cashReserves', '$18,061', true);
+            animateValue('dailyFlow', '-$27,915', true, true);
+
+            // Slight ticking animation for time
+            let timeOffset = 0;
+            setInterval(() => {
+                timeOffset++;
+                if (timeOffset > 60) timeOffset = 0;
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

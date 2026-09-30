@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 21 — 8-Bit Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #ffffff;
+            font-family: 'VT323', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            background: #1a0a2e;
+            border-bottom: 4px solid #ffff00;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 0 #ff3333;
+        }
+
+        .header-left {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .game-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            color: #ffff00;
+            text-shadow: 2px 2px 0 #ff3333, 4px 4px 0 #0033ff;
+            letter-spacing: 1px;
+        }
+
+        .game-version {
+            font-size: 11px;
+            color: #00ffff;
+            border: 2px solid #00ffff;
+            padding: 2px 6px;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .player-info {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .player-info span {
+            padding: 4px 8px;
+            background: #0033ff;
+            border: 2px solid #ffff00;
+            color: #ffff00;
+        }
+
+        .notices {
+            background: #ff3333;
+            color: #000;
+            padding: 4px 10px;
+            font-weight: bold;
+            border: 2px solid #ffff00;
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .logout {
+            background: #ff3333;
+            color: #000;
+            padding: 6px 12px;
+            border: 2px solid #000;
+            font-family: 'VT323', monospace;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 2px 2px 0 #000;
+            transition: all 0.1s;
+        }
+
+        .logout:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0 0 0 #000;
+        }
+
+        /* Main Container */
+        .container {
+            display: flex;
+            height: calc(100vh - 50px);
+        }
+
+        /* Sidebar Navigation */
+        nav {
+            width: 140px;
+            background: #0a0a0a;
+            border-right: 4px solid #00ff00;
+            padding: 12px;
+            overflow-y: auto;
+        }
+
+        .nav-group {
+            margin-bottom: 16px;
+        }
+
+        .nav-group-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 9px;
+            color: #00ff00;
+            margin-bottom: 6px;
+            text-shadow: 1px 1px 0 #000;
+            letter-spacing: 1px;
+        }
+
+        nav button {
+            width: 100%;
+            background: #1a1a1a;
+            color: #ffffff;
+            border: 2px solid #666;
+            padding: 6px 8px;
+            font-family: 'VT323', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            display: block;
+            margin-bottom: 4px;
+            text-align: left;
+            box-shadow: 2px 2px 0 #000;
+            transition: all 0.1s;
+        }
+
+        nav button:hover {
+            border-color: #ffff00;
+            background: #2a2a2a;
+        }
+
+        nav button.active {
+            background: #ffff00;
+            color: #000;
+            border: 2px solid #000;
+            box-shadow: 3px 3px 0 #0033ff;
+        }
+
+        nav button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0 0 0 #000;
+        }
+
+        /* Main Content */
+        .content {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background: linear-gradient(180deg, #0a0a0a 0%, #0f0f1e 100%);
+        }
+
+        .content-header {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 11px;
+            color: #00ffff;
+            margin-bottom: 16px;
+            text-shadow: 2px 2px 0 #0033ff;
+            letter-spacing: 1px;
+        }
+
+        /* Cards */
+        .card {
+            background: #1a1a2e;
+            border: 3px solid #ff3333;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 4px 4px 0 #000;
+            position: relative;
+        }
+
+        .card.warning {
+            border-color: #ffff00;
+            box-shadow: 4px 4px 0 #ff3333;
+        }
+
+        .card-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 9px;
+            color: #00ff00;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .level-progress {
+            background: #0f0f0f;
+            border: 2px solid #0033ff;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .level-text {
+            font-size: 12px;
+            color: #ffff00;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .objective {
+            background: #0a0a0a;
+            border-left: 3px solid #00ffff;
+            padding: 8px;
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+
+        .objective.completed {
+            border-left-color: #00ff00;
+            opacity: 0.8;
+        }
+
+        .objective-bar {
+            width: 100%;
+            height: 12px;
+            background: #0a0a0a;
+            border: 1px solid #666;
+            margin-top: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .objective-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0033ff, #00ffff);
+            transition: width 0.3s;
+        }
+
+        .objective.completed .objective-fill {
+            background: linear-gradient(90deg, #00ff00, #00ffaa);
+        }
+
+        .keys {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .key-item {
+            background: #0a0a0a;
+            border: 2px solid #666;
+            padding: 8px;
+            font-size: 11px;
+        }
+
+        .key-label {
+            color: #00ff00;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .key-value {
+            color: #ffff00;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .key-item.danger .key-value {
+            color: #ff3333;
+            text-shadow: 1px 1px 0 #ffff00;
+        }
+
+        .feed {
+            background: #0a0a0a;
+            border: 2px solid #00ffff;
+            padding: 8px;
+            font-size: 11px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .feed-entry {
+            color: #00ffff;
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #1a3a3a;
+        }
+
+        .feed-entry:last-child {
+            border-bottom: none;
+        }
+
+        .feed-entry .timestamp {
+            color: #666;
+            font-size: 10px;
+        }
+
+        .feed-entry .positive {
+            color: #00ff00;
+        }
+
+        .feed-entry .negative {
+            color: #ff3333;
+        }
+
+        /* Layout grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Level peek */
+        .level-peek {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .peek-btn {
+            background: #0033ff;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+            padding: 4px 8px;
+            font-family: 'VT323', monospace;
+            cursor: pointer;
+            font-size: 11px;
+            box-shadow: 2px 2px 0 #000;
+            transition: all 0.1s;
+        }
+
+        .peek-btn:hover {
+            background: #0055ff;
+        }
+
+        .peek-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0 0 0 #000;
+        }
+
+        .peek-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .peeked-level {
+            background: #0f0f0f;
+            border: 1px solid #00ff00;
+            padding: 8px;
+            margin-top: 8px;
+            font-size: 10px;
+        }
+
+        .peeked-level-title {
+            color: #00ff00;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        /* Go to Exchange CTA */
+        .action-btn {
+            background: #ffff00;
+            color: #000;
+            border: 3px solid #000;
+            padding: 8px 12px;
+            font-family: 'VT323', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+            box-shadow: 3px 3px 0 #ff3333;
+            transition: all 0.1s;
+            font-size: 11px;
+        }
+
+        .action-btn:hover {
+            background: #ffffaa;
+            box-shadow: 3px 3px 0 #0033ff;
+        }
+
+        .action-btn:active {
+            transform: translate(3px, 3px);
+            box-shadow: 0 0 0 #000;
+        }
+
+        /* Responsive */
+        @media (max-width: 1280px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .keys {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            nav {
+                width: 100%;
+                border-right: none;
+                border-bottom: 4px solid #00ff00;
+                padding: 8px;
+                display: flex;
+                overflow-x: auto;
+                overflow-y: visible;
+            }
+            .nav-group {
+                display: flex;
+                gap: 8px;
+                margin-right: 16px;
+                margin-bottom: 0;
+                align-items: center;
+            }
+            .nav-group-title {
+                white-space: nowrap;
+            }
+            nav button {
+                width: auto;
+                white-space: nowrap;
+            }
+            header {
+                flex-direction: column;
+                gap: 8px;
+                align-items: flex-start;
+            }
+            .header-left {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .game-title {
+                font-size: 10px;
+            }
+            .card {
+                padding: 8px;
+                margin-bottom: 8px;
+                border-width: 2px;
+                box-shadow: 2px 2px 0 #000;
+            }
+            .content {
+                padding: 8px;
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #0033ff;
+            border: 2px solid #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0055ff;
+        }
+
+        .mockup-label {
+            position: fixed;
+            bottom: 4px;
+            right: 8px;
+            font-size: 10px;
+            color: #666;
+            font-family: 'VT323', monospace;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <div class="game-title">ISP</div>
+            <div class="game-version">v0.4 • 2147</div>
+        </div>
+        <div class="player-info">
+            <span>CEO R. VANCE</span>
+            <span>HMH</span>
+        </div>
+        <div style="flex: 1;"></div>
+        <div class="notices">⚠ 23</div>
+        <button class="logout">LOG OUT</button>
+    </header>
+
+    <div class="container">
+        <nav>
+            <div class="nav-group">
+                <div class="nav-group-title">COMPANY</div>
+                <button class="nav-btn active" data-page="overview">Overview</button>
+                <button class="nav-btn" data-page="inbox">Inbox</button>
+                <button class="nav-btn" data-page="financials">Financial</button>
+                <button class="nav-btn" data-page="insights">Insight</button>
+                <button class="nav-btn" data-page="assignments">Assignments</button>
+                <button class="nav-btn" data-page="conglomerate">Conglomerate</button>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">STATION</div>
+                <button class="nav-btn" data-page="station">Station</button>
+                <button class="nav-btn" data-page="operations">Operations</button>
+                <button class="nav-btn" data-page="fleet">Fleet</button>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">INDUSTRY</div>
+                <button class="nav-btn" data-page="research">R&D</button>
+                <button class="nav-btn" data-page="refinery">Refinery</button>
+                <button class="nav-btn" data-page="logistics">Logistics</button>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">MARKET</div>
+                <button class="nav-btn" data-page="exchange">GEX</button>
+                <button class="nav-btn" data-page="assets">Assets</button>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">COMMS</div>
+                <button class="nav-btn" data-page="chat">Chat</button>
+                <button class="nav-btn" data-page="forum">Forum</button>
+            </div>
+        </nav>
+
+        <div class="content">
+            <div class="content-header">CORPORATION OVERVIEW</div>
+
+            <div class="level-progress">
+                <div class="level-text">🔷 LEVEL 2 / 30</div>
+                <div style="margin-bottom: 8px; font-size: 10px; color: #00ffff;">Advance to Level 3</div>
+
+                <div class="objective">
+                    Sell 300 Silicate on Galactic Exchange
+                    <div class="objective-bar">
+                        <div class="objective-fill" style="width: 0%;"></div>
+                    </div>
+                    <div style="font-size: 10px; color: #00ffff; margin-top: 4px;">0 / 300 <span class="action-btn" style="display: inline-block; padding: 2px 6px; margin: 0 0 0 8px; font-size: 9px;">Go to GEX</span></div>
+                </div>
+
+                <div class="objective completed">
+                    Research Basic Extraction Analytics
+                    <div class="objective-bar">
+                        <div class="objective-fill" style="width: 100%;"></div>
+                    </div>
+                    <div style="font-size: 10px; color: #00ff00; margin-top: 4px;">1 / 1 ✓</div>
+                </div>
+
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 2px solid #333; font-size: 10px; color: #00ffff;">
+                    <div style="margin-bottom: 4px;">📈 UNLOCKS:</div>
+                    <div>• Employee Cap: 45 • Building Slots: 4</div>
+                    <div>• Fleet Cap: 22 • Tier 2 Buildings</div>
+                </div>
+
+                <div class="level-peek">
+                    <button class="peek-btn" id="prevLevel" data-level="1">◀ Level 1</button>
+                    <button class="peek-btn" id="nextLevel" data-level="3">Level 3 ▶</button>
+                    <button class="peek-btn" id="peekLevel" data-level="4">Peek Lvl 4</button>
+                </div>
+                <div id="peekedInfo" style="display: none;"></div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-title">📊 SITUATION BRIEF</div>
+                    <div style="font-size: 11px; line-height: 1.6; color: #00ffff;">
+                        ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.
+                    </div>
+                </div>
+
+                <div class="card warning">
+                    <div class="card-title">⚠ KEY FIGURES</div>
+                    <div class="keys">
+                        <div class="key-item">
+                            <div class="key-label">Cash Reserves</div>
+                            <div class="key-value">$18,061</div>
+                        </div>
+                        <div class="key-item danger">
+                            <div class="key-label">Daily Flow</div>
+                            <div class="key-value">-$27,915</div>
+                        </div>
+                        <div class="key-item">
+                            <div class="key-label">Conglomerate</div>
+                            <div class="key-value">INDEPENDENT</div>
+                        </div>
+                        <div class="key-item">
+                            <div class="key-label">Military</div>
+                            <div class="key-value">0 ATK / 0 DEF</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card full-width">
+                    <div class="card-title">📡 COMMAND FEEDBACK LOG</div>
+                    <div class="feed">
+                        <div class="feed-entry">
+                            <span class="timestamp">[09:47]</span> Command uplink standing by. Completed actions and queue additions will be logged here.
+                        </div>
+                        <div class="feed-entry">
+                            <span class="timestamp">[09:46]</span> Extractor MX-01 cycle complete: <span class="positive">+48 Silicate</span>
+                        </div>
+                        <div class="feed-entry">
+                            <span class="timestamp">[09:41]</span> Research queued: <span class="positive">Refinery Chain I</span>
+                        </div>
+                        <div class="feed-entry">
+                            <span class="timestamp">[09:35]</span> Lease MRS-0419 renewed by ISA Claims & Leases Division
+                        </div>
+                        <div class="feed-entry">
+                            <span class="timestamp">[09:30]</span> Payroll disbursed: <span class="negative">-$4,210</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mockup-label">Mockup 21 • 8-Bit Arcade ISP</div>
+
+    <script>
+        // Navigation
+        const navBtns = document.querySelectorAll('.nav-btn');
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                navBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Level Peek
+        const peekBtn = document.getElementById('peekLevel');
+        const peekedInfo = document.getElementById('peekedInfo');
+        const prevBtn = document.getElementById('prevLevel');
+        const nextBtn = document.getElementById('nextLevel');
+
+        const levelData = {
+            1: { unlocks: 'Employee Cap: 30 • Building Slots: 2 • Fleet Cap: 10 • Tier 1 Only' },
+            3: { unlocks: 'Employee Cap: 50 • Building Slots: 5 • Fleet Cap: 25 • Tier 3 Buildings' },
+            4: { unlocks: 'Employee Cap: 60 • Building Slots: 7 • Fleet Cap: 30 • Interstellar Trade' }
+        };
+
+        function showPeekedLevel(levelNum) {
+            const data = levelData[levelNum];
+            if (!data) return;
+
+            peekedInfo.innerHTML = `<div class="peeked-level">
+                <div class="peeked-level-title">LEVEL ${levelNum} UNLOCKS</div>
+                <div>${data.unlocks}</div>
+            </div>`;
+            peekedInfo.style.display = 'block';
+        }
+
+        peekBtn.addEventListener('click', () => showPeekedLevel(4));
+        prevBtn.addEventListener('click', () => showPeekedLevel(1));
+        nextBtn.addEventListener('click', () => showPeekedLevel(3));
+
+        // Animate progress bar on load
+        setTimeout(() => {
+            const fill = document.querySelector('.objective-fill');
+            if (fill) {
+                fill.style.width = '0%';
+            }
+        }, 100);
+
+        // Feed ticker (add random entries occasionally)
+        const feedEntries = [
+            'Silicate price fluctuation: ±2 cr/unit',
+            'Fleet maintenance cycle: all units operational',
+            'Research facility efficiency: 87%',
+            'Employee morale assessment: nominal',
+            'ISA compliance check: all green'
+        ];
+
+        let feedIndex = 0;
+        setInterval(() => {
+            const feed = document.querySelector('.feed');
+            const newEntry = document.createElement('div');
+            newEntry.className = 'feed-entry';
+            const hours = Math.floor(Math.random() * 24).toString().padStart(2, '0');
+            const mins = Math.floor(Math.random() * 60).toString().padStart(2, '0');
+            newEntry.innerHTML = `<span class="timestamp">[${hours}:${mins}]</span> ${feedEntries[feedIndex % feedEntries.length]}`;
+            feed.appendChild(newEntry);
+            feed.scrollTop = feed.scrollHeight;
+            feedIndex++;
+
+            // Keep only last 10 entries
+            while (feed.children.length > 10) {
+                feed.removeChild(feed.firstChild);
+            }
+        }, 8000);
+    </script>
+</body>
+</html>

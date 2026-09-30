@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 22 — Luxury Spa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=Jost:wght@300;400&display=swap" rel="stylesheet" fallback="serif, sans-serif">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Lora', serif;
+            background-color: #faf8f5;
+            background-image:
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><defs><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise" seed="2"/></filter></defs><rect width="400" height="400" fill="%23faf8f5" filter="url(%23noise)"/><g opacity="0.03"><line x1="0" y1="0" x2="400" y2="400" stroke="%23c7b8a3" stroke-width="2"/><path d="M 50 0 Q 150 50 200 80 T 350 200" stroke="%238b7d6b" fill="none" stroke-width="1.5" opacity="0.02"/><path d="M 0 100 Q 100 150 200 140 T 400 200" stroke="%238b7d6b" fill="none" stroke-width="1.5" opacity="0.02"/></g></svg>');
+            background-size: 400px 400px;
+            color: #3a3a3a;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(135deg, #e8dfc9 0%, #f5f1e8 100%);
+            border-right: 1px solid #d4c4a8;
+            padding: 2rem 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 0 1.5rem 2rem;
+            border-bottom: 1px solid #d4c4a8;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo {
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            color: #7a6d59;
+            text-transform: uppercase;
+            font-weight: 300;
+            line-height: 1.4;
+        }
+
+        .nav-groups {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .nav-group {
+            margin-bottom: 2rem;
+        }
+
+        .nav-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            color: #9b8b73;
+            text-transform: uppercase;
+            padding: 0.5rem 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            color: #5a5248;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(123, 109, 89, 0.08);
+            color: #3a3a3a;
+        }
+
+        .nav-item.active {
+            background-color: rgba(200, 180, 150, 0.3);
+            border-left-color: #b8956a;
+            color: #3a3a3a;
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            padding: 1.5rem;
+            border-top: 1px solid #d4c4a8;
+            font-size: 0.85rem;
+            color: #7a6d59;
+        }
+
+        .user-info {
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .logout-btn {
+            background: rgba(123, 109, 89, 0.15);
+            border: 1px solid #b8956a;
+            color: #5a5248;
+            padding: 0.5rem 1rem;
+            font-family: 'Jost', sans-serif;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.05em;
+        }
+
+        .logout-btn:hover {
+            background: rgba(123, 109, 89, 0.25);
+            color: #3a3a3a;
+        }
+
+        .main {
+            flex: 1;
+            padding: 2.5rem 3rem;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid rgba(200, 180, 150, 0.4);
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .game-title {
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: #3a3a3a;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.3rem;
+        }
+
+        .game-subtitle {
+            font-size: 0.85rem;
+            color: #9b8b73;
+            font-weight: 300;
+            letter-spacing: 0.05em;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 2.5rem;
+            font-size: 0.9rem;
+        }
+
+        .stat {
+            text-align: right;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #9b8b73;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            color: #3a3a3a;
+            font-weight: 600;
+        }
+
+        .notices {
+            background: rgba(184, 149, 106, 0.08);
+            border: 1px solid #d4c4a8;
+            color: #b8956a;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.02em;
+        }
+
+        .notices:hover {
+            background: rgba(184, 149, 106, 0.15);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(200, 180, 150, 0.3);
+            padding: 2rem;
+            backdrop-filter: blur(2px);
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #3a3a3a;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.02em;
+        }
+
+        .level-progress {
+            margin-bottom: 2rem;
+        }
+
+        .level-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .level-number {
+            font-size: 1rem;
+            color: #5a5248;
+            font-weight: 600;
+        }
+
+        .level-nav {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .level-nav button {
+            background: none;
+            border: 1px solid #d4c4a8;
+            color: #7a6d59;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .level-nav button:hover {
+            background: rgba(200, 180, 150, 0.2);
+            color: #3a3a3a;
+        }
+
+        .milestone {
+            background: rgba(200, 180, 150, 0.08);
+            border-left: 3px solid #b8956a;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .milestone.completed {
+            border-left-color: #a8a89a;
+            background: rgba(168, 168, 154, 0.08);
+        }
+
+        .milestone-text {
+            margin-bottom: 0.4rem;
+            color: #3a3a3a;
+        }
+
+        .milestone-progress {
+            font-size: 0.8rem;
+            color: #9b8b73;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .progress-bar {
+            background: rgba(123, 109, 89, 0.1);
+            height: 4px;
+            margin-top: 0.3rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #b8956a 0%, #c7b8a3 100%);
+            width: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .level-unlocks {
+            font-size: 0.85rem;
+            color: #7a6d59;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(200, 180, 150, 0.2);
+            line-height: 1.6;
+        }
+
+        .gex-link {
+            color: #b8956a;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .gex-link:hover {
+            color: #8b7355;
+        }
+
+        .key-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .metric {
+            padding: 1rem;
+            background: rgba(200, 180, 150, 0.08);
+            border: 1px solid rgba(200, 180, 150, 0.2);
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: #9b8b73;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #3a3a3a;
+        }
+
+        .metric-value.warning {
+            color: #a67c52;
+        }
+
+        .event-feed {
+            grid-column: 1 / -1;
+        }
+
+        .event-item {
+            padding: 0.8rem 1rem;
+            border-left: 2px solid #d4c4a8;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: #5a5248;
+            background: rgba(200, 180, 150, 0.04);
+            transition: all 0.2s ease;
+        }
+
+        .event-item:hover {
+            border-left-color: #b8956a;
+            background: rgba(200, 180, 150, 0.1);
+        }
+
+        .event-time {
+            font-size: 0.75rem;
+            color: #9b8b73;
+            margin-bottom: 0.2rem;
+        }
+
+        .situation-brief {
+            grid-column: 1 / -1;
+            background: rgba(184, 149, 106, 0.08);
+            border: 1px solid #d4c4a8;
+            padding: 1.5rem;
+            line-height: 1.7;
+            color: #5a5248;
+            font-size: 0.95rem;
+        }
+
+        .mockup-label {
+            position: fixed;
+            bottom: 1rem;
+            right: 1.5rem;
+            font-size: 0.7rem;
+            color: #9b8b73;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 1280px) {
+            .main {
+                padding: 2rem;
+            }
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                padding: 1rem 0;
+            }
+            .main {
+                padding: 1.5rem;
+            }
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .header-stats {
+                width: 100%;
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            .game-title {
+                font-size: 1.3rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main {
+                padding: 1rem;
+            }
+            .panel {
+                padding: 1rem;
+            }
+            .key-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                ISP<br>Command Portal
+            </div>
+        </div>
+
+        <div class="nav-groups">
+            <div class="nav-group">
+                <div class="nav-label">Company</div>
+                <div class="nav-item active">Overview</div>
+                <div class="nav-item">Inbox</div>
+                <div class="nav-item">Financial Core</div>
+                <div class="nav-item">CEO Insight</div>
+                <div class="nav-item">Assignments</div>
+                <div class="nav-item">Conglomerate</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-label">Station</div>
+                <div class="nav-item">Station</div>
+                <div class="nav-item">Operations</div>
+                <div class="nav-item">Fleet</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-label">Industry</div>
+                <div class="nav-item">Corporate R&D</div>
+                <div class="nav-item">Refinery Chains</div>
+                <div class="nav-item">Logistics</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-label">Market</div>
+                <div class="nav-item">Galactic Exchange</div>
+                <div class="nav-item">Assets</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-label">Comms</div>
+                <div class="nav-item">Chat</div>
+                <div class="nav-item">Forum</div>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <strong>CEO R. Vance</strong><br>
+                <span style="font-size: 0.8rem;">Helix Meridian Holdings</span>
+            </div>
+            <button class="logout-btn">Log Out</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="header">
+            <div class="header-title">
+                <div class="game-title">The Interstellar Settlement Protocol</div>
+                <div class="game-subtitle">v0.4 | Est. 2147</div>
+            </div>
+            <div class="header-stats">
+                <div class="stat">
+                    <div class="stat-label">Ticker</div>
+                    <div class="stat-value">HMH</div>
+                </div>
+                <button class="notices">23 Notices</button>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="panel">
+                <div class="panel-title">Corporation Status</div>
+                <div class="level-progress">
+                    <div class="level-header">
+                        <div class="level-number">Level 2 of 30</div>
+                        <div class="level-nav">
+                            <button onclick="changeLevel(-1)">←</button>
+                            <button onclick="changeLevel(1)">→</button>
+                        </div>
+                    </div>
+                    <div class="milestone">
+                        <div class="milestone-text">Sell 300 Silicate on the Galactic Exchange</div>
+                        <div class="milestone-progress">
+                            <span>0 / 300</span>
+                            <span><span class="gex-link" onclick="alert('Go to Galactic Exchange')">Go →</span></span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <div class="milestone completed">
+                        <div class="milestone-text">Research Basic Extraction Analytics</div>
+                        <div class="milestone-progress">
+                            <span>1 / 1 ✓</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    <div class="level-unlocks">
+                        <strong>Reaching Level 3 unlocks:</strong><br>
+                        • Employee cap 45<br>
+                        • Building slots 4<br>
+                        • Fleet cap 22<br>
+                        • Highest building tier 2
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Key Figures</div>
+                <div class="key-metrics">
+                    <div class="metric">
+                        <div class="metric-label">Cash Reserves</div>
+                        <div class="metric-value">$18,061</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Net Daily Flow</div>
+                        <div class="metric-value warning">−$27,915</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Conglomerate</div>
+                        <div class="metric-value">Independent</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Military Power</div>
+                        <div class="metric-value">0 ATK / 0 DEF</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel event-feed">
+                <div class="panel-title">Command Feedback</div>
+                <div class="event-item">
+                    <div class="event-time">09:42</div>
+                    Command uplink standing by. Completed actions and queue additions will be logged here.
+                </div>
+                <div class="event-item">
+                    <div class="event-time">09:38</div>
+                    Extractor MX-01 cycle complete: +48 Silicate
+                </div>
+                <div class="event-item">
+                    <div class="event-time">09:15</div>
+                    Research queued: Refinery Chain I (4 days remaining)
+                </div>
+                <div class="event-item">
+                    <div class="event-time">08:52</div>
+                    Lease MRS-0419 renewed by ISA Claims & Leases Division
+                </div>
+                <div class="event-item">
+                    <div class="event-time">08:00</div>
+                    Payroll disbursed: −$4,210
+                </div>
+            </div>
+
+            <div class="panel situation-brief">
+                <div class="panel-title" style="margin-bottom: 1rem;">Executive Situation Brief</div>
+                ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach. Your current focus: achieve silicate production targets to advance to Level 3.
+            </div>
+        </div>
+    </div>
+
+    <div class="mockup-label">Mockup 22 – Luxury Spa</div>
+
+    <script>
+        let currentLevel = 2;
+        const levels = {
+            1: { name: "Level 1 of 30", milestones: ["Mine 100 Regolith", "Hire 10 employees"] },
+            2: { name: "Level 2 of 30", milestones: ["Sell 300 Silicate", "Research Basic Extraction Analytics"] },
+            3: { name: "Level 3 of 30", milestones: ["Earn $100,000 revenue", "Build 2 stations"] },
+            4: { name: "Level 4 of 30", milestones: ["Fleet strength 50", "Unlock tier 3 buildings"] }
+        };
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        function changeLevel(direction) {
+            currentLevel = Math.max(1, Math.min(4, currentLevel + direction));
+            updateLevel();
+        }
+
+        function updateLevel() {
+            const level = levels[currentLevel];
+            document.querySelector('.level-number').textContent = level.name;
+            document.querySelectorAll('.milestone').forEach((m, i) => {
+                if (i < level.milestones.length) {
+                    m.querySelector('.milestone-text').textContent = level.milestones[i];
+                }
+            });
+        }
+
+        setInterval(() => {
+            const events = document.querySelectorAll('.event-item');
+            if (events.length > 0) {
+                const first = events[0];
+                const timeEl = first.querySelector('.event-time');
+                const [h, m] = timeEl.textContent.split(':').map(Number);
+                const newTime = (m + 1) % 60;
+                const newHour = m === 59 ? (h + 1) % 24 : h;
+                timeEl.textContent = String(newHour).padStart(2, '0') + ':' + String(newTime).padStart(2, '0');
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

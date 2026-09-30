@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 30 — Icy Minimalism</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a1420;
+            --bg-secondary: #0f1a2e;
+            --bg-tertiary: #131f35;
+            --border-color: #1e2f47;
+            --accent-ice: #4db8d4;
+            --accent-frost: #7dd3e8;
+            --text-primary: #e8f4f8;
+            --text-secondary: #a8c5d1;
+            --text-tertiary: #7a8f99;
+            --warning: #e84c3d;
+            --positive: #3fb08a;
+            --crystal: #c7e9f5;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #0c1628 100%);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            position: relative;
+        }
+
+        /* Subtle ice crystal bg pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(77, 184, 212, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(77, 184, 212, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 220px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 32px 0;
+        }
+
+        .sidebar-section {
+            padding: 0 16px;
+            margin-bottom: 28px;
+        }
+
+        .sidebar-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            padding: 0 8px;
+        }
+
+        .nav-item {
+            padding: 10px 12px;
+            margin: 4px 0;
+            border-radius: 4px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(77, 184, 212, 0.1);
+            color: var(--accent-ice);
+        }
+
+        .nav-item.active {
+            background: rgba(77, 184, 212, 0.15);
+            color: var(--accent-frost);
+            border-left-color: var(--accent-ice);
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 26, 46, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .logo {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: var(--text-primary);
+        }
+
+        .logo-version {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .player-info {
+            text-align: right;
+            font-size: 13px;
+        }
+
+        .player-name {
+            color: var(--accent-frost);
+            font-weight: 500;
+        }
+
+        .player-corp {
+            color: var(--text-tertiary);
+            font-size: 12px;
+        }
+
+        .notices-badge {
+            background: rgba(232, 76, 61, 0.2);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .logout-btn {
+            color: var(--text-secondary);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 6px 12px;
+            transition: color 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            color: var(--accent-ice);
+        }
+
+        /* Content Scroll Area */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+        }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            max-width: 100%;
+        }
+
+        /* Card Styles */
+        .card {
+            background: rgba(19, 31, 53, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(77, 184, 212, 0.3);
+            background: rgba(19, 31, 53, 0.7);
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Level Progress */
+        .level-section {
+            grid-column: 1;
+        }
+
+        .level-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 20px;
+        }
+
+        .level-display {
+            font-size: 32px;
+            font-weight: 300;
+            color: var(--crystal);
+            letter-spacing: 0.02em;
+        }
+
+        .level-sublevel {
+            font-size: 14px;
+            color: var(--text-tertiary);
+        }
+
+        .level-nav {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .level-nav-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .level-nav-btn:hover {
+            border-color: var(--accent-ice);
+            color: var(--accent-ice);
+        }
+
+        .requirements {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .requirement {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 12px;
+            background: rgba(77, 184, 212, 0.05);
+            border-left: 2px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .requirement.completed {
+            border-left-color: var(--positive);
+            background: rgba(63, 176, 138, 0.05);
+        }
+
+        .req-text {
+            color: var(--text-secondary);
+        }
+
+        .req-progress {
+            color: var(--text-tertiary);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+        }
+
+        .req-progress.completed {
+            color: var(--positive);
+        }
+
+        .unlock-preview {
+            margin-top: 18px;
+            padding: 14px;
+            background: rgba(77, 184, 212, 0.08);
+            border: 1px solid rgba(77, 184, 212, 0.2);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Key Figures */
+        .kpis {
+            grid-column: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .kpi-card {
+            background: rgba(19, 31, 53, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .kpi-card.warning {
+            border-color: rgba(232, 76, 61, 0.3);
+            background: rgba(232, 76, 61, 0.05);
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 300;
+            color: var(--text-primary);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .kpi-value.warning {
+            color: var(--warning);
+        }
+
+        .kpi-value.positive {
+            color: var(--positive);
+        }
+
+        /* Event Feed */
+        .feed-section {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+        }
+
+        .event-feed {
+            grid-column: 1;
+        }
+
+        .event-log {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            padding: 8px;
+            border-left: 2px solid var(--border-color);
+            padding-left: 12px;
+            line-height: 1.5;
+            animation: slideIn 0.3s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event-item:nth-child(1) { animation-delay: 0s; }
+        .event-item:nth-child(2) { animation-delay: 0.1s; }
+        .event-item:nth-child(3) { animation-delay: 0.2s; }
+        .event-item:nth-child(4) { animation-delay: 0.3s; }
+        .event-item:nth-child(5) { animation-delay: 0.4s; }
+
+        .event-item.resource {
+            color: var(--accent-ice);
+        }
+
+        .event-item.alert {
+            color: var(--warning);
+        }
+
+        .event-item.info {
+            color: var(--text-secondary);
+        }
+
+        /* Situation Brief */
+        .brief-section {
+            grid-column: 2;
+        }
+
+        .brief-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            border-left: 2px solid var(--accent-ice);
+            padding-left: 16px;
+        }
+
+        /* Footer link */
+        .action-link {
+            color: var(--accent-frost);
+            cursor: pointer;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s ease;
+            display: inline;
+        }
+
+        .action-link:hover {
+            border-bottom-color: var(--accent-frost);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(77, 184, 212, 0.3);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(77, 184, 212, 0.5);
+        }
+
+        /* Mockup label */
+        .mockup-label {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            font-size: 11px;
+            color: var(--text-tertiary);
+            font-family: 'IBM Plex Mono', monospace;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 1280px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .level-section {
+                grid-column: 1;
+            }
+            .kpis {
+                grid-column: 1;
+            }
+            .feed-section {
+                grid-template-columns: 1fr;
+            }
+            .event-feed {
+                grid-column: 1;
+            }
+            .brief-section {
+                grid-column: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+                padding: 16px 0;
+            }
+            .sidebar-label,
+            .nav-item {
+                font-size: 11px;
+                padding: 8px;
+            }
+            .content {
+                padding: 16px;
+            }
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                padding: 16px;
+            }
+            .header-left,
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-label">Company</div>
+                <div class="nav-item active" onclick="setNavActive(this)">Overview</div>
+                <div class="nav-item" onclick="setNavActive(this)">Inbox</div>
+                <div class="nav-item" onclick="setNavActive(this)">Financial Core</div>
+                <div class="nav-item" onclick="setNavActive(this)">CEO Insight</div>
+                <div class="nav-item" onclick="setNavActive(this)">Assignments</div>
+                <div class="nav-item" onclick="setNavActive(this)">Conglomerate</div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-label">Station</div>
+                <div class="nav-item" onclick="setNavActive(this)">Station</div>
+                <div class="nav-item" onclick="setNavActive(this)">Operations</div>
+                <div class="nav-item" onclick="setNavActive(this)">Fleet</div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-label">Industry</div>
+                <div class="nav-item" onclick="setNavActive(this)">Corporate R&D</div>
+                <div class="nav-item" onclick="setNavActive(this)">Refinery Chains</div>
+                <div class="nav-item" onclick="setNavActive(this)">Logistics</div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-label">Market</div>
+                <div class="nav-item" onclick="setNavActive(this)">Galactic Exchange</div>
+                <div class="nav-item" onclick="setNavActive(this)">Assets</div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-label">Comms</div>
+                <div class="nav-item" onclick="setNavActive(this)">Chat</div>
+                <div class="nav-item" onclick="setNavActive(this)">Forum</div>
+            </div>
+        </nav>
+
+        <div class="main">
+            <header class="header">
+                <div class="header-left">
+                    <div class="logo">
+                        The Interstellar Settlement Protocol
+                        <div class="logo-version">v0.4 — est. 2147</div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="player-info">
+                        <div class="player-name">CEO R. Vance</div>
+                        <div class="player-corp">Helix Meridian Holdings [HMH]</div>
+                    </div>
+                    <div class="notices-badge" onclick="alert('23 unread notices')">23 unread</div>
+                    <button class="logout-btn" onclick="alert('Logging out...')">Log out</button>
+                </div>
+            </header>
+
+            <div class="content">
+                <div class="dashboard-grid">
+                    <!-- Level Progress -->
+                    <div class="card level-section">
+                        <div class="card-title">Corporation Level</div>
+                        <div class="level-header">
+                            <div>
+                                <div class="level-display" id="levelDisplay">2</div>
+                                <div class="level-sublevel" id="levelRange">of 30</div>
+                            </div>
+                            <div class="level-nav">
+                                <button class="level-nav-btn" onclick="shiftLevel(-1)">← Prev</button>
+                                <button class="level-nav-btn" onclick="shiftLevel(1)">Next →</button>
+                            </div>
+                        </div>
+                        <div class="requirements" id="requirementsList">
+                            <div class="requirement">
+                                <div class="req-text">Sell 300 Silicate on Galactic Exchange</div>
+                                <div class="req-progress">0 / 300 <span class="action-link" onclick="alert('Navigating to Galactic Exchange')">→</span></div>
+                            </div>
+                            <div class="requirement completed">
+                                <div class="req-text">Research Basic Extraction Analytics</div>
+                                <div class="req-progress completed">1 / 1 ✓</div>
+                            </div>
+                        </div>
+                        <div class="unlock-preview" id="unlockPreview">
+                            Reaching Level 3 unlocks: Employee cap 45, Building slots 4, Fleet cap 22, Highest building tier 2
+                        </div>
+                    </div>
+
+                    <!-- KPIs -->
+                    <div class="kpis">
+                        <div class="kpi-card">
+                            <div>
+                                <div class="kpi-label">Cash Reserves</div>
+                                <div class="kpi-value">$18,061</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card warning">
+                            <div>
+                                <div class="kpi-label">Net Daily Flow</div>
+                                <div class="kpi-value warning">−$27,915</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div>
+                                <div class="kpi-label">Conglomerate Status</div>
+                                <div class="kpi-value">Independent</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card">
+                            <div>
+                                <div class="kpi-label">Military Power</div>
+                                <div class="kpi-value">0 ATK / 0 DEF — 100% ready</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feed Section -->
+                    <div class="feed-section">
+                        <!-- Event Feed -->
+                        <div class="card event-feed">
+                            <div class="card-title">Command Feedback</div>
+                            <div class="event-log" id="eventLog">
+                                <div class="event-item info">Command uplink standing by. Completed actions and queue additions will be logged here.</div>
+                                <div class="event-item resource">Extractor MX-01 cycle complete: +48 Silicate</div>
+                                <div class="event-item info">Research queued: Refinery Chain I</div>
+                                <div class="event-item info">Lease MRS-0419 renewed by ISA Claims & Leases Division</div>
+                                <div class="event-item">Payroll disbursed: −$4,210</div>
+                            </div>
+                        </div>
+
+                        <!-- Situation Brief -->
+                        <div class="card brief-section">
+                            <div class="card-title">Executive Situation Brief</div>
+                            <div class="brief-text">
+                                ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach. Current holdings: 2 silicate extractors on Mars lease MRS-0419 (MX-01 at 72% of cycle, MX-02 at 31%), Silicate stock 142 units, employees 18 / 30.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mockup-label">Mockup 30 – Icy Minimalism</div>
+
+    <script>
+        function setNavActive(el) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        const levelData = {
+            1: {
+                title: "Level 1 of 30",
+                requirements: [
+                    { text: "Hire 5 employees", progress: "5 / 5", completed: true },
+                    { text: "Build your first extractor", progress: "1 / 1", completed: true }
+                ],
+                unlocks: "Employee cap 15, Building slots 2, Fleet cap 5, Highest building tier 1"
+            },
+            2: {
+                title: "Level 2 of 30",
+                requirements: [
+                    { text: "Sell 300 Silicate on Galactic Exchange", progress: "0 / 300", completed: false },
+                    { text: "Research Basic Extraction Analytics", progress: "1 / 1", completed: true }
+                ],
+                unlocks: "Employee cap 45, Building slots 4, Fleet cap 22, Highest building tier 2"
+            },
+            3: {
+                title: "Level 3 of 30",
+                requirements: [
+                    { text: "Harvest 1000 Silicate total", progress: "142 / 1000", completed: false },
+                    { text: "Research two technologies", progress: "1 / 2", completed: false }
+                ],
+                unlocks: "Employee cap 80, Building slots 6, Fleet cap 40, Highest building tier 3"
+            },
+            4: {
+                title: "Level 4 of 30",
+                requirements: [
+                    { text: "Establish trade agreement with GEX", progress: "pending", completed: false },
+                    { text: "Build refinery chain", progress: "0 / 1", completed: false }
+                ],
+                unlocks: "Employee cap 120, Building slots 8, Fleet cap 60, Highest building tier 4"
+            }
+        };
+
+        let currentLevel = 2;
+
+        function shiftLevel(direction) {
+            let newLevel = currentLevel + direction;
+            if (newLevel >= 1 && newLevel <= 4) {
+                currentLevel = newLevel;
+                updateLevelDisplay();
+            }
+        }
+
+        function updateLevelDisplay() {
+            const data = levelData[currentLevel];
+            document.getElementById('levelDisplay').textContent = currentLevel;
+            document.getElementById('levelRange').textContent = "of 30";
+
+            const reqList = document.getElementById('requirementsList');
+            reqList.innerHTML = '';
+            data.requirements.forEach(req => {
+                const div = document.createElement('div');
+                div.className = 'requirement' + (req.completed ? ' completed' : '');
+                div.innerHTML = `
+                    <div class="req-text">${req.text}</div>
+                    <div class="req-progress${req.completed ? ' completed' : ''}">${req.progress}${req.completed ? ' ✓' : ''}</div>
+                `;
+                reqList.appendChild(div);
+            });
+
+            document.getElementById('unlockPreview').textContent = `Reaching Level ${currentLevel + 1} unlocks: ${data.unlocks}`;
+        }
+
+        // Simulate event feed updates
+        function addEvent() {
+            const events = [
+                { text: "Station maintenance completed: +2% infrastructure", class: "info" },
+                { text: "Mining cycle optimization: +12% efficiency", class: "resource" },
+                { text: "Board meeting scheduled for next cycle", class: "info" },
+                { text: "Research: Thermal Isolation Technology queued", class: "info" },
+                { text: "Alert: Operating costs exceed projections", class: "alert" }
+            ];
+
+            const log = document.getElementById('eventLog');
+            if (log.children.length > 5) {
+                log.removeChild(log.lastChild);
+            }
+
+            const newEvent = document.createElement('div');
+            const randomEvent = events[Math.floor(Math.random() * events.length)];
+            newEvent.className = 'event-item ' + randomEvent.class;
+            newEvent.textContent = randomEvent.text;
+            log.insertBefore(newEvent, log.firstChild);
+        }
+
+        setInterval(addEvent, 8000);
+    </script>
+</body>
+</html>
