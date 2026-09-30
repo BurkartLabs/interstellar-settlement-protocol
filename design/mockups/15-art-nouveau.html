@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup 15 — Art Nouveau</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lora:wght@400;500&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg, #1a3a2e 0%, #0f2818 50%, #1a3a2e 100%);
+      color: #e8dcc8;
+      font-family: 'Lora', serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Decorative background elements */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        radial-gradient(circle at 20% 80%, rgba(184, 134, 11, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(184, 134, 11, 0.03) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header with ornamental border */
+    header {
+      border-bottom: 2px solid #8b7355;
+      border-image: linear-gradient(90deg, #8b7355 0%, #d4af37 50%, #8b7355 100%) 1;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -12px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: repeating-linear-gradient(90deg, #d4af37 0px, #d4af37 8px, transparent 8px, transparent 16px);
+      opacity: 0.6;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .title-section h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      color: #d4af37;
+      font-weight: 600;
+      letter-spacing: 2px;
+    }
+
+    .version {
+      font-size: 11px;
+      color: #a89968;
+      font-style: italic;
+      letter-spacing: 1px;
+    }
+
+    .player-info {
+      display: flex;
+      gap: 30px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .player-card {
+      text-align: right;
+    }
+
+    .player-name {
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      color: #d4af37;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .corp-name {
+      font-size: 12px;
+      color: #c5a575;
+      margin-top: 2px;
+    }
+
+    .notices {
+      font-size: 12px;
+      color: #c5a575;
+      background: rgba(184, 134, 11, 0.15);
+      padding: 6px 12px;
+      border-radius: 0;
+      border-left: 2px solid #d4af37;
+    }
+
+    .logout-btn {
+      background: rgba(139, 115, 85, 0.3);
+      border: 1px solid #8b7355;
+      color: #d4af37;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-family: 'Lora', serif;
+      font-size: 11px;
+      transition: all 0.3s ease;
+      letter-spacing: 1px;
+    }
+
+    .logout-btn:hover {
+      background: rgba(184, 134, 11, 0.2);
+      border-color: #d4af37;
+    }
+
+    /* Navigation with organic styling */
+    nav {
+      margin-bottom: 30px;
+      background: rgba(15, 40, 24, 0.6);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      padding: 0;
+      border-radius: 0;
+    }
+
+    .nav-group {
+      border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+      padding: 0;
+    }
+
+    .nav-group:last-child {
+      border-bottom: none;
+    }
+
+    .nav-group-title {
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      color: #a89968;
+      letter-spacing: 2px;
+      padding: 12px 16px 8px;
+      text-transform: uppercase;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-group-title::before {
+      content: '◆';
+      margin-right: 8px;
+      color: #d4af37;
+      font-size: 9px;
+    }
+
+    .nav-items {
+      padding: 0 16px 12px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .nav-item {
+      background: transparent;
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      color: #c5a575;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-family: 'Lora', serif;
+      font-size: 12px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .nav-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.2), transparent);
+      transition: left 0.4s ease;
+    }
+
+    .nav-item:hover {
+      border-color: #d4af37;
+      color: #d4af37;
+      background: rgba(184, 134, 11, 0.1);
+    }
+
+    .nav-item:hover::before {
+      left: 100%;
+    }
+
+    .nav-item.active {
+      background: rgba(212, 175, 55, 0.25);
+      border-color: #d4af37;
+      color: #d4af37;
+      font-weight: 500;
+    }
+
+    /* Main content grid */
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+
+    /* Cards with ornamental styling */
+    .card {
+      background: rgba(15, 40, 24, 0.7);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #d4af37, transparent);
+      opacity: 0.5;
+    }
+
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      color: #d4af37;
+      margin-bottom: 16px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::before {
+      content: '✦';
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    .level-section {
+      grid-column: 1 / -1;
+    }
+
+    .level-display {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .level-number {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      color: #d4af37;
+      font-weight: 700;
+    }
+
+    .level-nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .level-btn {
+      background: rgba(139, 115, 85, 0.3);
+      border: 1px solid #8b7355;
+      color: #d4af37;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      font-family: 'Cinzel', serif;
+      transition: all 0.3s ease;
+      font-size: 14px;
+    }
+
+    .level-btn:hover {
+      background: rgba(184, 134, 11, 0.2);
+      border-color: #d4af37;
+    }
+
+    .requirements {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .requirement {
+      background: rgba(26, 58, 46, 0.8);
+      border-left: 3px solid #8b7355;
+      padding: 12px;
+      font-size: 13px;
+    }
+
+    .requirement.completed {
+      border-left-color: #d4af37;
+      background: rgba(212, 175, 55, 0.08);
+    }
+
+    .requirement-text {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .requirement-progress {
+      height: 6px;
+      background: rgba(139, 115, 85, 0.4);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #d4af37, #a89968);
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+
+    .requirement.completed .progress-bar {
+      width: 100%;
+    }
+
+    .requirement-check {
+      font-size: 12px;
+      color: #d4af37;
+      font-weight: 600;
+    }
+
+    .next-unlock {
+      background: rgba(212, 175, 55, 0.1);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      padding: 12px;
+      margin-top: 16px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .unlock-label {
+      color: #a89968;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .key-figures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      grid-column: 1 / -1;
+    }
+
+    .figure {
+      background: rgba(26, 58, 46, 0.8);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      padding: 14px;
+      text-align: center;
+    }
+
+    .figure-label {
+      font-size: 11px;
+      color: #a89968;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .figure-value {
+      font-family: 'Cinzel', serif;
+      font-size: 18px;
+      color: #d4af37;
+      font-weight: 600;
+    }
+
+    .figure.warning .figure-value {
+      color: #d9534f;
+    }
+
+    .situation-brief {
+      font-style: italic;
+      color: #a89968;
+      border-left: 2px solid #d4af37;
+      padding-left: 12px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    .feed {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .feed-entry {
+      font-size: 12px;
+      color: #c5a575;
+      padding: 10px;
+      border-left: 2px solid rgba(212, 175, 55, 0.3);
+      background: rgba(26, 58, 46, 0.4);
+      position: relative;
+      padding-left: 12px;
+    }
+
+    .feed-entry::before {
+      content: '↳';
+      position: absolute;
+      left: 2px;
+      color: #d4af37;
+      font-size: 10px;
+    }
+
+    .feed-entry.positive {
+      border-left-color: #d4af37;
+      background: rgba(212, 175, 55, 0.05);
+    }
+
+    .feed-entry.negative {
+      border-left-color: #d9534f;
+      background: rgba(217, 83, 79, 0.05);
+    }
+
+    .feed-entry span {
+      color: #d4af37;
+      font-weight: 500;
+    }
+
+    .feed-entry.negative span {
+      color: #d9534f;
+    }
+
+    /* Link styling */
+    a, .link {
+      color: #d4af37;
+      text-decoration: none;
+      border-bottom: 1px dotted #d4af37;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    a:hover, .link:hover {
+      color: #e8dcc8;
+      border-bottom-color: #e8dcc8;
+    }
+
+    /* Decorative divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #d4af37, transparent);
+      opacity: 0.5;
+      margin: 20px 0;
+    }
+
+    .mockup-label {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      font-size: 10px;
+      color: #8b7355;
+      opacity: 0.5;
+      font-style: italic;
+      letter-spacing: 1px;
+      z-index: 2;
+    }
+
+    /* Responsive */
+    @media (max-width: 1280px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+      .key-figures {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 12px;
+      }
+      .header-top {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .player-info {
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        gap: 12px;
+      }
+      .player-card {
+        text-align: left;
+      }
+      .nav-items {
+        flex-direction: column;
+      }
+      .key-figures {
+        grid-template-columns: 1fr;
+      }
+      .level-nav {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-top">
+        <div class="title-section">
+          <h1>The Interstellar Settlement Protocol</h1>
+          <div class="version">v0.4 — Est. 2147</div>
+        </div>
+        <div class="player-info">
+          <div class="player-card">
+            <div class="player-name">CEO R. Vance</div>
+            <div class="corp-name">Helix Meridian Holdings (HMH)</div>
+          </div>
+          <div class="notices">23 unread</div>
+          <button class="logout-btn">LOG OUT</button>
+        </div>
+      </div>
+    </header>
+
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-title">COMPANY</div>
+        <div class="nav-items">
+          <button class="nav-item active">Overview</button>
+          <button class="nav-item">Inbox</button>
+          <button class="nav-item">Financial Core</button>
+          <button class="nav-item">CEO Insight</button>
+          <button class="nav-item">Assignments</button>
+          <button class="nav-item">Conglomerate</button>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">STATION</div>
+        <div class="nav-items">
+          <button class="nav-item">Station</button>
+          <button class="nav-item">Operations</button>
+          <button class="nav-item">Fleet</button>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">INDUSTRY</div>
+        <div class="nav-items">
+          <button class="nav-item">Corporate R&D</button>
+          <button class="nav-item">Refinery Chains</button>
+          <button class="nav-item">Logistics</button>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">MARKET</div>
+        <div class="nav-items">
+          <button class="nav-item">Galactic Exchange</button>
+          <button class="nav-item">Assets</button>
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">COMMS</div>
+        <div class="nav-items">
+          <button class="nav-item">Chat</button>
+          <button class="nav-item">Forum</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content">
+      <!-- Progression Card -->
+      <div class="card level-section">
+        <div class="card-title">Corporation Level Progress</div>
+
+        <div class="level-display">
+          <div class="level-number" id="levelNum">Level 2</div>
+          <div class="level-nav">
+            <button class="level-btn" onclick="cycleLevel(-1)">◀</button>
+            <button class="level-btn" onclick="cycleLevel(1)">▶</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="requirements" id="requirements">
+          <div class="requirement">
+            <div class="requirement-text">
+              <span>Sell 300 Silicate on Galactic Exchange</span>
+              <span>0 / 300</span>
+            </div>
+            <div class="requirement-progress"><div class="progress-bar" style="width: 0%"></div></div>
+            <div><a href="#" class="link">Go to Galactic Exchange</a></div>
+          </div>
+          <div class="requirement completed">
+            <div class="requirement-text">
+              <span>Research Basic Extraction Analytics</span>
+              <span class="requirement-check">✓ 1 / 1</span>
+            </div>
+            <div class="requirement-progress"><div class="progress-bar" style="width: 100%"></div></div>
+          </div>
+        </div>
+
+        <div class="next-unlock">
+          <div class="unlock-label">LEVEL 3 UNLOCKS:</div>
+          Employee cap 45 • Building slots 4 • Fleet cap 22 • Highest building tier 2
+        </div>
+      </div>
+
+      <!-- Command Feedback -->
+      <div class="card">
+        <div class="card-title">Command Feedback</div>
+        <div class="feed">
+          <div class="feed-entry">Command uplink standing by.</div>
+          <div class="feed-entry positive"><span>Extractor MX-01:</span> Cycle complete +<span>48 Silicate</span></div>
+          <div class="feed-entry"><span>Research queued:</span> Refinery Chain I</div>
+          <div class="feed-entry"><span>Lease MRS-0419:</span> Renewed by ISA Claims & Leases</div>
+          <div class="feed-entry negative"><span>Payroll disbursed:</span> <span>-$4,210</span></div>
+          <div class="feed-entry"><span>Inventory:</span> Silicate stock now 142 units</div>
+        </div>
+      </div>
+
+      <!-- Situation Brief -->
+      <div class="card">
+        <div class="card-title">Executive Situation Brief</div>
+        <div class="situation-brief">
+          ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.
+        </div>
+        <div style="font-size: 13px; color: #c5a575; line-height: 1.7;">
+          <p style="margin-bottom: 10px;"><strong style="color: #d4af37;">Current Operations:</strong> Two silicate extractors on Mars lease MRS-0419 (MX-01 at 72% cycle, MX-02 at 31%). You currently employ 18 of 30 authorized staff.</p>
+          <p><strong style="color: #d4af37;">Market Conditions:</strong> GEX peg price for Silicate holds at 61 cr/unit with stable momentum.</p>
+        </div>
+      </div>
+
+      <!-- Key Figures -->
+      <div class="card">
+        <div class="card-title">Key Figures</div>
+        <div class="key-figures">
+          <div class="figure">
+            <div class="figure-label">Cash Reserves</div>
+            <div class="figure-value">$18,061</div>
+          </div>
+          <div class="figure warning">
+            <div class="figure-label">Net Daily Flow</div>
+            <div class="figure-value">-$27,915</div>
+          </div>
+          <div class="figure">
+            <div class="figure-label">Conglomerate Status</div>
+            <div class="figure-value" style="font-size: 14px;">Independent</div>
+          </div>
+          <div class="figure">
+            <div class="figure-label">Military Power</div>
+            <div class="figure-value" style="font-size: 14px;">0 ATK / 0 DEF</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup-label">Mockup 15 – Art Nouveau</div>
+
+  <script>
+    const levelData = {
+      1: { name: 'Level 1', requirements: ['Complete Tutorial', 'Build First Extractor', 'Post First Order'] },
+      2: { name: 'Level 2', requirements: ['Sell 300 Silicate on Galactic Exchange', 'Research Basic Extraction Analytics'] },
+      3: { name: 'Level 3', requirements: ['Achieve $50k Cash Reserves', 'Hire 30 Employees', 'Establish Mars Presence'] },
+      4: { name: 'Level 4', requirements: ['Research Refinery Chain I', 'Unlock Station Building', 'Achieve 100k Daily Revenue'] }
+    };
+
+    let currentLevel = 2;
+
+    function cycleLevel(dir) {
+      currentLevel += dir;
+      if (currentLevel < 1) currentLevel = 1;
+      if (currentLevel > 4) currentLevel = 4;
+      updateLevelDisplay();
+    }
+
+    function updateLevelDisplay() {
+      const level = levelData[currentLevel];
+      document.getElementById('levelNum').textContent = `Level ${currentLevel}`;
+
+      let reqHtml = '';
+      const isCompleted = currentLevel < 2;
+      const requirements = currentLevel === 2
+        ? [
+            { text: 'Sell 300 Silicate on Galactic Exchange', current: 0, max: 300, completed: false, link: true },
+            { text: 'Research Basic Extraction Analytics', current: 1, max: 1, completed: true, link: false }
+          ]
+        : currentLevel === 1
+        ? [
+            { text: 'Complete Tutorial', current: 1, max: 1, completed: true, link: false },
+            { text: 'Build First Extractor', current: 1, max: 1, completed: true, link: false },
+            { text: 'Post First Order', current: 1, max: 1, completed: true, link: false }
+          ]
+        : [
+            { text: 'Achieve $50k Cash Reserves', current: 18061, max: 50000, completed: false, link: false },
+            { text: 'Hire 30 Employees', current: 18, max: 30, completed: false, link: false },
+            { text: 'Establish Mars Presence', current: 1, max: 1, completed: true, link: false }
+          ];
+
+      requirements.forEach(req => {
+        const pct = Math.min(100, (req.current / req.max) * 100);
+        const checkmark = req.completed ? '✓' : '';
+        const completed = req.completed ? 'completed' : '';
+        const linkHtml = req.link ? '<div><a href="#" class="link">Go to Galactic Exchange</a></div>' : '';
+        reqHtml += `
+          <div class="requirement ${completed}">
+            <div class="requirement-text">
+              <span>${req.text}</span>
+              <span ${req.completed ? 'class="requirement-check"' : ''}>${checkmark} ${req.current} / ${req.max}</span>
+            </div>
+            <div class="requirement-progress"><div class="progress-bar" style="width: ${pct}%"></div></div>
+            ${linkHtml}
+          </div>
+        `;
+      });
+
+      document.getElementById('requirements').innerHTML = reqHtml;
+    }
+
+    // Nav interaction
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // Feed ticker
+    const feedEntries = [
+      { text: 'Command uplink standing by.', type: 'neutral' },
+      { text: '<span>Extractor MX-01:</span> Cycle complete +<span>48 Silicate</span>', type: 'positive' },
+      { text: '<span>Research queued:</span> Refinery Chain I', type: 'neutral' },
+      { text: '<span>Lease MRS-0419:</span> Renewed by ISA Claims & Leases', type: 'neutral' },
+      { text: '<span>Payroll disbursed:</span> <span>-$4,210</span>', type: 'negative' }
+    ];
+
+    let feedIndex = 0;
+    setInterval(() => {
+      const feed = document.querySelector('.feed');
+      if (feed && feed.children.length > 0) {
+        feed.removeChild(feed.lastChild);
+        feedIndex = (feedIndex + 1) % (feedEntries.length + 1);
+        if (feedIndex < feedEntries.length) {
+          const entry = feedEntries[feedIndex];
+          const div = document.createElement('div');
+          div.className = `feed-entry ${entry.type}`;
+          div.innerHTML = entry.text;
+          feed.insertBefore(div, feed.firstChild);
+        }
+      }
+    }, 8000);
+  </script>
+</body>
+</html>

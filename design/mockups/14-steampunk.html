@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 14 — Steampunk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto+Slab:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto Slab', serif;
+            background: linear-gradient(135deg, #1a1815 0%, #2a2420 50%, #1f1d19 100%);
+            color: #e8d9c3;
+            min-height: 100vh;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(to bottom, #3d3530, #2a2420);
+            border-bottom: 3px solid #d4a574;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+        }
+
+        .header-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            color: #d4a574;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-version {
+            font-family: 'Courier Prime', monospace;
+            font-size: 11px;
+            color: #a88c46;
+            letter-spacing: 1px;
+            line-height: 1.2;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .player-info {
+            text-align: right;
+            font-size: 13px;
+        }
+
+        .player-name {
+            color: #d4a574;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .corp-ticker {
+            color: #a88c46;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .notifications {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: rgba(196, 160, 74, 0.1);
+            border: 1px solid #c9a961;
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .notification-bell {
+            width: 20px;
+            height: 20px;
+            background: #c9a961;
+            clip-path: polygon(30% 0%, 70% 0%, 85% 30%, 85% 50%, 100% 50%, 100% 60%, 85% 60%, 85% 80%, 70% 100%, 30% 100%, 15% 80%, 15% 60%, 0% 60%, 0% 50%, 15% 50%, 15% 30%);
+            display: inline-block;
+        }
+
+        .notifications span {
+            color: #d4a574;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .logout-btn {
+            padding: 6px 16px;
+            background: linear-gradient(to bottom, #8b6914, #6b5310);
+            color: #e8d9c3;
+            border: 1px solid #d4a574;
+            border-radius: 2px;
+            cursor: pointer;
+            font-family: 'Roboto Slab', serif;
+            font-size: 12px;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: linear-gradient(to bottom, #a88c46, #8b6914);
+            box-shadow: 0 0 8px rgba(212, 165, 116, 0.4);
+        }
+
+        /* Main Layout */
+        .container {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 0;
+            min-height: calc(100vh - 70px);
+        }
+
+        /* Sidebar Navigation */
+        nav {
+            background: linear-gradient(to right, #2a2420, #1f1d19);
+            border-right: 2px solid #8b6914;
+            padding: 20px 0;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        nav::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: repeating-linear-gradient(90deg, #d4a574 0px, #d4a574 2px, transparent 2px, transparent 8px);
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .nav-group {
+            margin-bottom: 24px;
+            padding: 0 12px;
+        }
+
+        .nav-group-title {
+            font-family: 'Courier Prime', monospace;
+            font-size: 10px;
+            color: #a88c46;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            padding: 0 8px;
+            border-left: 2px solid transparent;
+            transition: border 0.2s;
+        }
+
+        .nav-item {
+            padding: 8px 12px;
+            color: #c9b898;
+            font-size: 13px;
+            cursor: pointer;
+            margin: 2px 0;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item:hover {
+            background: rgba(212, 165, 116, 0.1);
+            color: #d4a574;
+        }
+
+        .nav-item.active {
+            background: rgba(196, 160, 74, 0.2);
+            color: #d4a574;
+            border-left-color: #d4a574;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .content {
+            background: linear-gradient(135deg, #1a1815 0%, #2a2420 50%, #1f1d19 100%);
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .page-label {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            font-family: 'Courier Prime', monospace;
+            font-size: 10px;
+            color: #a88c46;
+            letter-spacing: 1px;
+            opacity: 0.6;
+        }
+
+        /* Gear Background Elements */
+        .gear {
+            position: absolute;
+            opacity: 0.08;
+            pointer-events: none;
+        }
+
+        .top-gear {
+            width: 120px;
+            height: 120px;
+            top: 40px;
+            right: 60px;
+            animation: rotate 20s linear infinite;
+        }
+
+        .bottom-gear {
+            width: 80px;
+            height: 80px;
+            bottom: 100px;
+            left: 40px;
+            animation: rotate-reverse 25s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes rotate-reverse {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(-360deg); }
+        }
+
+        /* Main Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Cards */
+        .card {
+            background: linear-gradient(135deg, #3d3530 0%, #2a2420 100%);
+            border: 2px solid #8b6914;
+            border-radius: 2px;
+            padding: 20px;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(212, 165, 116, 0.1), 0 8px 16px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #d4a574, transparent);
+            opacity: 0.5;
+        }
+
+        .card-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 16px;
+            color: #d4a574;
+            margin-bottom: 16px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rivet {
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle at 30% 30%, #d4a574, #8b6914);
+            border-radius: 50%;
+            box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.8);
+            display: inline-block;
+        }
+
+        /* Decorative Rivets */
+        .rivets-top-left {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .rivets-bottom-right {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Level Progress */
+        .level-section {
+            grid-column: 1 / -1;
+        }
+
+        .level-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .level-progress {
+            font-size: 36px;
+            color: #c9a961;
+            font-weight: 700;
+            font-family: 'Playfair Display', serif;
+            letter-spacing: 1px;
+        }
+
+        .level-unlocks {
+            grid-column: 1 / -1;
+            background: rgba(196, 160, 74, 0.08);
+            border-left: 3px solid #c9a961;
+            padding: 12px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #c9b898;
+        }
+
+        .level-unlocks strong {
+            color: #d4a574;
+        }
+
+        .objective {
+            margin-top: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(212, 165, 116, 0.2);
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .objective:last-child {
+            border-bottom: none;
+        }
+
+        .obj-name {
+            flex: 1;
+        }
+
+        .obj-status {
+            color: #a88c46;
+            margin-right: 8px;
+            font-family: 'Courier Prime', monospace;
+        }
+
+        .obj-status.completed {
+            color: #8fbb6f;
+        }
+
+        .go-link {
+            color: #d4a574;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-left: 8px;
+            font-size: 11px;
+        }
+
+        .go-link:hover {
+            color: #e8d9c3;
+        }
+
+        /* Key Figures Grid */
+        .figures-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .figure {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border: 1px solid rgba(212, 165, 116, 0.3);
+            border-radius: 2px;
+        }
+
+        .figure-label {
+            font-size: 11px;
+            color: #a88c46;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            font-family: 'Courier Prime', monospace;
+        }
+
+        .figure-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #d4a574;
+            letter-spacing: 1px;
+        }
+
+        .figure-value.warning {
+            color: #d17070;
+        }
+
+        .figure-value.good {
+            color: #8fbb6f;
+        }
+
+        /* Mechanical Switch */
+        .switch-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .switch {
+            width: 44px;
+            height: 24px;
+            background: linear-gradient(to bottom, #3d3530, #2a2420);
+            border: 1px solid #8b6914;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .switch.active {
+            background: linear-gradient(to bottom, #8b6914, #6b5310);
+            box-shadow: 0 0 8px rgba(137, 107, 20, 0.6), inset 0 0 4px rgba(212, 165, 116, 0.2);
+        }
+
+        .switch-knob {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle at 30% 30%, #c9a961, #8b6914);
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.8), 0 2px 4px rgba(0, 0, 0, 0.6);
+            transition: all 0.3s;
+        }
+
+        .switch.active .switch-knob {
+            left: 22px;
+        }
+
+        /* Command Feedback */
+        .feed {
+            grid-column: 1 / -1;
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(212, 165, 116, 0.2);
+            border-radius: 2px;
+        }
+
+        .feed-entry {
+            padding: 8px 0;
+            font-size: 12px;
+            color: #c9b898;
+            border-bottom: 1px solid rgba(212, 165, 116, 0.1);
+            font-family: 'Courier Prime', monospace;
+            line-height: 1.4;
+        }
+
+        .feed-entry:last-child {
+            border-bottom: none;
+        }
+
+        .feed-time {
+            color: #a88c46;
+            margin-right: 8px;
+        }
+
+        .feed-action {
+            color: #d4a574;
+        }
+
+        .feed-amount {
+            color: #8fbb6f;
+        }
+
+        .feed-amount.negative {
+            color: #d17070;
+        }
+
+        /* Steam Vent SVG */
+        .steam-vent {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            opacity: 0.7;
+        }
+
+        .vapor {
+            animation: rise 3s ease-in infinite;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(0) translateX(0); opacity: 0.8; }
+            50% { opacity: 0.4; }
+            100% { transform: translateY(-20px) translateX(2px); opacity: 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 1280px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .level-content {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                grid-template-columns: 180px 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                display: flex;
+                flex-wrap: wrap;
+                border-right: none;
+                border-bottom: 2px solid #8b6914;
+                padding: 12px;
+                overflow-y: visible;
+                overflow-x: auto;
+                gap: 16px;
+            }
+
+            .nav-group {
+                margin-bottom: 0;
+                padding: 0;
+            }
+
+            .nav-group-title {
+                display: none;
+            }
+
+            .nav-item {
+                padding: 6px 12px;
+                white-space: nowrap;
+            }
+
+            .content {
+                padding: 12px;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .figures-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-right {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-end;
+            }
+
+            .top-gear, .bottom-gear {
+                display: none;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+
+            .header-title {
+                justify-content: center;
+            }
+
+            .header-right {
+                align-items: center;
+            }
+
+            .player-info {
+                text-align: center;
+            }
+
+            .notifications {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <span>⚙️</span>
+            <div>
+                <div>The Interstellar Settlement Protocol</div>
+                <div class="header-version">v0.4 — EST. 2147</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="player-info">
+                <div class="player-name">CEO R. VANCE</div>
+                <div class="corp-ticker">HELIX MERIDIAN HOLDINGS — HMH</div>
+            </div>
+            <div class="notifications">
+                <div class="notification-bell"></div>
+                <span>23</span>
+            </div>
+            <button class="logout-btn">⊗ LOG OUT</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <nav>
+            <div class="nav-group">
+                <div class="nav-group-title">COMPANY</div>
+                <div class="nav-item active">Overview</div>
+                <div class="nav-item">Inbox</div>
+                <div class="nav-item">Financial Core</div>
+                <div class="nav-item">CEO Insight</div>
+                <div class="nav-item">Assignments</div>
+                <div class="nav-item">Conglomerate</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">STATION</div>
+                <div class="nav-item">Station</div>
+                <div class="nav-item">Operations</div>
+                <div class="nav-item">Fleet</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">INDUSTRY</div>
+                <div class="nav-item">Corporate R&D</div>
+                <div class="nav-item">Refinery Chains</div>
+                <div class="nav-item">Logistics</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">MARKET</div>
+                <div class="nav-item">Galactic Exchange</div>
+                <div class="nav-item">Assets</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">COMMS</div>
+                <div class="nav-item">Chat</div>
+                <div class="nav-item">Forum</div>
+            </div>
+
+            <div class="page-label">MOCKUP 14<br/>STEAMPUNK</div>
+        </nav>
+
+        <div class="content">
+            <svg class="gear top-gear" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="20" fill="none" stroke="#d4a574" stroke-width="2"/>
+                <g stroke="#d4a574" stroke-width="2" fill="none">
+                    <rect x="48" y="5" width="4" height="15"/>
+                    <rect x="48" y="80" width="4" height="15"/>
+                    <rect x="5" y="48" width="15" height="4"/>
+                    <rect x="80" y="48" width="15" height="4"/>
+                    <rect x="15" y="15" width="12" height="12"/>
+                    <rect x="73" y="73" width="12" height="12"/>
+                    <rect x="73" y="15" width="12" height="12"/>
+                    <rect x="15" y="73" width="12" height="12"/>
+                </g>
+            </svg>
+
+            <svg class="gear bottom-gear" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="18" fill="none" stroke="#d4a574" stroke-width="2"/>
+                <g stroke="#d4a574" stroke-width="2" fill="none">
+                    <rect x="48" y="8" width="4" height="12"/>
+                    <rect x="48" y="80" width="4" height="12"/>
+                    <rect x="8" y="48" width="12" height="4"/>
+                    <rect x="80" y="48" width="12" height="4"/>
+                </g>
+            </svg>
+
+            <div class="dashboard-grid">
+                <!-- Level Progress -->
+                <div class="card level-section">
+                    <div class="card-title">
+                        <span class="rivet"></span>
+                        CORPORATION LEVEL
+                    </div>
+                    <div class="rivets-top-left">
+                        <div class="rivet"></div>
+                        <div class="rivet"></div>
+                    </div>
+                    <div class="rivets-bottom-right">
+                        <div class="rivet"></div>
+                        <div class="rivet"></div>
+                    </div>
+
+                    <div class="level-content">
+                        <div>
+                            <div class="level-progress" id="levelDisplay">2 / 30</div>
+                            <button class="logout-btn" style="margin-top: 8px; width: 100%; text-align: center;" onclick="changeLevel(-1)">← PREV</button>
+                        </div>
+                        <div>
+                            <div style="font-size: 13px; color: #c9b898;">Next milestone unlocks:</div>
+                            <div class="level-unlocks" style="margin-top: 8px; border: none; background: transparent; padding: 0;">
+                                <strong>ADVANCING TO LEVEL 3:</strong>
+                                <div class="objective">
+                                    <span class="obj-name">Sell 300 Silicate on GEX</span>
+                                    <span class="obj-status">0 / 300</span>
+                                </div>
+                                <div class="objective">
+                                    <span class="obj-name">Research Basic Extraction</span>
+                                    <span class="obj-status completed">✓ 1 / 1</span>
+                                </div>
+                            </div>
+                            <button class="logout-btn" style="margin-top: 8px; width: 100%; text-align: center;" onclick="changeLevel(1)">NEXT →</button>
+                        </div>
+                    </div>
+
+                    <div class="level-unlocks" style="margin-top: 16px;">
+                        <strong>UNLOCKS AT LEVEL 3:</strong><br/>
+                        Employee cap 45 • Building slots 4 • Fleet cap 22 • Highest building tier 2
+                    </div>
+                </div>
+
+                <!-- Executive Situation Brief -->
+                <div class="card">
+                    <div class="card-title">
+                        <span class="rivet"></span>
+                        EXECUTIVE SITUATION BRIEF
+                    </div>
+                    <div class="rivets-top-left">
+                        <div class="rivet"></div>
+                        <div class="rivet"></div>
+                    </div>
+                    <div style="font-size: 12px; line-height: 1.6; color: #c9b898;">
+                        <p style="margin-bottom: 8px;">
+                            <span style="color: #d4a574; font-weight: 700;">ISP</span> is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.
+                        </p>
+                        <p style="font-size: 11px; color: #a88c46; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(212, 165, 116, 0.2);">
+                            Your corporation stands at the threshold. Focus on completing current objectives to advance.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Key Figures -->
+                <div class="card">
+                    <div class="card-title">
+                        <span class="rivet"></span>
+                        FINANCIAL STATUS
+                    </div>
+                    <div class="rivets-top-left">
+                        <div class="rivet"></div>
+                        <div class="rivet"></div>
+                    </div>
+                    <div class="figures-grid">
+                        <div class="figure">
+                            <div class="figure-label">CASH RESERVES</div>
+                            <div class="figure-value">$18,061</div>
+                        </div>
+                        <div class="figure">
+                            <div class="figure-label">NET DAILY FLOW</div>
+                            <div class="figure-value warning">-$27,915</div>
+                        </div>
+                        <div class="figure">
+                            <div class="figure-label">CONGLOMERATE</div>
+                            <div class="figure-value">Independent</div>
+                        </div>
+                        <div class="figure">
+                            <div class="figure-label">MILITARY POWER</div>
+                            <div class="figure-value">0 ATK / 0 DEF</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Operations & Assets -->
+                <div class="card">
+                    <div class="card-title">
+                        <span class="rivet"></span>
+                        ACTIVE OPERATIONS
+                    </div>
+                    <div class="rivets-top-left">
+                        <div class="rivet"></div>
+                        <div class="rivet"></div>
+                    </div>
+                    <div style="font-size: 12px; color: #c9b898;">
+                        <div class="objective">
+                            <span class="obj-name">Extractor MX-01 (Mars MRS-0419)</span>
+                            <span class="obj-status">72%</span>
+                        </div>
+                        <div class="objective">
+                            <span class="obj-name">Extractor MX-02 (Mars MRS-0419)</span>
+                            <span class="obj-status">31%</span>
+                        </div>
+                        <div class="objective">
+                            <span class="obj-name">Silicate Inventory</span>
+                            <span class="obj-status">142 units</span>
+                        </div>
+                        <div class="objective">
+                            <span class="obj-name">Personnel Deployed</span>
+                            <span class="obj-status">18 / 30</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Command Feedback -->
+                <div class="card">
+                    <div class="card-title">
+                        <span class="rivet"></span>
+                        COMMAND FEEDBACK LOG
+                    </div>
+                    <div class="rivets-bottom-right">
+                        <div class="rivet"></div>
+                        <div class="rivet"></div>
+                    </div>
+                    <div class="feed" id="feedLog">
+                        <div class="feed-entry">
+                            <span class="feed-time">[UPLINK]</span>
+                            <span class="feed-action">Command uplink standing by.</span> Completed actions and queue additions will be logged here.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Steam Vent -->
+            <svg class="steam-vent" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                <rect x="15" y="40" width="30" height="15" fill="#8b6914" stroke="#d4a574" stroke-width="1"/>
+                <rect x="18" y="42" width="8" height="10" fill="#3d3530"/>
+                <rect x="34" y="42" width="8" height="10" fill="#3d3530"/>
+                <circle cx="22" cy="28" r="3" class="vapor" fill="#d4a574" opacity="0.6"/>
+                <circle cx="38" cy="32" r="2.5" class="vapor" fill="#d4a574" opacity="0.4" style="animation-delay: 0.5s;"/>
+                <circle cx="30" cy="25" r="2" class="vapor" fill="#d4a574" opacity="0.5" style="animation-delay: 1s;"/>
+            </svg>
+        </div>
+    </div>
+
+    <script>
+        let currentLevel = 2;
+        const levelProgression = {
+            1: { name: 'Level 1', objectives: ['Research Corporation Basics', 'Hire 3 Employees'], completed: [true, true], unlocks: 'Employee cap 10, Building slots 1, Fleet cap 0' },
+            2: { name: 'Level 2', objectives: ['Sell 300 Silicate on GEX', 'Research Basic Extraction Analytics'], completed: [false, true], unlocks: 'Employee cap 45, Building slots 4, Fleet cap 22, Highest tier 2' },
+            3: { name: 'Level 3', objectives: ['Build 2 Refineries', 'Deploy 5 Mining Rigs'], completed: [false, false], unlocks: 'Employee cap 75, Building slots 8, Fleet cap 40, Highest tier 3' },
+            4: { name: 'Level 4', objectives: ['Establish Mars Station', 'Research Advanced Logistics'], completed: [false, false], unlocks: 'Employee cap 120, Building slots 12, Fleet cap 60, Highest tier 4' }
+        };
+
+        function changeLevel(delta) {
+            const newLevel = currentLevel + delta;
+            if (newLevel >= 1 && newLevel <= 4) {
+                currentLevel = newLevel;
+                updateLevelDisplay();
+                addFeedEntry(`Level view changed to ${currentLevel}`);
+            }
+        }
+
+        function updateLevelDisplay() {
+            const level = levelProgression[currentLevel];
+            document.getElementById('levelDisplay').textContent = `${currentLevel} / 30`;
+
+            const objectives = level.objectives.map((obj, i) => {
+                const status = level.completed[i] ? '✓ 1 / 1' : '0 / 1';
+                const cls = level.completed[i] ? 'completed' : '';
+                return `<div class="objective">
+                    <span class="obj-name">${obj}</span>
+                    <span class="obj-status ${cls}">${status}</span>
+                </div>`;
+            }).join('');
+
+            document.querySelectorAll('.level-section .level-unlocks')[0].innerHTML = `<strong>ADVANCING TO LEVEL ${currentLevel + 1}:</strong>${objectives}`;
+            document.querySelectorAll('.level-section .level-unlocks')[1].innerHTML = `<strong>UNLOCKS AT LEVEL ${currentLevel + 1}:</strong><br/>${level.unlocks}`;
+        }
+
+        function addFeedEntry(text) {
+            const feed = document.getElementById('feedLog');
+            const entry = document.createElement('div');
+            entry.className = 'feed-entry';
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            entry.innerHTML = `<span class="feed-time">[${time}]</span> ${text}`;
+            feed.insertBefore(entry, feed.firstChild);
+            if (feed.children.length > 20) feed.removeChild(feed.lastChild);
+        }
+
+        // Populate feed on load
+        window.addEventListener('load', () => {
+            addFeedEntry('<span class="feed-action">Extractor MX-01 cycle complete:</span> <span class="feed-amount">+48 Silicate</span>');
+            addFeedEntry('<span class="feed-action">Research queued:</span> Refinery Chain I');
+            addFeedEntry('<span class="feed-action">Lease MRS-0419 renewed by</span> ISA Claims & Leases Division');
+            addFeedEntry('<span class="feed-action">Payroll disbursed:</span> <span class="feed-amount negative">-$4,210</span>');
+        });
+
+        // Navigation interactivity
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                addFeedEntry(`Navigated to: ${this.textContent.trim()}`);
+            });
+        });
+
+        // Mechanical switches (for toggles)
+        let switchStates = { a: false, b: false, c: false };
+        document.querySelectorAll('.switch').forEach((sw, i) => {
+            sw.addEventListener('click', function() {
+                switchStates[String.fromCharCode(97 + i)] = !switchStates[String.fromCharCode(97 + i)];
+                this.classList.toggle('active');
+            });
+        });
+    </script>
+</body>
+</html>

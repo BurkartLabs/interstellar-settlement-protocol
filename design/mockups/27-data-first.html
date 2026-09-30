@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 27 — Data-First</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0e1a url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs><pattern id="stars" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="80" cy="30" r="0.5" fill="%23ffffff" opacity="0.05"/><circle cx="50" cy="70" r="1.5" fill="%23ffffff" opacity="0.08"/><circle cx="90" cy="80" r="0.8" fill="%23ffffff" opacity="0.06"/><circle cx="10" cy="50" r="1" fill="%23ffffff" opacity="0.07"/></pattern></defs><rect width="100%" height="100%" fill="%230a0e1a"/><rect width="100%" height="100%" fill="url(%23stars)"/></svg>');
+            color: #e4e7f0;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, #0f1419 0%, #1a1f2e 100%);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .sidebar-header {
+            padding: 0 20px 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .game-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #8b9bff;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .game-version {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.5px;
+        }
+
+        .nav-group {
+            margin-bottom: 24px;
+            padding: 0 8px;
+        }
+
+        .nav-group-title {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            color: rgba(255, 255, 255, 0.35);
+            text-transform: uppercase;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+        }
+
+        .nav-item {
+            padding: 10px 12px;
+            margin: 4px 0;
+            cursor: pointer;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.65);
+            transition: all 0.2s;
+            border-radius: 4px;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(139, 155, 255, 0.1);
+            color: #e4e7f0;
+        }
+
+        .nav-item.active {
+            background: rgba(139, 155, 255, 0.15);
+            color: #8b9bff;
+            border-left-color: #8b9bff;
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0a0e1a;
+            overflow-y: auto;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 32px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 20, 25, 0.6);
+            backdrop-filter: blur(8px);
+        }
+
+        .player-info {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .player-name {
+            color: #8b9bff;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .corp-ticker {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .notices {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .notice-badge {
+            background: rgba(255, 107, 107, 0.15);
+            color: #ff6b6b;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 1px solid rgba(139, 155, 255, 0.3);
+            color: #8b9bff;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(139, 155, 255, 0.1);
+            border-color: #8b9bff;
+        }
+
+        /* Content Area */
+        .content {
+            padding: 32px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 16px;
+            grid-template-areas:
+                "kpi1 kpi2 kpi3 kpi4"
+                "level level level level"
+                "left left center right"
+                "left left center right";
+        }
+
+        .mockup-label {
+            position: fixed;
+            bottom: 12px;
+            right: 16px;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.25);
+            letter-spacing: 0.5px;
+            pointer-events: none;
+        }
+
+        /* KPI Cards */
+        .kpi {
+            background: linear-gradient(135deg, rgba(139, 155, 255, 0.08) 0%, rgba(139, 155, 255, 0.02) 100%);
+            border: 1px solid rgba(139, 155, 255, 0.15);
+            border-radius: 6px;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+        }
+
+        .kpi1 { grid-area: kpi1; }
+        .kpi2 { grid-area: kpi2; }
+        .kpi3 { grid-area: kpi3; }
+        .kpi4 { grid-area: kpi4; }
+
+        .kpi-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #e4e7f0;
+            font-family: 'IBM Plex Mono', monospace;
+            margin-bottom: 4px;
+        }
+
+        .kpi2 .kpi-value {
+            color: #ff6b6b;
+        }
+
+        .kpi3 .kpi-value {
+            color: #74c0fc;
+        }
+
+        .kpi4 .kpi-value {
+            color: #51cf66;
+        }
+
+        .kpi-detail {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Level Section */
+        .level-section {
+            grid-area: level;
+            background: linear-gradient(135deg, rgba(91, 155, 255, 0.12) 0%, rgba(91, 155, 255, 0.04) 100%);
+            border: 1px solid rgba(91, 155, 255, 0.2);
+            border-radius: 6px;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .level-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .level-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #5b9bff;
+        }
+
+        .level-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .level-btn {
+            background: rgba(91, 155, 255, 0.15);
+            border: 1px solid rgba(91, 155, 255, 0.3);
+            color: #5b9bff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .level-btn:hover {
+            background: rgba(91, 155, 255, 0.25);
+        }
+
+        .level-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .level-progress {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .level-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: conic-gradient(#5b9bff 0deg 240deg, rgba(91, 155, 255, 0.15) 240deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: #e4e7f0;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .level-info {
+            flex: 1;
+        }
+
+        .level-current {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e4e7f0;
+            margin-bottom: 4px;
+        }
+
+        .level-unlocks {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.6;
+        }
+
+        .level-reqs {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .req {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid rgba(91, 155, 255, 0.3);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .req.done {
+            border-left-color: #51cf66;
+        }
+
+        .req-text {
+            color: #e4e7f0;
+        }
+
+        .req-progress {
+            font-family: 'IBM Plex Mono', monospace;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 10px;
+        }
+
+        .req.done .req-progress {
+            color: #51cf66;
+        }
+
+        .req-link {
+            color: #5b9bff;
+            cursor: pointer;
+            text-decoration: none;
+            margin-left: 8px;
+            font-size: 10px;
+        }
+
+        .req-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Tables and Data */
+        .data-table {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(139, 155, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        th {
+            background: rgba(139, 155, 255, 0.1);
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(139, 155, 255, 0.15);
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(139, 155, 255, 0.08);
+            color: #e4e7f0;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-mono {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 10px;
+            color: #74c0fc;
+        }
+
+        .status-bar {
+            display: inline-block;
+            background: rgba(91, 155, 255, 0.2);
+            border-radius: 2px;
+            height: 4px;
+            width: 60px;
+            overflow: hidden;
+        }
+
+        .status-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #5b9bff, #8b9bff);
+        }
+
+        /* Command Log */
+        .log-section {
+            grid-area: right;
+            background: linear-gradient(135deg, rgba(107, 114, 128, 0.08) 0%, rgba(107, 114, 128, 0.02) 100%);
+            border: 1px solid rgba(139, 155, 255, 0.1);
+            border-radius: 6px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(8px);
+        }
+
+        .log-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(139, 155, 255, 0.1);
+        }
+
+        .log-entries {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 11px;
+        }
+
+        .log-entry {
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 2px solid rgba(139, 155, 255, 0.3);
+            border-radius: 3px;
+            color: rgba(255, 255, 255, 0.75);
+            line-height: 1.4;
+        }
+
+        .log-entry.event {
+            border-left-color: #51cf66;
+        }
+
+        .log-entry.warning {
+            border-left-color: #ff6b6b;
+        }
+
+        .log-time {
+            color: rgba(255, 255, 255, 0.4);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 9px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        /* Left Section */
+        .left-section {
+            grid-area: left;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+
+        /* Center Section */
+        .center-section {
+            grid-area: center;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Sparkline */
+        .sparkline-container {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(139, 155, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sparkline-label {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 1280px) {
+            .content {
+                grid-template-columns: 1fr 1fr;
+                grid-template-areas:
+                    "kpi1 kpi2"
+                    "kpi3 kpi4"
+                    "level level"
+                    "left center"
+                    "left right";
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .content {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "kpi1"
+                    "kpi2"
+                    "kpi3"
+                    "kpi4"
+                    "level"
+                    "left"
+                    "center"
+                    "right";
+                padding: 16px;
+            }
+
+            .level-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .topbar {
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px;
+            }
+
+            .player-info {
+                flex-direction: column;
+                gap: 8px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mockup-label">Mockup 27 - Data-First Dashboard</div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="game-title">ISP</div>
+                <div class="game-version">v0.4 • est. 2147</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">COMPANY</div>
+                <div class="nav-item active" data-page="overview">Overview</div>
+                <div class="nav-item" data-page="inbox">Inbox</div>
+                <div class="nav-item" data-page="financial">Financial Core</div>
+                <div class="nav-item" data-page="insight">CEO Insight</div>
+                <div class="nav-item" data-page="assignments">Assignments</div>
+                <div class="nav-item" data-page="conglomerate">Conglomerate</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">STATION</div>
+                <div class="nav-item" data-page="station">Station</div>
+                <div class="nav-item" data-page="operations">Operations</div>
+                <div class="nav-item" data-page="fleet">Fleet</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">INDUSTRY</div>
+                <div class="nav-item" data-page="research">Corporate R&D</div>
+                <div class="nav-item" data-page="refinery">Refinery Chains</div>
+                <div class="nav-item" data-page="logistics">Logistics</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">MARKET</div>
+                <div class="nav-item" data-page="exchange">Galactic Exchange</div>
+                <div class="nav-item" data-page="assets">Assets</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">COMMS</div>
+                <div class="nav-item" data-page="chat">Chat</div>
+                <div class="nav-item" data-page="forum">Forum</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main">
+            <!-- Topbar -->
+            <div class="topbar">
+                <div class="player-info">
+                    <span class="player-name">R. Vance</span>
+                    <span class="corp-ticker">HMH • Helix Meridian Holdings</span>
+                </div>
+                <div class="notices">
+                    <div class="notice-badge">23 Unread</div>
+                    <button class="logout-btn">Log Out</button>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content">
+                <!-- KPI Cards -->
+                <div class="kpi kpi1">
+                    <div class="kpi-label">Cash Reserves</div>
+                    <div class="kpi-value">$18,061</div>
+                    <div class="kpi-detail">Liquid credits</div>
+                </div>
+
+                <div class="kpi kpi2">
+                    <div class="kpi-label">Net Daily Flow</div>
+                    <div class="kpi-value">-$27,915</div>
+                    <div class="kpi-detail">24h net burn</div>
+                </div>
+
+                <div class="kpi kpi3">
+                    <div class="kpi-label">Military Power</div>
+                    <div class="kpi-value">0 / 0</div>
+                    <div class="kpi-detail">Ready: 100%</div>
+                </div>
+
+                <div class="kpi kpi4">
+                    <div class="kpi-label">Conglomerate</div>
+                    <div class="kpi-value">—</div>
+                    <div class="kpi-detail">Independent</div>
+                </div>
+
+                <!-- Level Section -->
+                <div class="level-section">
+                    <div class="level-header">
+                        <div class="level-title">Corporation Level Progression</div>
+                        <div class="level-nav">
+                            <button class="level-btn" onclick="changeLevel(-1)">&lt;</button>
+                            <button class="level-btn" onclick="changeLevel(1)">&gt;</button>
+                        </div>
+                    </div>
+
+                    <div class="level-content">
+                        <div class="level-progress">
+                            <div class="level-circle" id="level-circle">2</div>
+                            <div class="level-info">
+                                <div class="level-current" id="level-current">Level 2 of 30</div>
+                                <div class="level-unlocks">
+                                    <strong>Active Unlocks:</strong><br/>
+                                    Employee Cap 30 • Building Slots 3<br/>Fleet Cap 20 • Tier 1 Buildings
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="level-reqs" id="level-reqs">
+                            <div class="req">
+                                <div class="req-text">Sell 300 Silicate on GEX</div>
+                                <div class="req-progress">0 / 300</div>
+                                <a class="req-link" onclick="navTo('exchange')">→ Go</a>
+                            </div>
+                            <div class="req done">
+                                <div class="req-text">Research Basic Extraction Analytics</div>
+                                <div class="req-progress">✓ Done</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Left Section: Extractors & Inventory -->
+                <div class="left-section">
+                    <div>
+                        <div class="section-title">Active Extractors (MRS-0419)</div>
+                        <div class="data-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Unit</th>
+                                        <th>Status</th>
+                                        <th>Progress</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="data-mono">MX-01</td>
+                                        <td>Extracting</td>
+                                        <td>
+                                            <div class="status-bar">
+                                                <div class="status-fill" style="width: 72%"></div>
+                                            </div> 72%
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="data-mono">MX-02</td>
+                                        <td>Extracting</td>
+                                        <td>
+                                            <div class="status-bar">
+                                                <div class="status-fill" style="width: 31%"></div>
+                                            </div> 31%
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="section-title">Inventory</div>
+                        <div class="data-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Resource</th>
+                                        <th>Units</th>
+                                        <th>Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Silicate</td>
+                                        <td class="data-mono">142</td>
+                                        <td class="data-mono">$8,662</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="section-title">Staffing</div>
+                        <div class="data-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Current</th>
+                                        <th>Cap</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Employees</td>
+                                        <td class="data-mono">18</td>
+                                        <td class="data-mono">30</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center Section: Research & Pricing -->
+                <div class="center-section">
+                    <div>
+                        <div class="section-title">Research Queue</div>
+                        <div class="data-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Project</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Refinery Chain I</td>
+                                        <td>
+                                            <div class="status-bar">
+                                                <div class="status-fill" style="width: 45%"></div>
+                                            </div> In Progress
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="sparkline-container">
+                        <div class="sparkline-label">Silicate GEX Peg Price (14d)</div>
+                        <svg viewBox="0 0 200 60" preserveAspectRatio="xMidYMid meet">
+                            <defs>
+                                <linearGradient id="priceGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#5b9bff;stop-opacity:0.3" />
+                                    <stop offset="100%" style="stop-color:#5b9bff;stop-opacity:0.05" />
+                                </linearGradient>
+                            </defs>
+                            <polyline points="0,42 15,38 30,40 45,35 60,32 75,36 90,30 105,28 120,31 135,27 150,25 165,29 180,24 195,20"
+                                      fill="none" stroke="#5b9bff" stroke-width="1.5"/>
+                            <polyline points="0,42 15,38 30,40 45,35 60,32 75,36 90,30 105,28 120,31 135,27 150,25 165,29 180,24 195,20 195,60 0,60"
+                                      fill="url(#priceGrad)" stroke="none"/>
+                            <text x="0" y="58" font-size="8" fill="rgba(255,255,255,0.4)" font-family="'IBM Plex Mono'">50cr</text>
+                            <text x="170" y="58" font-size="8" fill="rgba(255,255,255,0.4)" font-family="'IBM Plex Mono'">63cr</text>
+                        </svg>
+                        <div style="font-size: 10px; color: #74c0fc; font-family: 'IBM Plex Mono';">Current: 61 cr/unit ↓ 2.4%</div>
+                    </div>
+                </div>
+
+                <!-- Right Section: Command Log -->
+                <div class="log-section">
+                    <div class="log-title">Command Feedback Log</div>
+                    <div class="log-entries" id="log-entries">
+                        <div class="log-entry">
+                            <span class="log-time">02:47:19 UTC</span>
+                            Command uplink standing by. Completed actions and queue additions logged here.
+                        </div>
+                        <div class="log-entry event">
+                            <span class="log-time">02:46:55 UTC</span>
+                            Extractor MX-01 cycle complete: +48 Silicate
+                        </div>
+                        <div class="log-entry event">
+                            <span class="log-time">02:35:12 UTC</span>
+                            Research queued: Refinery Chain I (Priority: High)
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">02:18:04 UTC</span>
+                            Lease MRS-0419 renewed by ISA Claims & Leases Division
+                        </div>
+                        <div class="log-entry warning">
+                            <span class="log-time">01:59:42 UTC</span>
+                            Payroll disbursed: -$4,210 (18 employees)
+                        </div>
+                        <div class="log-entry">
+                            <span class="log-time">01:42:18 UTC</span>
+                            STA notification: Docking Bay 4 maintenance scheduled
+                        </div>
+                        <div class="log-entry event">
+                            <span class="log-time">01:15:33 UTC</span>
+                            Silicate inventory updated: +32 units (MX-02 delivery)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLevel = 2;
+
+        const levelData = {
+            1: {
+                unlocks: "Employee Cap 15 • Building Slots 2<br/>Fleet Cap 10 • Tier 1 Buildings",
+                reqs: [
+                    { text: "Research Basic Mining", done: true },
+                    { text: "Complete First Lease", done: true }
+                ]
+            },
+            2: {
+                unlocks: "Employee Cap 30 • Building Slots 3<br/>Fleet Cap 20 • Tier 1 Buildings",
+                reqs: [
+                    { text: "Sell 300 Silicate on GEX", progress: "0 / 300", done: false },
+                    { text: "Research Basic Extraction Analytics", progress: "1 / 1", done: true }
+                ]
+            },
+            3: {
+                unlocks: "Employee Cap 45 • Building Slots 4<br/>Fleet Cap 22 • Tier 2 Buildings",
+                reqs: [
+                    { text: "Accumulate $100k Credits", progress: "18 / 100", done: false },
+                    { text: "Build 2 Refineries", progress: "0 / 2", done: false }
+                ]
+            },
+            4: {
+                unlocks: "Employee Cap 60 • Building Slots 5<br/>Fleet Cap 30 • Tier 2 Buildings",
+                reqs: [
+                    { text: "Research Advanced Fleet Systems", progress: "0 / 1", done: false },
+                    { text: "Establish Trade Route", progress: "0 / 1", done: false }
+                ]
+            }
+        };
+
+        function changeLevel(delta) {
+            const newLevel = currentLevel + delta;
+            if (newLevel >= 1 && newLevel <= 30) {
+                currentLevel = newLevel;
+                updateLevelDisplay();
+            }
+        }
+
+        function updateLevelDisplay() {
+            const data = levelData[currentLevel] || levelData[2];
+
+            document.getElementById('level-circle').textContent = currentLevel;
+            document.getElementById('level-current').textContent = `Level ${currentLevel} of 30`;
+
+            const unlocksDiv = document.querySelector('.level-unlocks');
+            if (unlocksDiv) {
+                unlocksDiv.innerHTML = `<strong>Active Unlocks:</strong><br/>${data.unlocks}`;
+            }
+
+            const reqsDiv = document.getElementById('level-reqs');
+            reqsDiv.innerHTML = data.reqs.map(req => `
+                <div class="req ${req.done ? 'done' : ''}">
+                    <div class="req-text">${req.text}</div>
+                    <div class="req-progress">${req.done ? '✓ Done' : req.progress}</div>
+                    ${!req.done ? '<a class="req-link" onclick="navTo(\'exchange\')">→ Go</a>' : ''}
+                </div>
+            `).join('');
+        }
+
+        // Nav interactions
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
+
+        function navTo(page) {
+            alert(`Navigate to ${page}`);
+        }
+
+        // Log ticker
+        const logEntries = document.getElementById('log-entries');
+        const messages = [
+            { text: "Extractor cycle initiated: MX-01", type: "event" },
+            { text: "Employee contract: Dr. Sarah Chen (Research) hired", type: "event" },
+            { text: "GEX order accepted: 25 Silicate @ 61 cr/unit", type: "event" },
+            { text: "Daily maintenance routine completed", type: "log" },
+            { text: "Alert: Net daily flow below target", type: "warning" }
+        ];
+
+        let msgIndex = 0;
+        setInterval(() => {
+            const msg = messages[msgIndex % messages.length];
+            const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${msg.type}`;
+            entry.innerHTML = `<span class="log-time">${timeStr}</span>${msg.text}`;
+
+            if (logEntries.children.length > 10) {
+                logEntries.removeChild(logEntries.lastChild);
+            }
+            logEntries.insertBefore(entry, logEntries.firstChild);
+            msgIndex++;
+        }, 8000);
+    </script>
+</body>
+</html>

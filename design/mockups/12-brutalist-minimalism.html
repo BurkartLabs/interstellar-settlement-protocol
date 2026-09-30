@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 12 — Brutalist Minimalism</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Space Mono', 'Courier New', monospace;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%),
+                        repeating-linear-gradient(90deg, #1a1a1a 0px, #1a1a1a 2px, transparent 2px, transparent 4px),
+                        repeating-linear-gradient(0deg, #1a1a1a 0px, #1a1a1a 1px, transparent 1px, transparent 2px);
+            background-attachment: fixed;
+            background-size: 100% 100%, 4px 4px, 2px 2px;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* HEADER */
+        .header {
+            grid-column: 1 / -1;
+            background: #000;
+            border-bottom: 3px solid #00ff41;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .header-left {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .title {
+            font-size: 18px;
+            letter-spacing: 3px;
+            color: #fff;
+            text-transform: uppercase;
+        }
+
+        .version {
+            font-size: 11px;
+            color: #666;
+            letter-spacing: 1px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .notices {
+            background: #00ff41;
+            color: #000;
+            padding: 4px 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .logout {
+            cursor: pointer;
+            color: #00ff41;
+            text-decoration: underline;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .logout:hover {
+            color: #fff;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            background: #111;
+            border-right: 2px solid #333;
+            padding: 20px 0;
+            overflow-y: auto;
+            grid-row: 2 / -1;
+        }
+
+        .nav-group {
+            margin-bottom: 28px;
+            padding: 0 12px;
+        }
+
+        .nav-group-title {
+            font-size: 10px;
+            letter-spacing: 3px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .nav-item {
+            font-size: 12px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            letter-spacing: 1px;
+            color: #888;
+            text-transform: uppercase;
+            transition: all 0.1s;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            color: #00ff41;
+            background: rgba(0, 255, 65, 0.05);
+        }
+
+        .nav-item.active {
+            background: #000;
+            color: #00ff41;
+            border-left: 2px solid #00ff41;
+        }
+
+        /* MAIN CONTENT */
+        .main {
+            grid-row: 2 / -1;
+            overflow-y: auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        /* CARD */
+        .card {
+            background: #0a0a0a;
+            border: 2px solid #333;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-title {
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: #00ff41;
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 14px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .card-content {
+            flex: 1;
+        }
+
+        /* PLAYER INFO */
+        .player-info {
+            grid-column: 1 / -1;
+        }
+
+        .player-header {
+            display: flex;
+            gap: 40px;
+            font-size: 13px;
+        }
+
+        .player-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .player-label {
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .player-value {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #fff;
+        }
+
+        /* LEVEL PROGRESS */
+        .level-card {
+            grid-column: 1 / 2;
+        }
+
+        .level-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00ff41;
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+
+        .level-targets {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .target {
+            background: #000;
+            border: 1px solid #333;
+            padding: 10px 12px;
+            font-size: 11px;
+        }
+
+        .target-text {
+            color: #ccc;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .target-progress {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #00ff41;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 10px;
+            color: #666;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .target-link {
+            color: #00ff41;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 10px;
+            margin-top: 6px;
+            display: inline-block;
+        }
+
+        .target-link:hover {
+            color: #fff;
+        }
+
+        .target.completed .progress-fill {
+            background: #444;
+        }
+
+        .target.completed .target-text {
+            color: #666;
+        }
+
+        /* LEVEL UNLOCKS */
+        .unlocks {
+            grid-column: 2 / 3;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .unlock-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #222;
+            font-size: 12px;
+        }
+
+        .unlock-item:last-child {
+            border-bottom: none;
+        }
+
+        .unlock-label {
+            color: #888;
+            letter-spacing: 0.5px;
+        }
+
+        .unlock-value {
+            color: #00ff41;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        /* KEY FIGURES */
+        .figures-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            grid-column: 1 / -1;
+        }
+
+        .figure-card {
+            background: #0a0a0a;
+            border: 2px solid #333;
+            padding: 16px;
+        }
+
+        .figure-label {
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .figure-value {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #fff;
+        }
+
+        .figure-value.warning {
+            color: #ff3333;
+        }
+
+        .figure-value.positive {
+            color: #00ff41;
+        }
+
+        .figure-note {
+            font-size: 10px;
+            color: #666;
+            margin-top: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        /* COMMAND FEEDBACK */
+        .feed-card {
+            grid-column: 1 / 2;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feed-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .feed-item {
+            background: #000;
+            border: 1px solid #333;
+            padding: 8px 10px;
+            font-size: 11px;
+            color: #aaa;
+            border-left: 2px solid #00ff41;
+        }
+
+        .feed-timestamp {
+            font-size: 9px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        /* SITUATION BRIEF */
+        .brief-card {
+            grid-column: 2 / 3;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brief-text {
+            font-size: 12px;
+            line-height: 1.6;
+            color: #aaa;
+            letter-spacing: 0.5px;
+        }
+
+        /* LEVEL PEEK */
+        .peek-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            justify-content: space-between;
+        }
+
+        .peek-btn {
+            background: #000;
+            border: 1px solid #333;
+            color: #00ff41;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.1s;
+        }
+
+        .peek-btn:hover {
+            border-color: #00ff41;
+            background: rgba(0, 255, 65, 0.05);
+        }
+
+        .peek-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .peek-level {
+            font-size: 11px;
+            color: #666;
+            text-align: center;
+        }
+
+        /* RESOURCES */
+        .resources-card {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .resource-item {
+            background: #000;
+            border: 1px solid #333;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .resource-name {
+            font-size: 10px;
+            color: #666;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .resource-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #00ff41;
+            letter-spacing: 1px;
+        }
+
+        .resource-status {
+            font-size: 9px;
+            color: #666;
+            margin-top: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1280px) {
+            .container {
+                grid-template-columns: 150px 1fr;
+            }
+            .main {
+                grid-template-columns: 1fr;
+            }
+            .player-header {
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                border-right: none;
+                border-bottom: 2px solid #333;
+                padding: 12px 20px;
+                display: flex;
+                gap: 40px;
+                overflow-x: auto;
+            }
+            .nav-group {
+                margin-bottom: 0;
+                display: flex;
+                gap: 8px;
+                padding: 0;
+            }
+            .nav-group-title {
+                display: none;
+            }
+            .main {
+                grid-template-columns: 1fr;
+            }
+            .figures-grid {
+                grid-template-columns: 1fr;
+            }
+            .resources-card {
+                grid-template-columns: 1fr 1fr;
+            }
+            .level-card, .unlocks, .feed-card, .brief-card {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px;
+            }
+            .header-left {
+                gap: 12px;
+                width: 100%;
+            }
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .main {
+                padding: 12px;
+                gap: 12px;
+            }
+            .resources-card {
+                grid-template-columns: 1fr;
+            }
+            .player-header {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+        }
+
+        .label {
+            position: fixed;
+            bottom: 8px;
+            right: 12px;
+            font-size: 9px;
+            color: #555;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <div>
+                    <div class="title">ISP</div>
+                    <div class="version">v0.4 — EST 2147</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div>CEO <strong>R. Vance</strong> — <strong>HMH</strong></div>
+                <div class="notices" id="noticeCount">23</div>
+                <div class="logout" onclick="alert('Logout not implemented')">LOGOUT</div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="nav-group">
+                <div class="nav-group-title">COMPANY</div>
+                <div class="nav-item active" onclick="setActive(this)">OVERVIEW</div>
+                <div class="nav-item" onclick="setActive(this)">INBOX</div>
+                <div class="nav-item" onclick="setActive(this)">FINANCIAL CORE</div>
+                <div class="nav-item" onclick="setActive(this)">CEO INSIGHT</div>
+                <div class="nav-item" onclick="setActive(this)">ASSIGNMENTS</div>
+                <div class="nav-item" onclick="setActive(this)">CONGLOMERATE</div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">STATION</div>
+                <div class="nav-item" onclick="setActive(this)">STATION</div>
+                <div class="nav-item" onclick="setActive(this)">OPERATIONS</div>
+                <div class="nav-item" onclick="setActive(this)">FLEET</div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">INDUSTRY</div>
+                <div class="nav-item" onclick="setActive(this)">CORP R&D</div>
+                <div class="nav-item" onclick="setActive(this)">REFINERY CHAINS</div>
+                <div class="nav-item" onclick="setActive(this)">LOGISTICS</div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">MARKET</div>
+                <div class="nav-item" onclick="setActive(this)">GALACTIC EXCHANGE</div>
+                <div class="nav-item" onclick="setActive(this)">ASSETS</div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">COMMS</div>
+                <div class="nav-item" onclick="setActive(this)">CHAT</div>
+                <div class="nav-item" onclick="setActive(this)">FORUM</div>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="player-info card">
+                <div class="player-header">
+                    <div class="player-item">
+                        <div class="player-label">CORPORATION</div>
+                        <div class="player-value">HELIX MERIDIAN HOLDINGS</div>
+                    </div>
+                    <div class="player-item">
+                        <div class="player-label">LEVEL</div>
+                        <div class="player-value">2 OF 30</div>
+                    </div>
+                    <div class="player-item">
+                        <div class="player-label">EMPLOYEES</div>
+                        <div class="player-value">18 / 30</div>
+                    </div>
+                    <div class="player-item">
+                        <div class="player-label">CONGLOMERATE</div>
+                        <div class="player-value">INDEPENDENT</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card level-card">
+                <div class="card-title">LEVEL PROGRESSION</div>
+                <div class="level-number">LEVEL 3</div>
+                <div class="level-targets">
+                    <div class="target">
+                        <div class="target-text">Sell 300 Silicate on Galactic Exchange</div>
+                        <div class="target-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 0%;"></div>
+                            </div>
+                            <div class="progress-text">0 / 300</div>
+                        </div>
+                        <div class="target-link" onclick="alert('Navigate to Galactic Exchange')">→ GO TO GEX</div>
+                    </div>
+                    <div class="target completed">
+                        <div class="target-text">Research Basic Extraction Analytics</div>
+                        <div class="target-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 100%;"></div>
+                            </div>
+                            <div class="progress-text">1 / 1</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="peek-controls">
+                    <button class="peek-btn" onclick="peekLevel(-1)">← PREV</button>
+                    <div class="peek-level" id="peekDisplay">LEVEL 2</div>
+                    <button class="peek-btn" onclick="peekLevel(1)">NEXT →</button>
+                </div>
+            </div>
+
+            <div class="card unlocks">
+                <div class="card-title">LEVEL 3 UNLOCKS</div>
+                <div class="unlock-item">
+                    <div class="unlock-label">EMPLOYEE CAP</div>
+                    <div class="unlock-value">45</div>
+                </div>
+                <div class="unlock-item">
+                    <div class="unlock-label">BUILDING SLOTS</div>
+                    <div class="unlock-value">4</div>
+                </div>
+                <div class="unlock-item">
+                    <div class="unlock-label">FLEET CAP</div>
+                    <div class="unlock-value">22</div>
+                </div>
+                <div class="unlock-item">
+                    <div class="unlock-label">MAX BUILDING TIER</div>
+                    <div class="unlock-value">2</div>
+                </div>
+                <div class="unlock-item">
+                    <div class="unlock-label">MARKET ACCESS</div>
+                    <div class="unlock-value">+2</div>
+                </div>
+            </div>
+
+            <div class="figures-grid">
+                <div class="figure-card">
+                    <div class="figure-label">CASH RESERVES</div>
+                    <div class="figure-value">$18,061</div>
+                    <div class="figure-note">Total corporate credits on hand</div>
+                </div>
+                <div class="figure-card">
+                    <div class="figure-label">NET DAILY FLOW</div>
+                    <div class="figure-value warning">-$27,915</div>
+                    <div class="figure-note">Income minus costs (24h)</div>
+                </div>
+                <div class="figure-card">
+                    <div class="figure-label">MILITARY POWER</div>
+                    <div class="figure-value">0 ATK / 0 DEF</div>
+                    <div class="figure-note">Readiness 100%</div>
+                </div>
+                <div class="figure-card">
+                    <div class="figure-label">SILICATE STOCK</div>
+                    <div class="figure-value positive">142 UNITS</div>
+                    <div class="figure-note">GEX peg: 61 cr/unit</div>
+                </div>
+            </div>
+
+            <div class="card feed-card">
+                <div class="card-title">COMMAND FEEDBACK</div>
+                <div class="feed-items" id="feedContainer">
+                    <div class="feed-item">
+                        <div class="feed-timestamp">NOW</div>
+                        Command uplink standing by. Completed actions and queue additions will be logged here.
+                    </div>
+                    <div class="feed-item">
+                        <div class="feed-timestamp">12:47</div>
+                        Extractor MX-01 cycle: +48 Silicate
+                    </div>
+                    <div class="feed-item">
+                        <div class="feed-timestamp">12:31</div>
+                        Research queued: Refinery Chain I
+                    </div>
+                    <div class="feed-item">
+                        <div class="feed-timestamp">12:15</div>
+                        Lease MRS-0419 renewed by ISA Claims & Leases Division
+                    </div>
+                    <div class="feed-item">
+                        <div class="feed-timestamp">11:58</div>
+                        Payroll disbursed: -$4,210
+                    </div>
+                </div>
+            </div>
+
+            <div class="card brief-card">
+                <div class="card-title">EXECUTIVE SITUATION BRIEF</div>
+                <div class="brief-text">
+                    ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach. Your current focus: accelerate Silicate production to meet Level 3 requirements and unlock expanded operational capability. Monitor daily cashflow closely—you are currently burning capital.
+                </div>
+            </div>
+
+            <div class="resources-card">
+                <div class="resource-item">
+                    <div class="resource-name">EXTRACTOR MX-01</div>
+                    <div class="resource-value">72%</div>
+                    <div class="resource-status">CYCLE IN PROGRESS</div>
+                </div>
+                <div class="resource-item">
+                    <div class="resource-name">EXTRACTOR MX-02</div>
+                    <div class="resource-value">31%</div>
+                    <div class="resource-status">CYCLE IN PROGRESS</div>
+                </div>
+                <div class="resource-item">
+                    <div class="resource-name">MARS LEASE MRS-0419</div>
+                    <div class="resource-value">ACTIVE</div>
+                    <div class="resource-status">2 EXTRACTORS DEPLOYED</div>
+                </div>
+                <div class="resource-item">
+                    <div class="resource-name">RESEARCH: BASIC EXTRACTION</div>
+                    <div class="resource-value">100%</div>
+                    <div class="resource-status">COMPLETE</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="label">MOCKUP 12 — BRUTALIST MINIMALISM</div>
+
+    <script>
+        function setActive(element) {
+            const items = document.querySelectorAll('.nav-item');
+            items.forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function peekLevel(direction) {
+            const currentDisplay = document.getElementById('peekDisplay');
+            const currentMatch = currentDisplay.textContent.match(/\d+/);
+            const current = currentMatch ? parseInt(currentMatch[0]) : 2;
+            const next = current + direction;
+
+            if (next < 1 || next > 30) return;
+
+            // Mock data for peek
+            const levelData = {
+                1: { cash: '$5,200', flow: '-$12,400', unlocks: 'Basic mining, Earth Station Prime only' },
+                2: { cash: '$18,061', flow: '-$27,915', unlocks: 'Mars lease, 2 extractors, intermediate tech' },
+                3: { cash: 'TBD', flow: 'TBD', unlocks: '45 employees, 4 building slots, 22 fleet cap' },
+                4: { cash: 'TBD', flow: 'TBD', unlocks: 'Venus operations, deeper tech tree' }
+            };
+
+            currentDisplay.textContent = `LEVEL ${next}`;
+
+            // Update unlocks card
+            const unlocksCard = document.querySelector('.unlocks');
+            if (levelData[next]) {
+                const data = levelData[next];
+                unlocksCard.innerHTML = `<div class="card-title">LEVEL ${next} UNLOCKS</div><div class="unlock-item"><div class="unlock-label">DESCRIPTION</div></div><div class="brief-text" style="padding: 12px; color: #aaa;">${data.unlocks}</div>`;
+            }
+
+            // Update peek buttons
+            const prevBtn = document.querySelector('.peek-btn:first-of-type');
+            const nextBtn = document.querySelector('.peek-btn:last-of-type');
+            prevBtn.disabled = next <= 1;
+            nextBtn.disabled = next >= 30;
+        }
+
+        // Simulate ticking feed
+        function tickFeed() {
+            const feedContainer = document.getElementById('feedContainer');
+            const items = feedContainer.querySelectorAll('.feed-item');
+            if (items.length > 5) {
+                items[items.length - 1].remove();
+            }
+
+            const messages = [
+                'MX-01 cycle progressing',
+                'Payload processed',
+                'Resource transfer initiated',
+                'Status check complete'
+            ];
+            const random = messages[Math.floor(Math.random() * messages.length)];
+            const newItem = document.createElement('div');
+            newItem.className = 'feed-item';
+            newItem.innerHTML = `<div class="feed-timestamp">NOW</div>${random}`;
+            feedContainer.insertBefore(newItem, feedContainer.firstChild);
+        }
+
+        setInterval(tickFeed, 8000);
+
+        // Initialize peek buttons
+        document.querySelectorAll('.peek-btn')[0].disabled = true;
+    </script>
+</body>
+</html>

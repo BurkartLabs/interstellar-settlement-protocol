@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 10 — Neo-Brutal Pop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     MOCKUP 10 — NEO-BRUTAL POP
+     Gumroad-2021 / Figma-Config / indie-game-UI brutalism on a
+     near-black ground. Fat off-white borders, hard offset shadows,
+     saturated sticker-flat colour blocks, bottom dock navigation.
+     ============================================================ */
+
+  :root{
+    --ink:        #111111;   /* page ground */
+    --ink-2:      #1a1a1a;   /* raised dark panel */
+    --paper:      #f2ecdd;   /* off-white border / text-on-dark */
+    --paper-dim:  #cfc8b8;
+    --violet:     #7b5cff;
+    --violet-dk:  #5a3fe0;
+    --lime:       #c6ff3d;
+    --lime-dk:    #9fd419;
+    --coral:      #ff5a5f;
+    --coral-dk:   #e0393e;
+    --sun:        #ffd23f;
+    --sun-dk:     #e0af12;
+    --black:      #0a0a0a;
+
+    --border-w: 3px;
+    --shadow-hard: 6px 6px 0 var(--black);
+    --shadow-soft: 4px 4px 0 var(--black);
+    --shadow-flat: 0px 0px 0 var(--black);
+
+    --radius: 14px;
+    --radius-sm: 8px;
+
+    --font-display: "Space Grotesk", "Archivo Black", "Arial Black", sans-serif;
+    --font-mono: "JetBrains Mono", "SF Mono", "Consolas", monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--ink);
+    background-image:
+      radial-gradient(circle at 10% 5%, rgba(123,92,255,0.10), transparent 40%),
+      radial-gradient(circle at 90% 90%, rgba(198,255,61,0.06), transparent 45%);
+    color: var(--paper);
+    font-family: var(--font-display);
+    font-size: 15px;
+    line-height: 1.4;
+    min-height: 100vh;
+    padding-bottom: 168px; /* fallback room for the fixed bottom dock; JS sets the exact value */
+    overflow-x: hidden;
+  }
+
+  h1,h2,h3,h4{ margin:0; font-family: var(--font-display); }
+  a{ color: inherit; }
+  button{ font-family: inherit; cursor: pointer; }
+
+  .mono{ font-family: var(--font-mono); }
+  .visually-hidden{ position:absolute; left:-9999px; }
+
+  /* ---------- little unobtrusive mockup label ---------- */
+  .mockup-tag{
+    display: inline-block;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: .05em;
+    color: var(--ink);
+    background: var(--paper-dim);
+    border: 1px solid var(--black);
+    padding: 2px 7px;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  /* ============================================================
+     MARQUEE — scrolling GEX ticker bar
+     ============================================================ */
+  .marquee{
+    background: var(--black);
+    border-bottom: var(--border-w) solid var(--paper);
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+    z-index: 20;
+  }
+  .marquee__track{
+    display: inline-flex;
+    animation: marquee-scroll 34s linear infinite;
+    will-change: transform;
+  }
+  .marquee__seg{
+    display: inline-flex;
+    align-items: center;
+    gap: 22px;
+    padding: 7px 22px;
+  }
+  .marquee__item{
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: .03em;
+  }
+  .marquee__item .sym{ color: var(--paper-dim); }
+  .marquee__item .px{ color: var(--paper); }
+  .marquee__item .up{ color: var(--lime); }
+  .marquee__item .down{ color: var(--coral); }
+  .marquee__divider{ color: var(--violet); font-weight: 800; }
+
+  @keyframes marquee-scroll{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(-50%); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .marquee__track{ animation: none; }
+    .marquee{ overflow-x: auto; }
+  }
+
+  /* ============================================================
+     TOP BAR — title / player / notices / logout
+     ============================================================ */
+  .topbar{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 22px 10px;
+  }
+  .brand{
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand__mark{
+    width: 46px; height: 46px;
+    background: var(--violet);
+    border: var(--border-w) solid var(--paper);
+    box-shadow: var(--shadow-soft);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .brand__mark svg{ width: 26px; height: 26px; }
+  .brand__text h1{
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+  .brand__meta{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--paper-dim);
+    letter-spacing: .04em;
+  }
+  .brand__meta b{ color: var(--sun); }
+
+  .topbar__right{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .player-chip{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--ink-2);
+    border: var(--border-w) solid var(--paper);
+    box-shadow: var(--shadow-soft);
+    border-radius: var(--radius-sm);
+    padding: 7px 12px;
+  }
+  .player-chip__avatar{
+    width: 30px; height: 30px;
+    border-radius: 6px;
+    background: var(--sun);
+    border: 2px solid var(--paper);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--black);
+    font-weight: 800;
+    font-size: 13px;
+    flex-shrink:0;
+  }
+  .player-chip__info{ line-height: 1.25; }
+  .player-chip__name{ font-weight: 700; font-size: 13px; }
+  .player-chip__corp{ font-family: var(--font-mono); font-size: 10.5px; color: var(--paper-dim); }
+  .player-chip__corp b{ color: var(--lime); }
+
+  .icon-btn{
+    position: relative;
+    width: 42px; height: 42px;
+    background: var(--ink-2);
+    border: var(--border-w) solid var(--paper);
+    box-shadow: var(--shadow-soft);
+    border-radius: var(--radius-sm);
+    display:flex; align-items:center; justify-content:center;
+    transition: transform .08s ease, box-shadow .08s ease;
+  }
+  .icon-btn svg{ width: 20px; height: 20px; stroke: var(--paper); }
+  .icon-btn:active{ transform: translate(4px,4px); box-shadow: var(--shadow-flat); }
+  .notice-badge{
+    position: absolute;
+    top: -9px; right: -9px;
+    background: var(--coral);
+    color: var(--black);
+    border: 2px solid var(--paper);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 800;
+    padding: 1px 5px;
+    line-height: 1.3;
+  }
+
+  .btn-logout{
+    background: var(--paper);
+    color: var(--black);
+    border: var(--border-w) solid var(--paper);
+    box-shadow: var(--shadow-soft);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    font-weight: 800;
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    transition: transform .08s ease, box-shadow .08s ease;
+  }
+  .btn-logout:active{ transform: translate(4px,4px); box-shadow: var(--shadow-flat); }
+
+  /* ============================================================
+     TOAST — nav routing flavor line
+     ============================================================ */
+  .toast{
+    position: fixed;
+    top: 46px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-14px);
+    background: var(--sun);
+    color: var(--black);
+    border: var(--border-w) solid var(--paper);
+    box-shadow: var(--shadow-hard);
+    border-radius: var(--radius-sm);
+    padding: 10px 18px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 12.5px;
+    z-index: 900;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: none; }
+
+  /* ============================================================
+     BENTO GRID
+     ============================================================ */
+  .bento{
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: minmax(120px, auto);
+    grid-auto-flow: dense;
+    gap: 16px;
+    padding: 8px 22px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .card{
+    position: relative;
+    border: var(--border-w) solid var(--paper);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-hard);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .card--violet{ background: var(--violet); color: var(--paper); }
+  .card--lime{ background: var(--lime); color: var(--black); }
+  .card--coral{ background: var(--coral); color: var(--black); }
+  .card--sun{ background: var(--sun); color: var(--black); }
+  .card--paper{ background: var(--paper); color: var(--black); }
+  .card--dark{ background: var(--ink-2); color: var(--paper); }
+
+  .card__label{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    opacity: .72;
+  }
+  .card__title{
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .card__big-figure{
+    font-family: var(--font-mono);
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .card__sub{ font-size: 12.5px; opacity: .8; }
+
+  /* grid placement helpers */
+  .span-3{ grid-column: span 3; }
+  .span-4{ grid-column: span 4; }
+  .span-5{ grid-column: span 5; }
+  .span-6{ grid-column: span 6; }
+  .span-7{ grid-column: span 7; }
+  .span-8{ grid-column: span 8; }
+  .span-12{ grid-column: span 12; }
+  .row-2{ grid-row: span 2; }
+
+  /* ---------- sticker badges ---------- */
+  .sticker{
+    position: absolute;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    padding: 6px 10px;
+    border: 3px solid var(--paper);
+    border-radius: 999px;
+    box-shadow: var(--shadow-soft);
+    z-index: 30;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .sticker--new{
+    background: var(--coral); color: var(--black);
+    top: -14px; right: 18px;
+    transform: rotate(-7deg);
+  }
+  .sticker--lvlup{
+    background: var(--lime); color: var(--black);
+    top: -14px; right: 148px;
+    transform: rotate(-4deg);
+  }
+
+  /* ============================================================
+     LEVEL PROGRESS CARD
+     ============================================================ */
+  .level-card{
+    background: var(--violet);
+    color: var(--paper);
+    box-shadow: 6px 6px 0 var(--black), 12px 12px 0 var(--lime);
+  }
+  .level-head{
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .level-head__num{
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .level-nav{
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .level-nav__btn{
+    width: 36px; height: 36px;
+    background: var(--paper);
+    color: var(--black);
+    border: 3px solid var(--black);
+    border-radius: 8px;
+    box-shadow: 3px 3px 0 var(--black);
+    font-weight: 800;
+    display: flex; align-items:center; justify-content:center;
+    transition: transform .08s ease, box-shadow .08s ease;
+  }
+  .level-nav__btn:active{ transform: translate(3px,3px); box-shadow: none; }
+  .level-nav__btn:disabled{ opacity: .35; cursor: not-allowed; }
+  .level-nav__tag{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--black);
+    color: var(--lime);
+    border-radius: 999px;
+    padding: 4px 10px;
+    text-transform: uppercase;
+  }
+
+  .segbar{
+    display: flex;
+    gap: 3px;
+    padding: 10px 0 2px;
+    flex-wrap: wrap;
+  }
+  .segbar__seg{
+    flex: 1 0 auto;
+    width: 12px;
+    height: 20px;
+    background: rgba(242,236,221,0.16);
+    border: 2px solid var(--paper);
+    border-radius: 3px;
+  }
+  .segbar__seg.filled{ background: var(--lime); border-color: var(--black); }
+  .segbar__seg.current{
+    background: var(--sun);
+    border-color: var(--black);
+    box-shadow: 0 0 0 2px var(--black);
+    transform: scaleY(1.15);
+  }
+
+  .level-reqs{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .req{
+    background: rgba(10,10,10,0.28);
+    border: 2px solid var(--paper);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .req.done{ border-color: var(--lime); }
+  .req__top{ display:flex; justify-content: space-between; gap: 8px; align-items:baseline; }
+  .req__name{ font-size: 13px; font-weight: 700; }
+  .req__count{ font-family: var(--font-mono); font-weight: 800; font-size: 13px; }
+  .req__bar{ height: 7px; background: rgba(242,236,221,.2); border-radius: 4px; margin-top: 7px; overflow:hidden; }
+  .req__bar > i{ display:block; height:100%; background: var(--sun); border-radius: 4px; }
+  .req.done .req__bar > i{ background: var(--lime); width: 100% !important; }
+  .req__status{ font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; opacity: .8; margin-top: 4px; display:block; }
+  .req__link{
+    display:inline-block;
+    margin-top: 7px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: var(--sun);
+    color: var(--black);
+    border: 2px solid var(--black);
+    border-radius: 6px;
+    padding: 5px 8px;
+    text-decoration: none;
+    box-shadow: 2px 2px 0 var(--black);
+    transition: transform .08s ease, box-shadow .08s ease;
+  }
+  .req__link:active{ transform: translate(2px,2px); box-shadow:none; }
+
+  .unlocks{
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+  .unlocks__label{ font-family: var(--font-mono); font-size: 11px; opacity: .8; text-transform: uppercase; align-self:center; margin-right: 2px; }
+  .unlock-pill{
+    background: var(--black);
+    color: var(--paper);
+    border: 2px solid var(--paper);
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .unlock-pill b{ color: var(--sun); }
+
+  /* ============================================================
+     CASH / NET FLOW / MISC KPI CARDS
+     ============================================================ */
+  .kpi-row{ display:flex; align-items:baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .counter{ font-family: var(--font-mono); }
+
+  .flow-card{
+    background: var(--coral);
+    color: var(--black);
+  }
+  .flow-figure{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .flow-arrow{
+    width: 46px; height: 46px;
+    flex-shrink: 0;
+    display:flex; align-items:center; justify-content:center;
+    background: var(--black);
+    border: 3px solid var(--paper);
+    border-radius: 10px;
+  }
+  .flow-arrow svg{ width: 26px; height: 26px; stroke: var(--coral); }
+  .flow-wobble{ animation: wobble 1.7s ease-in-out infinite; }
+  @keyframes wobble{
+    0%,100%{ transform: rotate(0deg); }
+    25%{ transform: rotate(-7deg); }
+    75%{ transform: rotate(7deg); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .flow-wobble{ animation: none; }
+  }
+  .flow-warn{
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: var(--black);
+    color: var(--coral);
+    padding: 5px 9px;
+    border-radius: 6px;
+    display: inline-block;
+    letter-spacing: .04em;
+  }
+
+  .mil-row{ display:flex; gap: 18px; align-items:center; flex-wrap: wrap; }
+  .mil-stat{ text-align:center; }
+  .mil-stat b{ display:block; font-family: var(--font-mono); font-size: 24px; font-weight:800; }
+  .mil-stat span{ font-size: 11px; text-transform: uppercase; font-family: var(--font-mono); opacity: .7; }
+  .readiness-ring{
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 4px solid var(--paper-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    font-size: 12px;
+    background: conic-gradient(var(--lime) 100%, transparent 0);
+    color: var(--black);
+    margin-left: auto;
+  }
+  .readiness-ring i{ background: var(--ink-2); color: var(--lime); width: 42px; height: 42px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+
+  /* ============================================================
+     FEED / LOG CARD
+     ============================================================ */
+  .feed-card{ background: var(--paper); color: var(--black); }
+  .feed-list{
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .feed-list::-webkit-scrollbar{ width: 8px; }
+  .feed-list::-webkit-scrollbar-thumb{ background: var(--black); border-radius: 4px; }
+  .feed-item{
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12.5px;
+    border-left: 3px solid var(--violet);
+    padding: 4px 0 4px 9px;
+    animation: feed-in .25s ease;
+  }
+  .feed-item.stub{ border-left-color: var(--paper-dim); font-style: italic; opacity: .65; }
+  .feed-item time{
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--violet-dk);
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+  @keyframes feed-in{
+    from{ opacity: 0; transform: translateX(-6px); }
+    to{ opacity: 1; transform: translateX(0); }
+  }
+
+  /* ============================================================
+     BRIEF CARD
+     ============================================================ */
+  .brief-card{ background: var(--sun); color: var(--black); }
+  .brief-card p{ margin: 0; font-size: 13.5px; line-height: 1.55; font-weight: 500; }
+  .brief-card .card__title{ display:flex; align-items:center; gap: 8px; }
+  .brief-card .card__title svg{ width: 20px; height: 20px; }
+
+  /* ============================================================
+     STATION OPS CARD
+     ============================================================ */
+  .ops-card{ background: var(--ink-2); color: var(--paper); }
+  .extractor{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(242,236,221,.05);
+    border: 2px solid var(--paper-dim);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  .extractor__id{ font-family: var(--font-mono); font-weight: 800; font-size: 12.5px; width: 52px; flex-shrink:0; }
+  .extractor__bar{ flex: 1; height: 10px; background: rgba(242,236,221,.12); border-radius: 5px; overflow: hidden; }
+  .extractor__bar > i{ display:block; height:100%; background: var(--lime); }
+  .extractor__pct{ font-family: var(--font-mono); font-size: 11.5px; width: 38px; text-align: right; flex-shrink:0; }
+  .ops-mini-row{ display:flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+  .ops-mini{
+    flex: 1;
+    min-width: 110px;
+    background: rgba(242,236,221,.06);
+    border: 2px solid var(--paper-dim);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  .ops-mini b{ display:block; font-family: var(--font-mono); font-size: 18px; }
+  .ops-mini span{ font-size: 10.5px; text-transform: uppercase; opacity: .7; font-family: var(--font-mono); }
+
+  /* ============================================================
+     GEX CARD (sparkline)
+     ============================================================ */
+  .gex-card{ background: var(--violet); color: var(--paper); }
+  .gex-price-row{ display:flex; align-items: baseline; justify-content: space-between; }
+  .gex-price{ font-family: var(--font-mono); font-size: 28px; font-weight: 800; }
+  .gex-delta{ font-family: var(--font-mono); font-weight: 700; font-size: 13px; }
+  .gex-delta.up{ color: var(--lime); }
+  svg.spark{ width: 100%; height: 46px; display:block; }
+
+  /* ============================================================
+     INBOX / RESEARCH / CONGLOMERATE small cards
+     ============================================================ */
+  .inbox-card{ background: var(--paper); color: var(--black); }
+  .inbox-item{ display:flex; gap: 8px; align-items:flex-start; padding: 6px 0; border-bottom: 2px dashed var(--paper-dim); }
+  .inbox-item:last-child{ border-bottom: none; }
+  .inbox-item__from{
+    font-family: var(--font-mono); font-size: 10px; font-weight: 800;
+    background: var(--black); color: var(--sun);
+    border-radius: 5px; padding: 2px 6px; flex-shrink:0; text-transform: uppercase;
+  }
+  .inbox-item__txt{ font-size: 12.5px; }
+  .inbox-item__txt b{ display:block; font-size: 12.5px; }
+
+  .research-card{ background: var(--lime); color: var(--black); }
+  .research-track{ background: rgba(0,0,0,.12); border: 2px solid var(--black); border-radius: 10px; padding: 10px; }
+  .research-track__bar{ height: 10px; background: rgba(0,0,0,.15); border-radius: 5px; overflow:hidden; margin-top: 6px; }
+  .research-track__bar > i{ display:block; height:100%; background: var(--violet); }
+
+  .cong-card{ background: var(--paper); color: var(--black); align-items: flex-start; justify-content: center; }
+  .cong-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    background: var(--black); color: var(--lime);
+    font-family: var(--font-mono); font-weight:800; font-size:12px;
+    padding: 6px 10px; border-radius: 999px; text-transform: uppercase;
+  }
+  .cong-dot{ width:8px; height:8px; border-radius:50%; background: var(--lime); }
+
+  /* ============================================================
+     BOTTOM DOCK NAV
+     ============================================================ */
+  .dock-wrap{
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 400;
+    background: var(--black);
+    border-top: var(--border-w) solid var(--paper);
+    padding: 8px 14px 10px;
+  }
+  .dock{
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    overflow-x: auto;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    padding-bottom: 2px;
+  }
+  .dock::-webkit-scrollbar{ height: 6px; }
+  .dock::-webkit-scrollbar-thumb{ background: var(--paper-dim); border-radius: 3px; }
+
+  /* dock-group's flex-grow is set inline (proportional to its button count) so
+     the whole dock stretches to fill the bar's full width at desktop sizes;
+     on narrow screens each button's own content-based minimum (see .navbtn)
+     stops it shrinking below a readable size, and the dock scrolls
+     horizontally within its own box instead of shrinking text further. */
+  .dock-group{ display:flex; flex-direction: column; gap: 6px; }
+  .dock-group__label{
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    align-self: flex-start;
+  }
+  .dock-group[data-group="company"] .dock-group__label{ background: var(--violet); color: var(--paper); }
+  .dock-group[data-group="station"] .dock-group__label{ background: var(--lime); color: var(--black); }
+  .dock-group[data-group="industry"] .dock-group__label{ background: var(--coral); color: var(--black); }
+  .dock-group[data-group="market"] .dock-group__label{ background: var(--sun); color: var(--black); }
+  .dock-group[data-group="comms"] .dock-group__label{ background: var(--paper); color: var(--black); }
+
+  .dock-group__items{ display:flex; gap: 8px; width: 100%; }
+
+  .navbtn{
+    position: relative;
+    flex: 1 1 72px;
+    /* deliberately no min-width override: the browser's automatic
+       content-based minimum (bounded by the longest unbreakable word in
+       the label) is what keeps long labels like CONGLOMERATE from being
+       squeezed or overflowing, while flex-grow fills any leftover width. */
+    min-height: 74px;
+    padding: 9px 6px;
+    background: var(--ink-2);
+    border: 3px solid var(--paper);
+    border-radius: 10px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: var(--paper);
+    transition: transform .08s ease, box-shadow .08s ease, background .12s ease;
+  }
+  .navbtn svg{ width: 24px; height: 24px; stroke: currentColor; fill:none; flex-shrink: 0; }
+  .navbtn__lbl{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    text-align: center;
+    line-height: 1.2;
+    white-space: normal;
+    padding: 0 2px;
+    max-width: 100%;
+  }
+  .navbtn:hover{ transform: translate(-1px,-1px); box-shadow: 5px 5px 0 var(--black); }
+  .navbtn:active,
+  .navbtn.is-active{
+    background: var(--lime);
+    color: var(--black);
+    transform: translate(4px,4px);
+    box-shadow: var(--shadow-flat);
+  }
+  .navbtn.is-active:hover{ transform: translate(4px,4px); }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 1280px){
+    .bento{ gap: 12px; padding: 8px 16px 20px; }
+    .span-8{ grid-column: span 12; }
+    .span-5{ grid-column: span 7; }
+    .span-7{ grid-column: span 12; }
+  }
+
+  @media (max-width: 900px){
+    .bento{ grid-template-columns: repeat(6,1fr); }
+    .span-3,.span-4,.span-5,.span-6,.span-7,.span-8{ grid-column: span 6; }
+    .row-2{ grid-row: span 1; }
+    .level-reqs{ grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 620px){
+    body{ font-size: 14px; padding-bottom: 190px; }
+    .topbar{ padding: 14px 14px 6px; }
+    .bento{ grid-template-columns: 1fr; padding: 6px 12px 18px; }
+    .span-3,.span-4,.span-5,.span-6,.span-7,.span-8,.span-12{ grid-column: 1 / -1; }
+    .dock-wrap{ padding: 8px 10px 10px; }
+    .dock{ gap: 10px; }
+    .dock-group__items{ gap: 6px; }
+    .navbtn{ flex-basis: 66px; min-height: 66px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ================= MARQUEE TICKER ================= -->
+  <div class="marquee" aria-label="Galactic Exchange live prices">
+    <div class="marquee__track" id="marqueeTrack"></div>
+  </div>
+
+  <!-- ================= TOP BAR ================= -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand__mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f2ecdd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12,2 21,7 21,17 12,22 3,17 3,7"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      <div class="brand__text">
+        <h1>The Interstellar Settlement Protocol</h1>
+        <div class="brand__meta">v0.4 &middot; est. <b>2147</b> &middot; ISA-registered corporate charter</div>
+        <div class="mockup-tag">Mockup 10 &middot; Neo-Brutal Pop</div>
+      </div>
+    </div>
+    <div class="topbar__right">
+      <div class="player-chip">
+        <div class="player-chip__avatar">RV</div>
+        <div class="player-chip__info">
+          <div class="player-chip__name">CEO R. Vance</div>
+          <div class="player-chip__corp">Helix Meridian Holdings &middot; <b>HMH</b></div>
+        </div>
+      </div>
+      <button class="icon-btn" id="bellBtn" title="Notices">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 1 1 12 0v5l2 3H4l2-3z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+        <span class="notice-badge">23</span>
+      </button>
+      <button class="btn-logout" id="logoutBtn">Log Out</button>
+    </div>
+  </header>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ================= BENTO GRID ================= -->
+  <main class="bento">
+
+    <!-- LEVEL PROGRESS -->
+    <section class="card level-card span-8 row-2" id="levelCard">
+      <span class="sticker sticker--lvlup">LVL Up Soon</span>
+      <div class="level-head">
+        <div>
+          <div class="card__label">Corporation Level</div>
+          <div class="level-head__num">Level <span id="levelNum">2</span> of 30</div>
+        </div>
+        <div class="level-nav">
+          <span class="level-nav__tag" id="levelTag">Current</span>
+          <button class="level-nav__btn" id="levelPrev" aria-label="Previous level">&#8592;</button>
+          <button class="level-nav__btn" id="levelNext" aria-label="Next level">&#8594;</button>
+        </div>
+      </div>
+
+      <div class="segbar" id="segbar"></div>
+
+      <div>
+        <div class="card__label" id="reqsHeading">Advancing to Level 3 requires</div>
+        <div class="level-reqs" id="levelReqs"></div>
+      </div>
+
+      <div class="unlocks">
+        <span class="unlocks__label" id="unlocksLabel">Reaching Level 3 unlocks:</span>
+        <span class="unlock-pill" id="unlocksWrap"></span>
+      </div>
+    </section>
+
+    <!-- CASH RESERVES -->
+    <section class="card card--violet span-4">
+      <div class="card__label">Cash Reserves</div>
+      <div class="card__big-figure counter" id="cashFigure">$0</div>
+      <div class="card__sub">Total corporate credits on hand</div>
+    </section>
+
+    <!-- NET DAILY FLOW -->
+    <section class="card flow-card span-4">
+      <span class="flow-warn">Warning &middot; negative flow</span>
+      <div class="flow-figure">
+        <div class="flow-arrow flow-wobble">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="4" x2="12" y2="20"/><polyline points="6,14 12,20 18,14"/></svg>
+        </div>
+        <div>
+          <div class="card__label">Net Daily Flow</div>
+          <div class="card__big-figure">&minus;$27,915</div>
+        </div>
+      </div>
+      <div class="card__sub">Income minus costs booked in the last 24h</div>
+    </section>
+
+    <!-- COMMAND FEEDBACK LOG -->
+    <section class="card feed-card span-5 row-2">
+      <div class="card__title">Command Feedback</div>
+      <div class="card__sub" style="margin-top:-6px;">Command uplink standing by. Completed actions and queue additions will be logged here.</div>
+      <ul class="feed-list" id="feedList"></ul>
+    </section>
+
+    <!-- EXECUTIVE SITUATION BRIEF -->
+    <section class="card brief-card span-4">
+      <div class="card__title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2"><rect x="4" y="3" width="16" height="18" rx="1"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="18" x2="13" y2="18"/></svg>
+        Executive Situation Brief
+      </div>
+      <p>ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.</p>
+    </section>
+
+    <!-- MILITARY POWER -->
+    <section class="card card--dark span-3">
+      <div class="card__label">Military Power</div>
+      <div class="mil-row">
+        <div class="mil-stat"><b>0</b><span>ATK</span></div>
+        <div class="mil-stat"><b>0</b><span>DEF</span></div>
+        <div class="readiness-ring"><i>100%</i></div>
+      </div>
+      <div class="card__sub">Fleet readiness nominal, no ordnance deployed</div>
+    </section>
+
+    <!-- CONGLOMERATE -->
+    <section class="card cong-card span-4">
+      <div class="card__label">Conglomerate</div>
+      <div class="cong-badge"><span class="cong-dot"></span>Independent</div>
+      <div class="card__sub">Your corporation is in no conglomerate</div>
+    </section>
+
+    <!-- STATION OPS -->
+    <section class="card ops-card span-5 row-2">
+      <span class="sticker sticker--new">New!</span>
+      <div class="card__title">Mars Lease MRS&#8209;0419</div>
+      <div class="extractor">
+        <span class="extractor__id">MX-01</span>
+        <div class="extractor__bar"><i style="width:72%"></i></div>
+        <span class="extractor__pct">72%</span>
+      </div>
+      <div class="extractor">
+        <span class="extractor__id">MX-02</span>
+        <div class="extractor__bar"><i style="width:31%"></i></div>
+        <span class="extractor__pct">31%</span>
+      </div>
+      <div class="ops-mini-row">
+        <div class="ops-mini"><b>142</b><span>Silicate stock</span></div>
+        <div class="ops-mini"><b>18 / 30</b><span>Employees</span></div>
+      </div>
+    </section>
+
+    <!-- GEX PRICE -->
+    <section class="card gex-card span-4">
+      <div class="card__label">GEX Peg &middot; Silicate</div>
+      <div class="gex-price-row">
+        <span class="gex-price">61 <small style="font-size:13px;">cr/u</small></span>
+        <span class="gex-delta up">&#9650; 0.4</span>
+      </div>
+      <svg class="spark" viewBox="0 0 200 46" preserveAspectRatio="none">
+        <polyline points="0,30 25,34 50,22 75,26 100,14 125,20 150,10 175,16 200,6" fill="none" stroke="#c6ff3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="card__sub">7-cycle trend, Silicate lot</div>
+    </section>
+
+    <!-- INBOX PREVIEW -->
+    <section class="card inbox-card span-4">
+      <div class="card__label">Inbox &middot; 23 unread</div>
+      <div class="inbox-item">
+        <span class="inbox-item__from">ISA</span>
+        <span class="inbox-item__txt"><b>Claims &amp; Leases Division</b>Lease MRS-0419 renewal confirmed for this cycle.</span>
+      </div>
+      <div class="inbox-item">
+        <span class="inbox-item__from">STA</span>
+        <span class="inbox-item__txt"><b>Station Administration</b>Docking fee schedule revised, effective next cycle.</span>
+      </div>
+    </section>
+
+    <!-- RESEARCH QUEUE -->
+    <section class="card research-card span-4">
+      <div class="card__label">Corporate R&amp;D Queue</div>
+      <div class="research-track">
+        <div class="card__sub" style="color:#111;"><b>Refinery Chain I</b> &mdash; in progress</div>
+        <div class="research-track__bar"><i style="width:46%"></i></div>
+      </div>
+      <div class="card__sub">1 project active &middot; 0 queued</div>
+    </section>
+
+  </main>
+
+  <!-- ================= BOTTOM DOCK NAV ================= -->
+  <nav class="dock-wrap" aria-label="Primary navigation">
+    <div class="dock" id="dock"></div>
+  </nav>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     DATA
+     ============================================================ */
+  var GEX_ITEMS = [
+    {sym:"SILICATE", px:"61", dir:"up", delta:"0.4"},
+    {sym:"FERRITE", px:"143", dir:"down", delta:"1.2"},
+    {sym:"HELIUM-3", px:"890", dir:"up", delta:"2.1"},
+    {sym:"WATER ICE", px:"12", dir:"up", delta:"0.1"},
+    {sym:"RARE EARTH OXIDE", px:"512", dir:"down", delta:"0.8"},
+    {sym:"POLYMER RESIN", px:"77", dir:"up", delta:"0.3"}
+  ];
+
+  var NAV_GROUPS = [
+    { key:"company", label:"Company", items:[
+      {id:"overview", label:"Overview", icon:"grid"},
+      {id:"inbox", label:"Inbox", icon:"inbox"},
+      {id:"financial", label:"Financial Core", icon:"core"},
+      {id:"insight", label:"CEO Insight", icon:"diamond"},
+      {id:"assignments", label:"Assignments", icon:"list"},
+      {id:"conglomerate", label:"Conglomerate", icon:"venn"}
+    ]},
+    { key:"station", label:"Station", items:[
+      {id:"station", label:"Station", icon:"hex"},
+      {id:"operations", label:"Operations", icon:"gear"},
+      {id:"fleet", label:"Fleet", icon:"rocket"}
+    ]},
+    { key:"industry", label:"Industry", items:[
+      {id:"rnd", label:"Corp R&D", icon:"flask"},
+      {id:"refinery", label:"Refinery Chains", icon:"chain"},
+      {id:"logistics", label:"Logistics", icon:"path"}
+    ]},
+    { key:"market", label:"Market", items:[
+      {id:"gex", label:"Gal. Exchange", icon:"exchange"},
+      {id:"assets", label:"Assets", icon:"bars"}
+    ]},
+    { key:"comms", label:"Comms", items:[
+      {id:"chat", label:"Chat", icon:"chat"},
+      {id:"forum", label:"Forum", icon:"forum"}
+    ]}
+  ];
+
+  var ICONS = {
+    grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    inbox:'<rect x="3" y="6" width="18" height="14" rx="1"/><polyline points="3,7 12,15 21,7"/>',
+    core:'<circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/>',
+    diamond:'<polygon points="12,2 22,12 12,22 2,12"/><circle cx="12" cy="12" r="2.6"/>',
+    list:'<rect x="4" y="3" width="16" height="18" rx="1"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="18" x2="13" y2="18"/>',
+    venn:'<circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/>',
+    hex:'<polygon points="12,2 21,7 21,17 12,22 3,17 3,7"/>',
+    gear:'<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/>',
+    rocket:'<polygon points="12,2 19,20 12,16 5,20"/>',
+    flask:'<polygon points="9,2 15,2 15,9 19,20 5,20 9,9"/>',
+    chain:'<rect x="2" y="9" width="7" height="7" rx="2"/><rect x="15" y="9" width="7" height="7" rx="2"/><line x1="9" y1="12.5" x2="15" y2="12.5"/>',
+    path:'<polyline points="3,17 9,17 9,7 15,7 15,17 21,17"/>',
+    exchange:'<line x1="7" y1="3" x2="7" y2="21"/><polygon points="7,1 3,7 11,7"/><line x1="17" y1="3" x2="17" y2="21"/><polygon points="17,23 13,17 21,17"/>',
+    bars:'<rect x="4" y="13" width="4" height="7"/><rect x="10" y="8" width="4" height="12"/><rect x="16" y="4" width="4" height="16"/>',
+    chat:'<rect x="3" y="4" width="18" height="12" rx="2"/><polygon points="8,16 8,21 13,16"/>',
+    forum:'<rect x="2" y="3" width="13" height="9" rx="1"/><rect x="9" y="10" width="13" height="9" rx="1"/>'
+  };
+
+  function svgIcon(name){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[name]||"") + "</svg>";
+  }
+
+  /* ============================================================
+     MARQUEE
+     ============================================================ */
+  function buildMarqueeSegment(){
+    return GEX_ITEMS.map(function(it){
+      var arrow = it.dir === "up" ? "&#9650;" : "&#9660;";
+      var cls = it.dir === "up" ? "up" : "down";
+      return '<span class="marquee__item"><span class="sym">'+it.sym+'</span><span class="px">'+it.px+' cr</span>' +
+             '<span class="'+cls+'">'+arrow+' '+it.delta+'</span></span><span class="marquee__divider">&#8226;</span>';
+    }).join("");
+  }
+  document.getElementById("marqueeTrack").innerHTML =
+    '<span class="marquee__seg">'+buildMarqueeSegment()+'</span><span class="marquee__seg">'+buildMarqueeSegment()+'</span>';
+
+  /* ============================================================
+     BOTTOM DOCK
+     ============================================================ */
+  var dock = document.getElementById("dock");
+  var navHtml = "";
+  NAV_GROUPS.forEach(function(group){
+    // flex-grow proportional to the group's button count, so the dock
+    // stretches edge-to-edge at desktop widths and every button ends up
+    // roughly the same size regardless of which group it's in.
+    navHtml += '<div class="dock-group" data-group="'+group.key+'" style="flex:'+group.items.length+' 1 0">';
+    navHtml += '<span class="dock-group__label">'+group.label+'</span>';
+    navHtml += '<div class="dock-group__items">';
+    group.items.forEach(function(item){
+      var active = item.id === "overview" ? " is-active" : "";
+      navHtml += '<button class="navbtn'+active+'" data-nav="'+item.id+'" data-label="'+item.label+'">' +
+                 svgIcon(item.icon) + '<span class="navbtn__lbl">'+item.label+'</span></button>';
+    });
+    navHtml += '</div></div>';
+  });
+  dock.innerHTML = navHtml;
+
+  /* Keep page content clear of the fixed bottom dock: measure its real
+     height (it changes across breakpoints) and pad the body to match. */
+  var dockWrapEl = document.querySelector(".dock-wrap");
+  function syncDockPadding(){
+    var h = dockWrapEl.getBoundingClientRect().height;
+    document.body.style.paddingBottom = Math.ceil(h + 20) + "px";
+  }
+  syncDockPadding();
+  window.addEventListener("resize", syncDockPadding);
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(syncDockPadding);
+  }
+
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+  function showToast(text){
+    toastEl.textContent = text;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 2400);
+  }
+
+  dock.addEventListener("click", function(e){
+    var btn = e.target.closest(".navbtn");
+    if(!btn) return;
+    var all = dock.querySelectorAll(".navbtn");
+    all.forEach(function(b){ b.classList.remove("is-active"); });
+    btn.classList.add("is-active");
+    if(btn.dataset.nav === "overview"){
+      showToast("// Viewing: Company &raquo; Overview");
+    } else {
+      showToast("// Routing to " + btn.dataset.label + " — module standby");
+    }
+  });
+
+  /* ============================================================
+     LEVEL PROGRESS
+     ============================================================ */
+  var TOTAL_LEVELS = 30;
+  var CURRENT_LEVEL = 2;
+  var viewLevel = CURRENT_LEVEL;
+
+  var HARDCODED_LEVELS = {
+    1: {
+      status: "done",
+      reqs: [
+        {name:"Sell 100 Silicate on the Galactic Exchange", have:100, need:100, done:true, link:false},
+        {name:"Employ 5 crew at Earth Station Prime", have:5, need:5, done:true, link:false}
+      ],
+      unlocks: [["Employee cap","30"],["Building slots","3"],["Fleet cap","15"],["Highest building tier","1"]]
+    },
+    2: {
+      status: "current",
+      reqs: [
+        {name:"Sell 300 Silicate on the Galactic Exchange", have:0, need:300, done:false, link:true},
+        {name:"Research Basic Extraction Analytics", have:1, need:1, done:true, link:false}
+      ],
+      unlocks: [["Employee cap","45"],["Building slots","4"],["Fleet cap","22"],["Highest building tier","2"]]
+    },
+    3: {
+      status: "locked",
+      reqs: [
+        {name:"Sell 600 Ferrite on the Galactic Exchange", have:0, need:600, done:false, link:true},
+        {name:"Research Refinery Chain I", have:0, need:1, done:false, link:false}
+      ],
+      unlocks: [["Employee cap","60"],["Building slots","5"],["Fleet cap","30"],["Highest building tier","3"]]
+    },
+    4: {
+      status: "locked",
+      reqs: [
+        {name:"Sell 900 Rare Earth Oxide on the Galactic Exchange", have:0, need:900, done:false, link:true},
+        {name:"Commission a 3rd Silicate extractor", have:0, need:1, done:false, link:false}
+      ],
+      unlocks: [["Employee cap","78"],["Building slots","6"],["Fleet cap","38"],["Highest building tier","3"]]
+    }
+  };
+
+  var RESOURCE_CYCLE = ["Silicate","Ferrite","Helium-3","Rare Earth Oxide","Polymer Resin"];
+  function romanish(n){
+    var vals = ["I","II","III","IV","V","VI","VII","VIII","IX","X"];
+    return vals[(n-1) % vals.length];
+  }
+
+  function getLevelData(n){
+    if(HARDCODED_LEVELS[n]) return HARDCODED_LEVELS[n];
+    var res = RESOURCE_CYCLE[n % RESOURCE_CYCLE.length];
+    var sellQty = 300 + (n - 2) * 300;
+    return {
+      status: n < CURRENT_LEVEL ? "done" : "locked",
+      reqs: [
+        {name:"Sell " + sellQty + " " + res + " on the Galactic Exchange", have:0, need:sellQty, done:false, link:true},
+        {name:"Research Refinery Chain " + romanish(Math.max(1, n-2)), have:0, need:1, done:false, link:false}
+      ],
+      unlocks: [
+        ["Employee cap", String(30 + n * 15)],
+        ["Building slots", String(3 + n)],
+        ["Fleet cap", String(15 + n * 8)],
+        ["Highest building tier", String(Math.min(1 + Math.floor(n/2), 10))]
+      ]
+    };
+  }
+
+  function buildSegbar(){
+    var wrap = document.getElementById("segbar");
+    var html = "";
+    for(var i = 1; i <= TOTAL_LEVELS; i++){
+      var cls = "segbar__seg";
+      if(i < CURRENT_LEVEL) cls += " filled";
+      if(i === CURRENT_LEVEL) cls += " current";
+      html += '<div class="'+cls+'" title="Level '+i+'"></div>';
+    }
+    wrap.innerHTML = html;
+  }
+
+  function renderLevel(n){
+    var data = getLevelData(n);
+    document.getElementById("levelNum").textContent = n;
+
+    var tag = document.getElementById("levelTag");
+    tag.textContent = n === CURRENT_LEVEL ? "Current" : (n < CURRENT_LEVEL ? "Completed" : "Preview");
+
+    var nextLevel = n + 1;
+    document.getElementById("reqsHeading").textContent = "Advancing to Level " + nextLevel + " requires";
+    document.getElementById("unlocksLabel").textContent = "Reaching Level " + nextLevel + " unlocks:";
+
+    var reqsWrap = document.getElementById("levelReqs");
+    reqsWrap.innerHTML = data.reqs.map(function(r){
+      var pct = Math.min(100, Math.round((r.have / r.need) * 100));
+      var linkHtml = (r.link && !r.done) ? '<a class="req__link" href="#gex" data-nav-target="gex">Go to Galactic Exchange</a>' : "";
+      return '<div class="req '+(r.done?"done":"")+'">' +
+               '<div class="req__top"><span class="req__name">'+r.name+'</span></div>' +
+               '<div class="req__count">'+r.have+' / '+r.need+'</div>' +
+               '<div class="req__bar"><i style="width:'+pct+'%"></i></div>' +
+               '<span class="req__status">'+(r.done ? "Completed" : "Open")+'</span>' +
+               linkHtml +
+             '</div>';
+    }).join("");
+
+    var unlocksWrap = document.getElementById("unlocksWrap");
+    unlocksWrap.outerHTML = '<span class="unlock-pill" id="unlocksWrap">' + data.unlocks.map(function(u){
+      return u[0] + " <b>" + u[1] + "</b>";
+    }).join(" &nbsp;&middot;&nbsp; ") + '</span>';
+
+    document.getElementById("levelPrev").disabled = n <= 1;
+    document.getElementById("levelNext").disabled = n >= TOTAL_LEVELS;
+  }
+
+  document.getElementById("levelPrev").addEventListener("click", function(){
+    if(viewLevel > 1){ viewLevel--; renderLevel(viewLevel); }
+  });
+  document.getElementById("levelNext").addEventListener("click", function(){
+    if(viewLevel < TOTAL_LEVELS){ viewLevel++; renderLevel(viewLevel); }
+  });
+
+  document.addEventListener("click", function(e){
+    var link = e.target.closest("[data-nav-target]");
+    if(!link) return;
+    e.preventDefault();
+    var target = link.dataset.navTarget;
+    var btn = dock.querySelector('.navbtn[data-nav="'+target+'"]');
+    if(btn){ btn.click(); btn.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"}); }
+  });
+
+  buildSegbar();
+  renderLevel(CURRENT_LEVEL);
+
+  /* ============================================================
+     ANIMATED CASH COUNTER
+     ============================================================ */
+  (function(){
+    var el = document.getElementById("cashFigure");
+    var target = 18061;
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(reduceMotion){
+      el.textContent = "$" + target.toLocaleString();
+      return;
+    }
+    var start = null;
+    var duration = 1100;
+    function step(ts){
+      if(start === null) start = ts;
+      var progress = Math.min(1, (ts - start) / duration);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var value = Math.round(eased * target);
+      el.textContent = "$" + value.toLocaleString();
+      if(progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  })();
+
+  /* ============================================================
+     LIVE-ISH COMMAND FEEDBACK FEED
+     ============================================================ */
+  var feedList = document.getElementById("feedList");
+  var seedEntries = [
+    "Extractor MX-01 cycle complete: +48 Silicate",
+    "Research queued: Refinery Chain I",
+    "Lease MRS-0419 renewed by ISA Claims &amp; Leases Division",
+    "Payroll disbursed: -$4,210"
+  ];
+  var extraEntries = [
+    "Extractor MX-02 cycle complete: +19 Silicate",
+    "GEX sell order matched: 40 Silicate @ 61cr",
+    "STA docking fee schedule notice acknowledged",
+    "Fleet status check: no anomalies reported",
+    "Refinery Chain I: analysis phase 2 of 4",
+    "Crew shift rotation completed at Earth Station Prime"
+  ];
+  var clock = { h: 6, m: 0 };
+  function stamp(){
+    clock.m += 2 + Math.floor(Math.random()*5);
+    while(clock.m >= 60){ clock.m -= 60; clock.h = (clock.h + 1) % 24; }
+    return ("0"+clock.h).slice(-2) + ":" + ("0"+clock.m).slice(-2);
+  }
+  function addFeedItem(text, stub){
+    var li = document.createElement("li");
+    li.className = "feed-item" + (stub ? " stub" : "");
+    li.innerHTML = '<time>'+stamp()+'</time><span>'+text+'</span>';
+    feedList.insertBefore(li, feedList.firstChild);
+    while(feedList.children.length > 9){ feedList.removeChild(feedList.lastChild); }
+  }
+  seedEntries.slice().reverse().forEach(function(t){ addFeedItem(t, false); });
+
+  var feedTimer = setInterval(function(){
+    var pick = extraEntries[Math.floor(Math.random() * extraEntries.length)];
+    addFeedItem(pick, false);
+  }, 9000);
+  window.addEventListener("beforeunload", function(){ clearInterval(feedTimer); });
+
+  /* ============================================================
+     LOGOUT / BELL — light feedback only, no real navigation
+     ============================================================ */
+  document.getElementById("logoutBtn").addEventListener("click", function(){
+    showToast("// Session would end here — mockup only");
+  });
+  document.getElementById("bellBtn").addEventListener("click", function(){
+    showToast("23 unread notices — Inbox module standby");
+  });
+
+})();
+</script>
+</body>
+</html>

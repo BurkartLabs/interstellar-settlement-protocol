@@ -1,0 +1,289 @@
+[
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10009.0,
+      "System.Id": 949,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; ui; v1.0",
+      "System.Title": "ISP-253 Pay off the placeholder and art debt, or name what must be bought"
+    },
+    "id": 949,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 5,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/949"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10021.0,
+      "System.Id": 961,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; security; v1.0",
+      "System.Title": "ISP-265 Back up the production data and prove a restore works"
+    },
+    "id": 961,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 6,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/961"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10025.0,
+      "System.Id": 965,
+      "System.Tags": "agent-ready; economy; product:interstellar-settlement-protocol; v1.0",
+      "System.Title": "ISP-269 Run the full-progression economy probe and report where the curve breaks"
+    },
+    "id": 965,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 6,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/965"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10026.0,
+      "System.Id": 966,
+      "System.Tags": "agent-ready; economy; product:interstellar-settlement-protocol; v1.0",
+      "System.Title": "ISP-270 Simulate fleet compositions against each other and check for a dominant one"
+    },
+    "id": 966,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 5,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/966"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10027.0,
+      "System.Id": 967,
+      "System.Tags": "agent-ready; economy; product:interstellar-settlement-protocol; v1.0",
+      "System.Title": "ISP-271 Check warfare-economy balance: concessions, tariffs, patents, lobbying and arbitration together"
+    },
+    "id": 967,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 5,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/967"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10028.0,
+      "System.Id": 968,
+      "System.Tags": "agent-ready; economy; product:interstellar-settlement-protocol; v1.0",
+      "System.Title": "ISP-272 Apply the balance changes with before-and-after numbers and player-facing patch notes"
+    },
+    "id": 968,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 5,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/968"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10029.0,
+      "System.Id": 969,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; security; v1.0",
+      "System.Title": "Stand up a minimal production environment for launch"
+    },
+    "id": 969,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 8,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/969"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10030.0,
+      "System.Id": 970,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; security; v1.0",
+      "System.Title": "Start everyone fresh at 1.0: archive the beta and open production empty"
+    },
+    "id": 970,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 8,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/970"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10031.0,
+      "System.Id": 971,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; ui; v1.0",
+      "System.Title": "ISP-275 Run the 1.0 release-candidate gate on the production-like build"
+    },
+    "id": 971,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 5,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/971"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10032.0,
+      "System.Id": 972,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; security; v1.0",
+      "System.Title": "ISP-276 Open ISP to the public"
+    },
+    "id": 972,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 8,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/972"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10033.0,
+      "System.Id": 973,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; v1.0",
+      "System.Title": "ISP-277 Write the 1.0 LEARNING.md and record the video overview"
+    },
+    "id": 973,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 5,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/973"
+  },
+  {
+    "fields": {
+      "System.Id": 2351,
+      "System.Tags": "agent-ready; economy; product:interstellar-settlement-protocol; v0.8",
+      "System.Title": "A standing bid drifts on its own item's daily quota, not the world's 7,000 (per-product quota for refined goods)"
+    },
+    "id": 2351,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 8,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/2351"
+  },
+  {
+    "fields": {
+      "System.Id": 4654,
+      "System.Tags": "agent-ready; economy; product:interstellar-settlement-protocol; v0.12",
+      "System.Title": "ISP-212a Move a conglomerate's hangar to its station when it is built (server)"
+    },
+    "id": 4654,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 2,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4654"
+  },
+  {
+    "fields": {
+      "System.Id": 4655,
+      "System.Tags": "agent-ready; economy; product:interstellar-settlement-protocol; v0.12",
+      "System.Title": "ISP-212b Govern the sales tax at a conglomerate station: members pay none, non-members pay the treasury (server)"
+    },
+    "id": 4655,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 2,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4655"
+  },
+  {
+    "fields": {
+      "System.Id": 4710,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; ui",
+      "System.Title": "Galactic Exchange: the standing buy orders are short by default"
+    },
+    "id": 4710,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 2,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4710"
+  },
+  {
+    "fields": {
+      "System.Id": 4808,
+      "System.Tags": "agent-ready; flaky-test; product:interstellar-settlement-protocol",
+      "System.Title": "credit-rating-route test fails when computedAt happens to contain 814"
+    },
+    "id": 4808,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 1,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4808"
+  },
+  {
+    "fields": {
+      "System.Id": 4812,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; ui; v1.0",
+      "System.Title": "ISP-254C2 Rewrite status and notification copy in protocol language: rest of Company (Overview, Inbox, Financial Core, CEO Insight, Assignments)"
+    },
+    "id": 4812,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 1,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4812"
+  },
+  {
+    "fields": {
+      "System.Id": 4829,
+      "System.Tags": "agent-ready; flaky-test; product:interstellar-settlement-protocol",
+      "System.Title": "remote-dispatch test fails at random: the remote/local haul ratio moves when either expedition meets Rats"
+    },
+    "id": 4829,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 1,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4829"
+  },
+  {
+    "fields": {
+      "System.Id": 4856,
+      "System.Tags": "agent-ready; bug; found-by:session; product:interstellar-settlement-protocol",
+      "System.Title": "After a jump, the sidebar's Location shows the system's raw id ('sol', 'epsilon-eridani') until the player docks"
+    },
+    "id": 4856,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 7,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4856"
+  },
+  {
+    "fields": {
+      "System.Id": 4857,
+      "System.Tags": "agent-ready; bug; found-by:session; product:interstellar-settlement-protocol",
+      "System.Title": "Queuing a patented research node says nothing about the royalty it will cost; it is taken at completion unannounced"
+    },
+    "id": 4857,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 7,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4857"
+  },
+  {
+    "fields": {
+      "System.Id": 4866,
+      "System.Tags": "agent-ready; bug; css; found-by:session; product:interstellar-settlement-protocol",
+      "System.Title": "At 375 px the Trade History's stacked row cuts a long counterparty name off at the card's right edge"
+    },
+    "id": 4866,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 3,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4866"
+  },
+  {
+    "fields": {
+      "System.Id": 4868,
+      "System.Tags": "agent-ready; balance; product:interstellar-settlement-protocol; v1.0",
+      "System.Title": "A broke corporation whose office has lapsed can never rent one again: the Salvage Assignment stops paying at 3,000 and an office costs 7,000"
+    },
+    "id": 4868,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 1,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4868"
+  },
+  {
+    "fields": {
+      "System.Id": 4869,
+      "System.Tags": "agent-ready; balance; product:interstellar-settlement-protocol; v1.0",
+      "System.Title": "The \"Sell N Silicate\" level requirements count every good sold to an NPC buyer, not just Silicates"
+    },
+    "id": 4869,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 1,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4869"
+  }
+]

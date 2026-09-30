@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 05 v2 — Blueprint (Graphite)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Mono:wght@400;700&family=Oswald:wght@300;400;500;600&family=Architects+Daughter&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue-deep:#141618;
+    --blue-mid:#191c1f;
+    --blue-panel:#1d2023;
+    --blue-panel-2:#23272b;
+    --line-strong:#e8ecef;
+    --line-mid:#a9b0b6;
+    --line-faint:rgba(169,176,182,0.22);
+    --line-ghost:rgba(169,176,182,0.10);
+    --paper: var(--line-strong);
+    --text-secondary:#cdd3d8;
+    --red-pencil:#ff6b52;
+    --yellow-mark: var(--accent);
+    --accent:#7fd4e3;
+    --ink: var(--blue-deep);
+    --grid-fine: rgba(180,188,195,0.035);
+    --grid-major: rgba(180,188,195,0.07);
+    --grid-radial: rgba(180,188,195,0.03);
+    --font-mono:'Space Mono','Share Tech Mono', monospace;
+    --font-label:'Share Tech Mono','Space Mono', monospace;
+    --font-title:'Oswald', 'Arial Narrow', sans-serif;
+    --font-hand:'Architects Daughter', cursive;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background-color: var(--blue-deep);
+    background-image:
+      repeating-linear-gradient(0deg, var(--grid-fine) 0px, var(--grid-fine) 1px, transparent 1px, transparent 8px),
+      repeating-linear-gradient(90deg, var(--grid-fine) 0px, var(--grid-fine) 1px, transparent 1px, transparent 8px),
+      repeating-linear-gradient(0deg, var(--grid-major) 0px, var(--grid-major) 1px, transparent 1px, transparent 40px),
+      repeating-linear-gradient(90deg, var(--grid-major) 0px, var(--grid-major) 1px, transparent 1px, transparent 40px),
+      radial-gradient(ellipse at 20% 10%, var(--grid-radial), transparent 45%),
+      radial-gradient(ellipse at 85% 90%, var(--grid-radial), transparent 50%),
+      linear-gradient(160deg, var(--blue-mid), var(--blue-deep) 60%, #050d1a);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size:14px;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+  /* paper fibre noise, kept faint so the grid stays texture not noise */
+  body::before{
+    content:"";
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    opacity:0.22;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.9  0 0 0 0 0.95  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay;
+  }
+  .sheet{
+    position:relative; z-index:1;
+    max-width:1440px;
+    margin:0 auto;
+    padding:26px 34px 40px;
+  }
+  /* registration crosshairs */
+  .reg{
+    position:fixed; width:26px; height:26px; z-index:5; pointer-events:none;
+    opacity:0.55;
+  }
+  .reg::before, .reg::after{
+    content:""; position:absolute; background: var(--line-strong);
+  }
+  .reg::before{ left:50%; top:0; width:1px; height:100%; transform:translateX(-50%); }
+  .reg::after{ top:50%; left:0; height:1px; width:100%; transform:translateY(-50%); }
+  .reg-circle{ position:absolute; width:10px; height:10px; border:1px solid var(--line-strong); border-radius:50%; left:50%; top:50%; transform:translate(-50%,-50%); }
+  .reg.tl{ top:14px; left:14px; }
+  .reg.tr{ top:14px; right:14px; }
+  .reg.bl{ bottom:14px; left:14px; }
+  .reg.br{ bottom:14px; right:14px; }
+
+  /* ============ HEADER / TITLE STRIP ============ */
+  .drawing-header{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    border-bottom: 2px solid var(--line-strong);
+    padding-bottom:14px; margin-bottom:18px;
+    position:relative;
+  }
+  .drawing-header .mockup-label{
+    position:absolute; top:-22px; right:0; font-size:11px; letter-spacing:0.1em;
+    color: var(--line-mid); text-transform:uppercase; font-family: var(--font-label);
+  }
+  .title-block-mini h1{
+    font-family: var(--font-title); font-weight:600; letter-spacing:0.03em;
+    font-size:30px; margin:0 0 2px 0; text-transform:uppercase; color:var(--line-strong);
+  }
+  .title-block-mini .sub{
+    font-size:12px; color: var(--line-mid); letter-spacing:0.06em; font-family: var(--font-label);
+  }
+  .header-right{
+    text-align:right; font-size:13px; color:var(--line-mid);
+  }
+  .header-right .player-line{ color:var(--line-strong); font-size:14.5px; margin-bottom:4px;}
+  .header-right .player-line b{ color:var(--line-strong); }
+  .notice-badge{
+    display:inline-block; border:1px solid var(--line-strong); border-radius:2px;
+    padding:1px 6px; margin-left:6px; font-size:12px; color:var(--line-strong);
+    background: rgba(234,243,255,0.10);
+  }
+  .logout-link{ color:var(--line-mid); text-decoration:none; border-bottom:1px dotted var(--line-mid); margin-left:10px; cursor:pointer;}
+  .logout-link:hover{ color:var(--line-strong); }
+
+  /* ============ LAYOUT GRID ============ */
+  .layout{
+    display:grid;
+    grid-template-columns: 250px 1fr 300px;
+    gap:20px;
+    align-items:start;
+  }
+
+  /* ============ DRAWN PANEL BASE (solid, opaque sheet) ============ */
+  .panel{
+    position:relative;
+    border: 1px solid var(--line-mid);
+    background: linear-gradient(160deg, var(--blue-panel-2), var(--blue-panel) 60%);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    padding:16px 16px 20px;
+    margin-bottom:20px;
+  }
+  .panel::before{ /* corner ticks */
+    content:""; position:absolute; top:-1px; left:-1px; width:10px; height:10px;
+    border-top:2px solid var(--line-strong); border-left:2px solid var(--line-strong);
+  }
+  .panel::after{
+    content:""; position:absolute; bottom:-1px; right:-1px; width:10px; height:10px;
+    border-bottom:2px solid var(--line-strong); border-right:2px solid var(--line-strong);
+  }
+  .panel-title{
+    font-family: var(--font-label); text-transform:uppercase; letter-spacing:0.09em;
+    font-size:12.5px; color:var(--line-mid); margin:0 0 12px 0;
+    display:flex; align-items:center; gap:8px;
+  }
+  .panel-title .num-balloon{ margin-right:2px; }
+  .panel-title::after{
+    content:""; flex:1; height:1px;
+    background: repeating-linear-gradient(90deg, var(--line-faint) 0 4px, transparent 4px 8px);
+  }
+
+  /* number balloons ①②③ */
+  .num-balloon{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:18px; height:18px; border-radius:50%; border:1px solid var(--line-strong);
+    font-size:11px; color:var(--line-strong); flex-shrink:0; font-family: var(--font-label);
+  }
+
+  /* leader line + callout */
+  .leader{ position:relative; }
+  .leader-line{
+    position:absolute; border-top:1px solid var(--line-mid);
+    transform-origin:left center;
+    pointer-events:none;
+  }
+
+  /* dimension line style */
+  .dim-line{
+    display:flex; align-items:center; gap:6px; font-size:12px; color:var(--line-mid);
+    letter-spacing:0.02em; white-space:nowrap; font-family: var(--font-label);
+  }
+  .dim-line .arrows{ flex:1; position:relative; height:1px; background:var(--line-mid); min-width:20px; }
+  .dim-line .arrows::before, .dim-line .arrows::after{
+    content:""; position:absolute; top:50%; width:6px; height:6px;
+    border-left:1px solid var(--line-mid); border-bottom:1px solid var(--line-mid);
+  }
+  .dim-line .arrows::before{ left:0; transform:translateY(-50%) rotate(45deg); }
+  .dim-line .arrows::after{ right:0; transform:translateY(-50%) rotate(225deg); }
+
+  /* ============ NAV (drawing index / sheet list) ============ */
+  .sheet-index table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  .sheet-index caption{ text-align:left; }
+  .sheet-index thead th{
+    text-align:left; font-family:var(--font-label); font-size:10.5px; letter-spacing:0.07em;
+    text-transform:uppercase; color:var(--line-mid); border-bottom:1px solid var(--line-mid);
+    padding:4px 4px 6px;
+  }
+  .sheet-index tbody td{ padding:7px 4px; border-bottom:1px solid var(--line-ghost); vertical-align:top; }
+  .sheet-index tbody tr{ cursor:pointer; transition:background 0.15s; }
+  .sheet-index tbody tr:hover{ background: rgba(234,243,255,0.07); }
+  .sheet-index tbody tr.active{ background: rgba(234,243,255,0.12); }
+  .sheet-index tbody tr.active .sheet-no{ color:var(--accent); font-weight:bold; }
+  .sheet-index tbody tr.active .item-name{ color:var(--accent); }
+  .sheet-index .sheet-no{ color:var(--line-mid); white-space:nowrap; font-family: var(--font-label); font-size:12.5px; }
+  .sheet-index .group-row td{
+    padding-top:14px; font-family:var(--font-title); text-transform:uppercase; letter-spacing:0.1em;
+    font-size:10.5px; color:var(--line-mid); border-bottom:none;
+  }
+  .sheet-index .group-row:first-child td{ padding-top:2px; }
+  .sheet-index .item-name{ color:var(--line-strong); }
+  .sheet-index tr.disabled .item-name, .sheet-index tr.disabled .sheet-no{ color: var(--line-faint); }
+  .sheet-index tr.disabled{ cursor:default; }
+  .rev-tag{ font-size:9.5px; border:1px solid var(--line-mid); padding:0 3px; margin-left:6px; color:var(--line-mid); font-family: var(--font-label); }
+
+  /* ============ CENTER COLUMN ============ */
+  .level-panel .level-title{
+    font-family: var(--font-title); font-size:20px; text-transform:uppercase; letter-spacing:0.04em;
+    margin:0 0 6px 0; color:var(--line-strong);
+  }
+  .level-peek{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
+  }
+  .peek-btn{
+    background:none; border:1px solid var(--line-mid); color:var(--line-mid); font-family:var(--font-mono);
+    font-size:16px; width:28px; height:28px; cursor:pointer; transition:all 0.15s;
+  }
+  .peek-btn:hover{ border-color:var(--line-strong); color:var(--line-strong); }
+  .level-progress-track{
+    position:relative; height:14px; border:1px solid var(--line-mid); margin:10px 0 16px;
+    background: repeating-linear-gradient(135deg, var(--line-ghost) 0 4px, transparent 4px 10px);
+  }
+  .level-progress-fill{
+    height:100%; background: var(--accent); opacity:0.35; border-right:1px solid var(--line-strong);
+    transition: width 0.6s ease;
+  }
+  .requirement{
+    display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-top:1px dashed var(--line-faint);
+  }
+  .requirement:first-of-type{ border-top:none; }
+  .req-status{
+    width:16px; height:16px; border:1px solid var(--line-mid); flex-shrink:0; margin-top:2px;
+    display:flex; align-items:center; justify-content:center; font-size:10px;
+  }
+  .req-status.done{ background:var(--accent); color:var(--ink); border-color:var(--accent); }
+  .req-body{ flex:1; }
+  .req-body .req-name{ font-size:14.5px; color:var(--line-strong); }
+  .req-body .req-count{ font-size:12px; color:var(--line-mid); margin-top:3px; }
+  .req-link{ color:var(--accent); font-size:13px; text-decoration:none; border-bottom:1px solid var(--accent); }
+  .req-link:hover{ opacity:0.7; }
+  .unlock-note{ font-size:12.5px; color:var(--line-mid); margin-top:14px; line-height:1.6; }
+  .unlock-note .hand{ font-family:var(--font-hand); font-size:15px; color:var(--yellow-mark); }
+
+  /* Executive Situation Brief */
+  .brief-text{ font-size:14.5px; line-height:1.7; color: var(--text-secondary); }
+  .brief-text .stamp{
+    display:inline-block; margin-top:10px; border:2px solid var(--line-mid); color:var(--line-mid);
+    padding:4px 10px; font-family:var(--font-label); font-size:11px; letter-spacing:0.13em;
+    text-transform:uppercase; transform: rotate(-2deg);
+  }
+
+  /* Command feedback log */
+  .feed-panel{ max-height:280px; overflow-y:auto; }
+  .feed-log{ font-size:13.5px; line-height:1.55; }
+  .feed-entry{ padding:6px 0; border-bottom:1px solid var(--line-ghost); display:flex; gap:8px; color:var(--text-secondary); }
+  .feed-entry .ts{ color:var(--line-mid); flex-shrink:0; font-family: var(--font-label); font-size:12px; }
+  .feed-entry.standby{ color: var(--line-mid); font-style:italic; }
+  .feed-entry .blink{ display:inline-block; width:6px; height:6px; background:var(--accent); border-radius:50%; margin-right:6px; animation: pulse 1.6s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:0.25;} 50%{opacity:1;} }
+
+  /* ============ KEY FIGURES / DIMENSION CALLOUTS ============ */
+  .figures-row{
+    display:grid; grid-template-columns: repeat(5, 1fr); gap:0; margin-bottom:20px;
+    border:1px solid var(--line-mid);
+    background: linear-gradient(160deg, var(--blue-panel-2), var(--blue-panel) 60%);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  }
+  .figure-cell{ padding:14px 16px; border-right:1px solid var(--line-faint); position:relative; }
+  .figure-cell:last-child{ border-right:none; }
+  .figure-cell.warn{ grid-column: span 2; display:flex; flex-direction:column; justify-content:flex-start; }
+  .figure-cell .fig-label{ font-size:11px; letter-spacing:0.07em; text-transform:uppercase; color:var(--line-mid); display:flex; justify-content:space-between; align-items:center; font-family: var(--font-label); }
+  .figure-cell .fig-value{ font-family: var(--font-title); font-size:26px; margin-top:6px; letter-spacing:0.01em; color:var(--line-strong); }
+  .figure-cell .fig-sub{ font-size:12px; color:var(--line-mid); margin-top:4px; }
+  .figure-cell.warn .fig-value{ color: var(--red-pencil); }
+  .figure-cell.warn{ background: rgba(255,107,82,0.09); }
+
+  .warn-body{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top:2px; }
+  .warn-body .fig-value{ margin-top:0; }
+
+  /* revision cloud */
+  .revcloud-wrap{ position:relative; margin-top:0; }
+  .revcloud{
+    border: 2px solid var(--red-pencil);
+    border-radius: 44% 50% 46% 52% / 54% 44% 56% 46%;
+    box-shadow: inset 0 0 0 2px transparent;
+    padding:14px 22px;
+    display:inline-block;
+    width:fit-content;
+    max-width:100%;
+    color: var(--red-pencil);
+    font-family: var(--font-hand);
+    font-size:15px;
+    line-height:1.5;
+    white-space:normal;
+    transform: rotate(-1.5deg);
+    position:relative;
+  }
+  .revcloud::before{
+    content:""; position:absolute; inset:-8px;
+    border: 2px solid var(--red-pencil);
+    border-radius: 50% 46% 54% 48% / 46% 56% 44% 54%;
+    opacity:0.55;
+    pointer-events:none;
+  }
+
+  /* ============ EXTRACTOR SCHEMATIC ============ */
+  .extractor-panel svg{ width:100%; height:auto; display:block; }
+  .extractor-meta{ display:flex; justify-content:space-between; font-size:12px; color:var(--line-mid); margin-top:10px; font-family: var(--font-label); }
+  .extractor-meta b{ color:var(--line-strong); }
+
+  /* ============ RIGHT COLUMN misc panels ============ */
+  .mini-table{ width:100%; font-size:13.5px; border-collapse:collapse; }
+  .mini-table td{ padding:5px 2px; border-bottom:1px solid var(--line-ghost); color:var(--text-secondary); }
+  .mini-table tr:last-child td{ border-bottom:none; }
+  .mini-table td.right{ text-align:right; color:var(--line-mid); }
+
+  .inbox-item{ padding:8px 0; border-bottom:1px solid var(--line-ghost); font-size:13.5px; color:var(--text-secondary); }
+  .inbox-item:last-child{ border-bottom:none; }
+  .inbox-item .from{ color:var(--line-mid); font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; font-family: var(--font-label); }
+  .inbox-item .subj{ margin-top:3px; }
+
+  .hatch-bar{
+    height:10px; border:1px solid var(--line-mid); position:relative; overflow:hidden; margin-top:4px;
+  }
+  .hatch-bar .fill{
+    height:100%;
+    background: repeating-linear-gradient(45deg, var(--accent) 0 2px, transparent 2px 6px);
+    opacity:0.7;
+  }
+
+  /* ============ TITLE BLOCK ============ */
+  .title-block{
+    margin-top:10px;
+    border: 2px solid var(--line-strong);
+    display:grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    font-size:12px;
+    background: linear-gradient(160deg, var(--blue-panel-2), var(--blue-panel) 70%);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  }
+  .tb-cell{ border-right:1px solid var(--line-mid); border-bottom:1px solid var(--line-mid); padding:8px 12px; }
+  .tb-cell:nth-child(4n){ border-right:none; }
+  .tb-label{ display:block; color:var(--line-mid); font-size:9.5px; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:3px; font-family: var(--font-label); }
+  .tb-value{ color:var(--line-strong); font-size:14px; }
+  .tb-big{ grid-column: span 4; padding:12px; }
+  .tb-big .tb-value{ font-family:var(--font-title); font-size:18px; text-transform:uppercase; letter-spacing:0.05em; }
+  .tb-corp-row{ grid-column: span 4; display:grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; border-top:1px solid var(--line-mid); }
+
+  /* footer note */
+  .center-dash{ border-top: 2px dashed var(--line-faint); margin: 6px 0; position:relative; }
+  .center-dash::after{ content:"✛"; position:absolute; left:50%; top:-8px; transform:translateX(-50%); font-size:12px; color:var(--line-mid); }
+
+  a{ color:inherit; }
+
+  @media (max-width: 1280px){
+    .layout{ grid-template-columns: 220px 1fr 260px; gap:14px; }
+    .figures-row{ grid-template-columns: repeat(2, 1fr); grid-auto-flow: dense; }
+    .figure-cell:nth-child(odd){ border-right:none; }
+  }
+
+  @media (max-width: 900px){
+    .layout{ grid-template-columns: 1fr; }
+    .sheet{ padding:16px; }
+    .reg{ display:none; }
+  }
+  @media (max-width: 480px){
+    .drawing-header{ flex-direction:column; align-items:flex-start; gap:10px; padding-top:20px; }
+    .drawing-header .mockup-label{ position:static; order:-1; margin-bottom:4px; }
+    .header-right{ text-align:left; }
+    .title-block{ grid-template-columns: 1fr 1fr; }
+    .tb-big{ grid-column: span 2; }
+    .tb-corp-row{ grid-template-columns: 1fr 1fr; }
+    .figures-row{ grid-template-columns: 1fr; }
+    .figure-cell{ border-right:none; border-bottom:1px solid var(--line-faint); }
+  }
+</style>
+</head>
+<body>
+
+<div class="reg tl"><div class="reg-circle"></div></div>
+<div class="reg tr"><div class="reg-circle"></div></div>
+<div class="reg bl"><div class="reg-circle"></div></div>
+<div class="reg br"><div class="reg-circle"></div></div>
+
+<div class="sheet">
+
+  <div class="drawing-header">
+    <div class="mockup-label">Mockup 05 v2 &mdash; Blueprint (Graphite)</div>
+    <div class="title-block-mini">
+      <h1>The Interstellar Settlement Protocol</h1>
+      <div class="sub">v0.4 &nbsp;&middot;&nbsp; est. 2147 &nbsp;&middot;&nbsp; ISA Engineering Office &mdash; Sheet Series HMH-OVR</div>
+    </div>
+    <div class="header-right">
+      <div class="player-line"><b>R. Vance</b> &mdash; Helix Meridian Holdings <span style="color:var(--line-mid)">(HMH)</span>
+        <span class="notice-badge" id="noticeBadge">23 unread</span>
+        <span class="logout-link" id="logoutLink">Log Out</span>
+      </div>
+      <div>Command Feedback: <span style="color:var(--line-strong)">nominal</span></div>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- ================= LEFT: SHEET INDEX / NAV ================= -->
+    <div>
+      <div class="panel sheet-index">
+        <p class="panel-title">Drawing Index</p>
+        <table>
+          <thead>
+            <tr><th>Sheet</th><th>Title</th></tr>
+          </thead>
+          <tbody id="navTable">
+            <tr class="group-row"><td colspan="2">Company</td></tr>
+            <tr class="nav-row active" data-page="Overview"><td class="sheet-no">01</td><td class="item-name">Overview</td></tr>
+            <tr class="nav-row" data-page="Inbox"><td class="sheet-no">02</td><td class="item-name">Inbox</td></tr>
+            <tr class="nav-row" data-page="Financial Core"><td class="sheet-no">03</td><td class="item-name">Financial Core</td></tr>
+            <tr class="nav-row" data-page="CEO Insight"><td class="sheet-no">04</td><td class="item-name">CEO Insight</td></tr>
+            <tr class="nav-row" data-page="Assignments"><td class="sheet-no">05</td><td class="item-name">Assignments</td></tr>
+            <tr class="nav-row" data-page="Conglomerate"><td class="sheet-no">06</td><td class="item-name">Conglomerate</td></tr>
+
+            <tr class="group-row"><td colspan="2">Station</td></tr>
+            <tr class="nav-row" data-page="Station"><td class="sheet-no">07</td><td class="item-name">Station</td></tr>
+            <tr class="nav-row" data-page="Operations"><td class="sheet-no">08</td><td class="item-name">Operations</td></tr>
+            <tr class="nav-row" data-page="Fleet"><td class="sheet-no">09</td><td class="item-name">Fleet</td></tr>
+
+            <tr class="group-row"><td colspan="2">Industry</td></tr>
+            <tr class="nav-row" data-page="Corporate R&D"><td class="sheet-no">10</td><td class="item-name">Corporate R&amp;D</td></tr>
+            <tr class="nav-row" data-page="Refinery Chains"><td class="sheet-no">11</td><td class="item-name">Refinery Chains</td></tr>
+            <tr class="nav-row" data-page="Logistics"><td class="sheet-no">12</td><td class="item-name">Logistics</td></tr>
+
+            <tr class="group-row"><td colspan="2">Market</td></tr>
+            <tr class="nav-row" data-page="Galactic Exchange"><td class="sheet-no">13</td><td class="item-name">Galactic Exchange</td></tr>
+            <tr class="nav-row" data-page="Assets"><td class="sheet-no">14</td><td class="item-name">Assets</td></tr>
+
+            <tr class="group-row"><td colspan="2">Comms</td></tr>
+            <tr class="nav-row" data-page="Chat"><td class="sheet-no">15</td><td class="item-name">Chat</td></tr>
+            <tr class="nav-row" data-page="Forum"><td class="sheet-no">16</td><td class="item-name">Forum</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <p class="panel-title"><span class="num-balloon">①</span> Roster / Assets</p>
+        <table class="mini-table">
+          <tr><td>Employees</td><td class="right">18 / 30</td></tr>
+          <tr><td>Silicate Stock</td><td class="right">142 u</td></tr>
+          <tr><td>Extractors on MRS&#8209;0419</td><td class="right">2</td></tr>
+          <tr><td>Building Slots</td><td class="right">3 used / 3</td></tr>
+        </table>
+        <div class="dim-line" style="margin-top:12px;">
+          <span>0</span><span class="arrows"></span><span>30 emp cap</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= CENTER COLUMN ================= -->
+    <div>
+
+      <!-- KEY FIGURES -->
+      <div class="figures-row">
+        <div class="figure-cell">
+          <div class="fig-label">Cash Reserves <span class="num-balloon">②</span></div>
+          <div class="fig-value" id="cashValue">$0</div>
+          <div class="fig-sub">total corporate credits on hand</div>
+        </div>
+        <div class="figure-cell warn">
+          <div class="fig-label">Net Daily Flow <span class="num-balloon">③</span></div>
+          <div class="warn-body">
+            <div class="fig-value" id="flowValue">-$0</div>
+            <div class="revcloud-wrap"><span class="revcloud">REV A: DEFICIT &mdash; REVIEW</span></div>
+          </div>
+        </div>
+        <div class="figure-cell">
+          <div class="fig-label">Conglomerate</div>
+          <div class="fig-value" style="font-size:18px;">Independent</div>
+          <div class="fig-sub">not affiliated with any conglomerate</div>
+        </div>
+        <div class="figure-cell">
+          <div class="fig-label">Military</div>
+          <div class="fig-value" style="font-size:18px;">0 <span style="color:var(--line-mid); font-size:13px;">ATK</span> / 0 <span style="color:var(--line-mid); font-size:13px;">DEF</span></div>
+          <div class="fig-sub">readiness 100%</div>
+        </div>
+      </div>
+
+      <!-- LEVEL PROGRESS -->
+      <div class="panel level-panel">
+        <p class="panel-title"><span class="num-balloon">④</span> Corporation Level &mdash; Milestone Progress</p>
+        <div class="level-peek">
+          <button class="peek-btn" id="levelPrev">&#8249;</button>
+          <div style="text-align:center;">
+            <div class="level-title" id="levelTitle">Level 2 of 30</div>
+            <div style="font-size:12px; color:var(--line-mid);" id="levelSub">current standing &mdash; Helix Meridian Holdings</div>
+          </div>
+          <button class="peek-btn" id="levelNext">&#8250;</button>
+        </div>
+        <div class="level-progress-track"><div class="level-progress-fill" id="levelFill" style="width:50%;"></div></div>
+        <div class="dim-line" style="margin-bottom:14px;">
+          <span>LVL 2</span><span class="arrows"></span><span>ADVANCING TO LVL 3</span>
+        </div>
+
+        <div id="requirementsList"></div>
+
+        <div class="unlock-note" id="unlockNote"></div>
+      </div>
+
+      <!-- EXTRACTOR SCHEMATIC -->
+      <div class="panel extractor-panel">
+        <p class="panel-title"><span class="num-balloon">⑤</span> Detail &mdash; Extractor MX&#8209;01, Lease MRS&#8209;0419</p>
+        <svg viewBox="0 0 600 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <clipPath id="tankClip"><rect id="tankClipRect" x="252" y="30" width="96" height="140"/></clipPath>
+          </defs>
+          <!-- ground / regolith hatch -->
+          <line x1="20" y1="196" x2="580" y2="196" stroke="var(--line-strong)" stroke-opacity="0.5" stroke-width="1"/>
+          <g stroke="var(--line-strong)" stroke-opacity="0.25" stroke-width="1">
+            <line x1="20" y1="196" x2="35" y2="212"/><line x1="45" y1="196" x2="60" y2="212"/>
+            <line x1="70" y1="196" x2="85" y2="212"/><line x1="95" y1="196" x2="110" y2="212"/>
+            <line x1="120" y1="196" x2="135" y2="212"/><line x1="145" y1="196" x2="160" y2="212"/>
+            <line x1="170" y1="196" x2="185" y2="212"/><line x1="195" y1="196" x2="210" y2="212"/>
+            <line x1="415" y1="196" x2="430" y2="212"/><line x1="440" y1="196" x2="455" y2="212"/>
+            <line x1="465" y1="196" x2="480" y2="212"/><line x1="490" y1="196" x2="505" y2="212"/>
+            <line x1="515" y1="196" x2="530" y2="212"/><line x1="540" y1="196" x2="555" y2="212"/>
+            <line x1="565" y1="196" x2="580" y2="212"/>
+          </g>
+          <!-- derrick legs -->
+          <line x1="230" y1="196" x2="260" y2="60" stroke="var(--line-strong)" stroke-opacity="0.6" stroke-width="1.5"/>
+          <line x1="370" y1="196" x2="340" y2="60" stroke="var(--line-strong)" stroke-opacity="0.6" stroke-width="1.5"/>
+          <line x1="245" y1="140" x2="355" y2="140" stroke="var(--line-strong)" stroke-opacity="0.35" stroke-width="1"/>
+          <line x1="240" y1="100" x2="360" y2="100" stroke="var(--line-strong)" stroke-opacity="0.35" stroke-width="1"/>
+          <!-- centre line -->
+          <line x1="300" y1="20" x2="300" y2="200" stroke="var(--line-strong)" stroke-opacity="0.4" stroke-width="1" stroke-dasharray="10 4 2 4"/>
+          <!-- storage tank outline -->
+          <rect x="252" y="30" width="96" height="140" fill="none" stroke="var(--line-strong)" stroke-width="1.5"/>
+          <!-- hatch fill representing cycle progress, height controlled by JS -->
+          <g clip-path="url(#tankClip)">
+            <rect id="mx01Fill" x="252" y="170" width="96" height="0" fill="none" stroke="var(--line-strong)" stroke-opacity="0.7" stroke-width="1"/>
+            <pattern id="hatchPattern" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="0" y2="8" stroke="var(--line-strong)" stroke-opacity="0.55" stroke-width="1.5"/>
+            </pattern>
+            <rect id="mx01Vol" x="252" y="170" width="96" height="0" fill="url(#hatchPattern)"/>
+          </g>
+          <!-- drill pipe -->
+          <line x1="300" y1="30" x2="300" y2="196" stroke="var(--line-strong)" stroke-opacity="0.5" stroke-width="3"/>
+          <!-- crown -->
+          <rect x="285" y="18" width="30" height="14" fill="none" stroke="var(--line-strong)" stroke-width="1.5"/>
+          <!-- callout leader to tank -->
+          <line x1="348" y1="60" x2="410" y2="45" stroke="var(--line-strong)" stroke-opacity="0.6" stroke-width="1"/>
+          <circle cx="410" cy="45" r="9" fill="none" stroke="var(--line-strong)" stroke-width="1"/>
+          <text x="410" y="49" fill="var(--line-strong)" font-size="11" text-anchor="middle" font-family="Share Tech Mono, monospace">1</text>
+          <text x="424" y="49" fill="var(--line-strong)" fill-opacity="0.8" font-size="12" font-family="Share Tech Mono, monospace">silicate hopper</text>
+
+          <line x1="252" y1="120" x2="210" y2="100" stroke="var(--line-strong)" stroke-opacity="0.6" stroke-width="1"/>
+          <circle cx="210" cy="100" r="9" fill="none" stroke="var(--line-strong)" stroke-width="1"/>
+          <text x="210" y="104" fill="var(--line-strong)" font-size="11" text-anchor="middle" font-family="Share Tech Mono, monospace">2</text>
+          <text x="15" y="104" fill="var(--line-strong)" fill-opacity="0.8" font-size="12" font-family="Share Tech Mono, monospace">cycle fill level, live</text>
+
+          <!-- dimension: width -->
+          <line x1="252" y1="188" x2="348" y2="188" stroke="var(--line-strong)" stroke-opacity="0.5" stroke-width="1"/>
+          <line x1="252" y1="182" x2="252" y2="194" stroke="var(--line-strong)" stroke-opacity="0.5" stroke-width="1"/>
+          <line x1="348" y1="182" x2="348" y2="194" stroke="var(--line-strong)" stroke-opacity="0.5" stroke-width="1"/>
+          <text x="300" y="182" fill="var(--line-strong)" fill-opacity="0.7" font-size="10" text-anchor="middle" font-family="Share Tech Mono, monospace">&#8592; 12 u &#8594;</text>
+        </svg>
+        <div class="extractor-meta">
+          <div>MX&#8209;01 cycle: <b id="mx01Pct">72%</b></div>
+          <div>MX&#8209;02 cycle: <b id="mx02Pct">31%</b></div>
+          <div>GEX peg, Silicate: <b>61 cr/u</b></div>
+        </div>
+        <div class="hatch-bar" style="margin-top:10px;"><div class="fill" id="mx02Bar" style="width:31%;"></div></div>
+      </div>
+
+      <!-- EXECUTIVE SITUATION BRIEF -->
+      <div class="panel">
+        <p class="panel-title"><span class="num-balloon">⑥</span> Executive Situation Brief</p>
+        <div class="brief-text">
+          ISP is designed as a multi&#8209;year strategy arc. Corporation levels are milestone&#8209;gated, not
+          XP&#8209;gated, and each unlock expands market access, infrastructure depth, and interstellar reach.
+          <div class="stamp">Filed &mdash; ISA Engineering Office</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= RIGHT COLUMN ================= -->
+    <div>
+
+      <div class="panel feed-panel">
+        <p class="panel-title"><span class="num-balloon">⑦</span> Command Feedback</p>
+        <div class="feed-log" id="feedLog">
+          <div class="feed-entry standby"><span class="blink"></span>Command uplink standing by. Completed actions and queue additions will be logged here.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="panel-title">Inbox &mdash; Priority</p>
+        <div class="inbox-item">
+          <div class="from">ISA Claims &amp; Leases Division</div>
+          <div class="subj">Lease MRS&#8209;0419 renewal confirmed for next cycle.</div>
+        </div>
+        <div class="inbox-item">
+          <div class="from">STA &mdash; Station Administration</div>
+          <div class="subj">Berth allocation review scheduled, Earth Station Prime.</div>
+        </div>
+        <div style="margin-top:10px; text-align:right;">
+          <a href="#" class="req-link" data-page="Inbox">View all (23) &rarr;</a>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="panel-title">Research Queue</p>
+        <table class="mini-table">
+          <tr><td>Refinery Chain I</td><td class="right">in progress</td></tr>
+          <tr><td>Basic Extraction Analytics</td><td class="right" style="color:var(--line-strong);">complete</td></tr>
+        </table>
+        <div class="hatch-bar" style="margin-top:10px;"><div class="fill" style="width:44%;"></div></div>
+        <div class="dim-line" style="margin-top:8px;"><span>0d</span><span class="arrows"></span><span>est. 3d remaining</span></div>
+      </div>
+
+      <div class="panel">
+        <p class="panel-title">GEX &mdash; Silicate</p>
+        <table class="mini-table">
+          <tr><td>Peg price</td><td class="right">61 cr/u</td></tr>
+          <tr><td>24h prior</td><td class="right">58 cr/u</td></tr>
+          <tr><td>7d prior</td><td class="right">54 cr/u</td></tr>
+        </table>
+        <svg viewBox="0 0 240 50" style="width:100%; height:44px; margin-top:8px;">
+          <polyline points="0,40 30,36 60,38 90,30 120,26 150,20 180,14 210,10 240,6" fill="none" stroke="var(--line-strong)" stroke-width="1.5" stroke-opacity="0.8"/>
+          <circle cx="240" cy="6" r="2.5" fill="var(--line-strong)"/>
+        </svg>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="center-dash"></div>
+
+  <!-- ================= TITLE BLOCK ================= -->
+  <div class="title-block">
+    <div class="tb-cell tb-big">
+      <span class="tb-label">Drawing Title</span>
+      <span class="tb-value">Corporation Overview &mdash; General Arrangement</span>
+    </div>
+    <div class="tb-corp-row">
+      <div class="tb-cell">
+        <span class="tb-label">Corporation</span>
+        <span class="tb-value">Helix Meridian Holdings <span style="color:var(--line-mid); font-size:11px;">(HMH)</span></span>
+      </div>
+      <div class="tb-cell">
+        <span class="tb-label">Drawing No.</span>
+        <span class="tb-value">HMH&#8209;OVR&#8209;002</span>
+      </div>
+      <div class="tb-cell">
+        <span class="tb-label">Sheet</span>
+        <span class="tb-value">2 of 30</span>
+      </div>
+      <div class="tb-cell">
+        <span class="tb-label">Scale</span>
+        <span class="tb-value">1 : 4200</span>
+      </div>
+    </div>
+    <div class="tb-corp-row">
+      <div class="tb-cell">
+        <span class="tb-label">Drawn By</span>
+        <span class="tb-value">R. Vance</span>
+      </div>
+      <div class="tb-cell">
+        <span class="tb-label">Approved</span>
+        <span class="tb-value">ISA Engineering Office</span>
+      </div>
+      <div class="tb-cell">
+        <span class="tb-label">Date</span>
+        <span class="tb-value">2147&#8209;03&#8209;18</span>
+      </div>
+      <div class="tb-cell">
+        <span class="tb-label">Revision</span>
+        <span class="tb-value" style="color:var(--red-pencil);">A</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Nav handling ----------
+  var navRows = document.querySelectorAll('.nav-row');
+  navRows.forEach(function(row){
+    row.addEventListener('click', function(){
+      navRows.forEach(function(r){ r.classList.remove('active'); });
+      row.classList.add('active');
+      logEvent('Sheet requested: ' + row.getAttribute('data-page') + ' (not yet drawn in this mockup)');
+    });
+  });
+  document.querySelectorAll('[data-page]').forEach(function(el){
+    if (el.classList.contains('nav-row')) return;
+    el.addEventListener('click', function(e){
+      e.preventDefault();
+      var target = el.getAttribute('data-page');
+      var row = document.querySelector('.nav-row[data-page="' + target + '"]');
+      if (row){ row.click(); row.scrollIntoView({block:'nearest'}); }
+    });
+  });
+
+  document.getElementById('logoutLink').addEventListener('click', function(){
+    logEvent('Log out requested. Session held for demonstration purposes.');
+  });
+  document.getElementById('noticeBadge').addEventListener('click', function(){
+    logEvent('Notices panel requested (23 unread).');
+  });
+
+  // ---------- Level data / peek ----------
+  var levels = {
+    1: {
+      title: "Level 1 of 30",
+      reqs: [
+        {name:"Sign initial Mars lease", count:"1 / 1", done:true},
+        {name:"Hire first 3 employees", count:"3 / 3", done:true}
+      ],
+      unlock: "Reaching Level 2 unlocked: Employee cap 30, Building slots 3, Fleet cap 12, Highest building tier 1.",
+      fill: 100
+    },
+    2: {
+      title: "Level 2 of 30",
+      reqs: [
+        {name:"Sell 300 Silicate on the Galactic Exchange", count:"0 / 300", done:false, link:"Go to Galactic Exchange"},
+        {name:"Research Basic Extraction Analytics", count:"1 / 1", done:true}
+      ],
+      unlock: "Reaching Level 3 unlocks: Employee cap 45, Building slots 4, Fleet cap 22, Highest building tier 2.",
+      fill: 50
+    },
+    3: {
+      title: "Level 3 of 30",
+      reqs: [
+        {name:"Sell 300 Silicate on the Galactic Exchange", count:"0 / 300", done:false, link:"Go to Galactic Exchange"},
+        {name:"Commission Refinery Chain I", count:"0 / 1", done:false}
+      ],
+      unlock: "Reaching Level 4 unlocks: Employee cap 60, Building slots 5, Fleet cap 30, Highest building tier 2.",
+      fill: 0
+    },
+    4: {
+      title: "Level 4 of 30",
+      reqs: [
+        {name:"Establish second lease system", count:"0 / 1", done:false},
+        {name:"Research Fleet Logistics I", count:"0 / 1", done:false}
+      ],
+      unlock: "Reaching Level 5 unlocks: Employee cap 80, Building slots 6, Fleet cap 40, Highest building tier 3.",
+      fill: 0
+    }
+  };
+  var currentLevel = 2;
+
+  function renderLevel(n){
+    var data = levels[n];
+    if (!data) return;
+    document.getElementById('levelTitle').textContent = data.title;
+    document.getElementById('levelSub').textContent = (n === currentLevel)
+      ? "current standing — Helix Meridian Holdings"
+      : "peeking — not yet reached";
+    document.getElementById('levelFill').style.width = data.fill + '%';
+
+    var list = document.getElementById('requirementsList');
+    list.innerHTML = '';
+    data.reqs.forEach(function(r){
+      var div = document.createElement('div');
+      div.className = 'requirement';
+      div.innerHTML =
+        '<div class="req-status' + (r.done ? ' done' : '') + '">' + (r.done ? '✓' : '') + '</div>' +
+        '<div class="req-body">' +
+          '<div class="req-name">' + r.name + '</div>' +
+          '<div class="req-count">' + r.count + (r.link ? ' &mdash; <a href="#" class="req-link" data-page="Galactic Exchange">' + r.link + '</a>' : '') + '</div>' +
+        '</div>';
+      list.appendChild(div);
+    });
+    // rebind link inside newly created requirement
+    list.querySelectorAll('[data-page]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.preventDefault();
+        var row = document.querySelector('.nav-row[data-page="Galactic Exchange"]');
+        if (row) row.click();
+      });
+    });
+
+    document.getElementById('unlockNote').innerHTML = data.unlock;
+  }
+
+  document.getElementById('levelPrev').addEventListener('click', function(){
+    var keys = Object.keys(levels).map(Number).sort(function(a,b){return a-b;});
+    var idx = keys.indexOf(currentPeek());
+    var newIdx = Math.max(0, idx - 1);
+    renderLevel(keys[newIdx]);
+  });
+  document.getElementById('levelNext').addEventListener('click', function(){
+    var keys = Object.keys(levels).map(Number).sort(function(a,b){return a-b;});
+    var idx = keys.indexOf(currentPeek());
+    var newIdx = Math.min(keys.length - 1, idx + 1);
+    renderLevel(keys[newIdx]);
+  });
+  var peekLevel = currentLevel;
+  function currentPeek(){ return peekLevel; }
+  // wrap renderLevel to track peekLevel
+  var _renderLevel = renderLevel;
+  renderLevel = function(n){ peekLevel = n; _renderLevel(n); };
+
+  renderLevel(currentLevel);
+
+  // ---------- Animated counters ----------
+  function animateCounter(el, target, prefix, duration){
+    var start = 0;
+    var startTime = null;
+    var isNegative = target < 0;
+    function step(ts){
+      if (!startTime) startTime = ts;
+      var progress = Math.min(1, (ts - startTime) / duration);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var val = Math.round(start + (target - start) * eased);
+      el.textContent = (isNegative ? '-' : '') + prefix + Math.abs(val).toLocaleString();
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  animateCounter(document.getElementById('cashValue'), 18061, '$', 1400);
+  animateCounter(document.getElementById('flowValue'), -27915, '$', 1600);
+
+  // ---------- Extractor cycle fill (SVG) ----------
+  function setTankFill(pct){
+    var totalH = 140;
+    var h = totalH * (pct / 100);
+    var y = 170 - h;
+    document.getElementById('mx01Vol').setAttribute('y', y);
+    document.getElementById('mx01Vol').setAttribute('height', h);
+    document.getElementById('mx01Fill').setAttribute('y', y);
+    document.getElementById('mx01Fill').setAttribute('height', h);
+  }
+  var mx01 = 0, mx01Target = 72;
+  var mx02 = 0, mx02Target = 31;
+  function tickCycles(){
+    if (mx01 < mx01Target) mx01 += 1;
+    setTankFill(mx01);
+    document.getElementById('mx01Pct').textContent = mx01 + '%';
+    if (mx02 < mx02Target) mx02 += 1;
+    document.getElementById('mx02Pct').textContent = mx02 + '%';
+    document.getElementById('mx02Bar').style.width = mx02 + '%';
+    if (mx01 < mx01Target || mx02 < mx02Target){
+      requestAnimationFrame(tickCycles);
+    } else {
+      startSlowDrift();
+    }
+  }
+  requestAnimationFrame(tickCycles);
+
+  function startSlowDrift(){
+    setInterval(function(){
+      mx01 = (mx01 + 1) % 101;
+      setTankFill(mx01);
+      document.getElementById('mx01Pct').textContent = mx01 + '%';
+    }, 4000);
+  }
+
+  // ---------- Command feedback feed ----------
+  var feedEntries = [
+    "Extractor MX-01 cycle complete: +48 Silicate",
+    "Research queued: Refinery Chain I",
+    "Lease MRS-0419 renewed by ISA Claims & Leases Division",
+    "Payroll disbursed: -$4,210"
+  ];
+  var feedLog = document.getElementById('feedLog');
+  var feedIdx = 0;
+
+  function logEvent(text){
+    var entry = document.createElement('div');
+    entry.className = 'feed-entry';
+    var ts = new Date();
+    var hh = String(ts.getHours()).padStart(2,'0');
+    var mm = String(ts.getMinutes()).padStart(2,'0');
+    var ss = String(ts.getSeconds()).padStart(2,'0');
+    entry.innerHTML = '<span class="ts">' + hh + ':' + mm + ':' + ss + '</span><span>' + text + '</span>';
+    feedLog.insertBefore(entry, feedLog.firstChild);
+    while (feedLog.children.length > 12){
+      feedLog.removeChild(feedLog.lastChild);
+    }
+  }
+
+  function seedFeed(){
+    if (feedIdx < feedEntries.length){
+      logEvent(feedEntries[feedIdx]);
+      feedIdx++;
+      setTimeout(seedFeed, 900);
+    }
+  }
+  setTimeout(seedFeed, 700);
+
+  // ---------- Live-ish ticking: occasional extra feed line ----------
+  var extraLines = [
+    "Telemetry sync: Mars lease MRS-0419 nominal",
+    "GEX peg price update: Silicate holding at 61 cr/u",
+    "Berth allocation review pending, Earth Station Prime"
+  ];
+  setInterval(function(){
+    var line = extraLines[Math.floor(Math.random() * extraLines.length)];
+    logEvent(line);
+  }, 22000);
+
+})();
+</script>
+</body>
+</html>

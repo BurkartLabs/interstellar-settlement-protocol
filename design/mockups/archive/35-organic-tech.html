@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup 35 — Organic Tech</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: linear-gradient(135deg, #1a1a14 0%, #2d2615 50%, #1f1f18 100%);
+      color: #e8e4d8;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Background organic vines SVG overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900"><defs><filter id="blur"><feGaussianBlur in="SourceGraphic" stdDeviation="0.5"/></filter></defs><path d="M 100 150 Q 150 200 120 280 T 200 350 Q 180 420 250 450" stroke="%23453830" stroke-width="2" fill="none" opacity="0.4" filter="url(%23blur)"/><path d="M 1340 100 Q 1300 180 1350 260 T 1280 380 Q 1320 450 1250 500" stroke="%23453830" stroke-width="2" fill="none" opacity="0.3" filter="url(%23blur)"/><path d="M 50 600 Q 100 650 80 750" stroke="%234a4a3a" stroke-width="1.5" fill="none" opacity="0.25"/><path d="M 1380 650 Q 1330 700 1350 800" stroke="%234a4a3a" stroke-width="1.5" fill="none" opacity="0.25"/></svg>');
+      background-repeat: no-repeat;
+      background-size: cover;
+      pointer-events: none;
+      opacity: 0.5;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 100vh;
+      gap: 0;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: linear-gradient(180deg, rgba(38, 28, 16, 0.95) 0%, rgba(45, 33, 20, 0.95) 100%);
+      padding: 24px 0;
+      border-right: 2px solid rgba(139, 101, 58, 0.4);
+      position: relative;
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+
+    .sidebar::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: repeating-linear-gradient(
+        90deg,
+        rgba(139, 101, 58, 0.6) 0px,
+        rgba(139, 101, 58, 0.6) 2px,
+        transparent 2px,
+        transparent 8px
+      );
+      opacity: 0.4;
+    }
+
+    .nav-group {
+      margin-bottom: 28px;
+    }
+
+    .nav-group-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #a68860;
+      padding: 0 16px 12px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .nav-item {
+      padding: 10px 16px;
+      font-size: 14px;
+      color: #c9bfa8;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+      position: relative;
+      font-family: 'Lora', serif;
+    }
+
+    .nav-item:hover {
+      background: rgba(139, 101, 58, 0.2);
+      color: #e8e4d8;
+    }
+
+    .nav-item.active {
+      background: linear-gradient(90deg, rgba(139, 101, 58, 0.4) 0%, transparent 100%);
+      border-left-color: #d4a574;
+      color: #f0ead8;
+      font-weight: 600;
+    }
+
+    /* Main content */
+    .main {
+      background: linear-gradient(to right, rgba(26, 26, 20, 0.5), rgba(35, 30, 20, 0.5));
+      padding: 32px;
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(60, 45, 25, 0.6) 0%, rgba(45, 38, 25, 0.6) 100%);
+      border: 1px solid rgba(139, 101, 58, 0.3);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.4), transparent);
+    }
+
+    .header-left h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #f0ead8;
+      margin-bottom: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .header-left p {
+      font-size: 12px;
+      color: #a68860;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .header-right {
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .player-info {
+      color: #e8e4d8;
+      margin-bottom: 8px;
+    }
+
+    .notices {
+      display: inline-block;
+      background: rgba(212, 165, 116, 0.15);
+      color: #d4a574;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      margin-right: 8px;
+    }
+
+    .logout-btn {
+      background: rgba(139, 101, 58, 0.4);
+      color: #a68860;
+      border: 1px solid rgba(139, 101, 58, 0.6);
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: 'Lora', serif;
+      transition: all 0.2s ease;
+    }
+
+    .logout-btn:hover {
+      background: rgba(139, 101, 58, 0.6);
+      color: #e8e4d8;
+    }
+
+    /* Content grid */
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: linear-gradient(135deg, rgba(50, 38, 22, 0.8) 0%, rgba(45, 35, 20, 0.8) 100%);
+      border: 1px solid rgba(139, 101, 58, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.3), transparent);
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #d4a574;
+      margin-bottom: 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .level-section {
+      grid-column: 1;
+    }
+
+    .level-progress {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .level-display {
+      font-size: 36px;
+      font-weight: 600;
+      color: #d4a574;
+      margin-bottom: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .level-nav {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .level-btn {
+      background: rgba(139, 101, 58, 0.3);
+      border: 1px solid rgba(139, 101, 58, 0.5);
+      color: #a68860;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .level-btn:hover {
+      background: rgba(139, 101, 58, 0.5);
+      color: #e8e4d8;
+    }
+
+    .requirement {
+      background: rgba(139, 101, 58, 0.1);
+      border-left: 3px solid rgba(139, 101, 58, 0.4);
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .req-title {
+      color: #e8e4d8;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .req-progress {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 6px;
+      background: rgba(139, 101, 58, 0.2);
+      border-radius: 3px;
+      margin: 0 8px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #8b653a, #d4a574);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-text {
+      color: #a68860;
+      font-size: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .req-link {
+      color: #d4a574;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 12px;
+      margin-top: 6px;
+      display: inline-block;
+    }
+
+    .req-link:hover {
+      text-decoration: underline;
+    }
+
+    .req-status {
+      color: #a68860;
+      font-size: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .req-completed {
+      color: #8fb08f;
+    }
+
+    .unlocks {
+      background: rgba(139, 101, 58, 0.15);
+      border: 1px solid rgba(139, 101, 58, 0.3);
+      padding: 12px;
+      border-radius: 4px;
+      margin-top: 12px;
+      font-size: 12px;
+    }
+
+    .unlocks-title {
+      color: #d4a574;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .unlock-item {
+      color: #c9bfa8;
+      margin-bottom: 4px;
+      padding-left: 12px;
+      position: relative;
+    }
+
+    .unlock-item::before {
+      content: '⬡';
+      position: absolute;
+      left: 0;
+      color: #8b653a;
+    }
+
+    /* Key figures */
+    .figures-section {
+      grid-column: 2;
+    }
+
+    .figures-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .figure {
+      background: rgba(60, 45, 25, 0.6);
+      border: 1px solid rgba(139, 101, 58, 0.3);
+      padding: 14px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .figure-label {
+      font-size: 11px;
+      color: #a68860;
+      margin-bottom: 8px;
+      font-family: 'IBM Plex Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .figure-value {
+      font-size: 18px;
+      font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace;
+      margin-bottom: 4px;
+    }
+
+    .figure-value.positive {
+      color: #8fb08f;
+    }
+
+    .figure-value.negative {
+      color: #d97070;
+    }
+
+    .figure-value.neutral {
+      color: #d4a574;
+    }
+
+    .figure-unit {
+      font-size: 11px;
+      color: #8b6d54;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Situation brief */
+    .brief {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, rgba(60, 45, 25, 0.7) 0%, rgba(50, 38, 22, 0.7) 100%);
+      border: 1px solid rgba(212, 165, 116, 0.2);
+      border-radius: 8px;
+      padding: 20px;
+      position: relative;
+    }
+
+    .brief::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.3), transparent);
+    }
+
+    .brief-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #d4a574;
+      margin-bottom: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .brief-text {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #c9bfa8;
+    }
+
+    /* Feed section */
+    .feed-section {
+      grid-column: 1 / -1;
+    }
+
+    .feed {
+      background: linear-gradient(135deg, rgba(50, 38, 22, 0.8) 0%, rgba(45, 35, 20, 0.8) 100%);
+      border: 1px solid rgba(139, 101, 58, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      position: relative;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .feed::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.3), transparent);
+    }
+
+    .feed-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #d4a574;
+      margin-bottom: 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .feed-item {
+      font-size: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(139, 101, 58, 0.2);
+      color: #c9bfa8;
+      line-height: 1.5;
+    }
+
+    .feed-item:last-child {
+      border-bottom: none;
+    }
+
+    .feed-time {
+      color: #8b6d54;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+    }
+
+    .feed-action {
+      color: #a68860;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 1280px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .level-section, .figures-section, .brief, .feed-section {
+        grid-column: 1 !important;
+      }
+
+      .figures-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: absolute;
+        left: -240px;
+        z-index: 10;
+        max-height: 50vh;
+        transition: left 0.3s ease;
+      }
+
+      .sidebar.open {
+        left: 0;
+      }
+
+      .main {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar" id="sidebar">
+      <div class="nav-group">
+        <div class="nav-group-title">Company</div>
+        <div class="nav-item active" data-section="overview">Overview</div>
+        <div class="nav-item" data-section="inbox">Inbox</div>
+        <div class="nav-item" data-section="financial">Financial Core</div>
+        <div class="nav-item" data-section="ceo-insight">CEO Insight</div>
+        <div class="nav-item" data-section="assignments">Assignments</div>
+        <div class="nav-item" data-section="conglomerate">Conglomerate</div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Station</div>
+        <div class="nav-item" data-section="station">Station</div>
+        <div class="nav-item" data-section="operations">Operations</div>
+        <div class="nav-item" data-section="fleet">Fleet</div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Industry</div>
+        <div class="nav-item" data-section="rd">Corporate R&D</div>
+        <div class="nav-item" data-section="refinery">Refinery Chains</div>
+        <div class="nav-item" data-section="logistics">Logistics</div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Market</div>
+        <div class="nav-item" data-section="exchange">Galactic Exchange</div>
+        <div class="nav-item" data-section="assets">Assets</div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Comms</div>
+        <div class="nav-item" data-section="chat">Chat</div>
+        <div class="nav-item" data-section="forum">Forum</div>
+      </div>
+    </nav>
+
+    <main class="main">
+      <div class="header">
+        <div class="header-left">
+          <h1>THE INTERSTELLAR SETTLEMENT PROTOCOL</h1>
+          <p>// v0.4 — EST. 2147</p>
+        </div>
+        <div class="header-right">
+          <div class="player-info">CEO <strong>R. Vance</strong> — <strong>Helix Meridian Holdings</strong> [HMH]</div>
+          <span class="notices">⚠ 23 unread</span>
+          <button class="logout-btn">Log out</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="card level-section">
+          <div class="card-title">Corporation Level</div>
+
+          <div class="level-progress">
+            <div class="level-display" id="levelDisplay">2</div>
+            <div class="level-nav">
+              <button class="level-btn" id="prevLevelBtn">← Prev</button>
+              <button class="level-btn" id="nextLevelBtn">Next →</button>
+            </div>
+            <div class="progress-text"><span id="levelRange">Level 2 of 30</span></div>
+          </div>
+
+          <div id="requirementsContainer">
+            <div class="requirement">
+              <div class="req-title">Sell 300 Silicate on the Galactic Exchange</div>
+              <div class="req-progress">
+                <span class="progress-text">0 / 300</span>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: 0%"></div>
+                </div>
+              </div>
+              <a class="req-link">↳ Go to Galactic Exchange</a>
+              <div class="req-status">OPEN</div>
+            </div>
+
+            <div class="requirement">
+              <div class="req-title">Research Basic Extraction Analytics</div>
+              <div class="req-progress">
+                <span class="progress-text">1 / 1</span>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: 100%"></div>
+                </div>
+              </div>
+              <div class="req-status req-completed">✓ COMPLETED</div>
+            </div>
+          </div>
+
+          <div class="unlocks">
+            <div class="unlocks-title">Reaching Level 3 Unlocks:</div>
+            <div class="unlock-item">Employee cap 45</div>
+            <div class="unlock-item">Building slots 4</div>
+            <div class="unlock-item">Fleet cap 22</div>
+            <div class="unlock-item">Highest building tier 2</div>
+          </div>
+        </div>
+
+        <div class="card figures-section">
+          <div class="card-title">Key Figures</div>
+
+          <div class="figures-grid">
+            <div class="figure">
+              <div class="figure-label">Cash Reserves</div>
+              <div class="figure-value neutral">$18,061</div>
+              <div class="figure-unit">credits</div>
+            </div>
+
+            <div class="figure">
+              <div class="figure-label">Net Daily Flow</div>
+              <div class="figure-value negative">-$27,915</div>
+              <div class="figure-unit">unsustainable</div>
+            </div>
+
+            <div class="figure">
+              <div class="figure-label">Conglomerate Status</div>
+              <div class="figure-value neutral">Independent</div>
+              <div class="figure-unit">unaffiliated</div>
+            </div>
+
+            <div class="figure">
+              <div class="figure-label">Military Power</div>
+              <div class="figure-value neutral">0 ATK / 0 DEF</div>
+              <div class="figure-unit">readiness 100%</div>
+            </div>
+
+            <div class="figure">
+              <div class="figure-label">Silicate Stock</div>
+              <div class="figure-value neutral">142 units</div>
+              <div class="figure-unit">GEX peg: 61 cr/u</div>
+            </div>
+
+            <div class="figure">
+              <div class="figure-label">Workforce</div>
+              <div class="figure-value neutral">18 / 30</div>
+              <div class="figure-unit">employed</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card brief">
+          <div class="brief-title">Executive Situation Brief</div>
+          <div class="brief-text">
+            ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach. Current impediments: insufficient silicate production (MX-01 at 72% cycle, MX-02 at 31%) and negative daily flow. Recommend diverting resources to acceleration of Lease MRS-0419 extraction operations.
+          </div>
+        </div>
+
+        <div class="card feed-section">
+          <div class="card-title">Command Feedback</div>
+          <div class="feed" id="feedContainer">
+            <div class="feed-title">⬤ Command uplink standing by</div>
+            <div class="feed-item">
+              <span class="feed-time">14:32</span> — <span class="feed-action">COMPLETED</span>
+              <span>Extractor MX-01 cycle complete: +48 Silicate</span>
+            </div>
+            <div class="feed-item">
+              <span class="feed-time">13:47</span> — <span class="feed-action">QUEUED</span>
+              <span>Research queued: Refinery Chain I</span>
+            </div>
+            <div class="feed-item">
+              <span class="feed-time">11:22</span> — <span class="feed-action">RENEWED</span>
+              <span>Lease MRS-0419 renewed by ISA Claims & Leases Division</span>
+            </div>
+            <div class="feed-item">
+              <span class="feed-time">08:15</span> — <span class="feed-action">DISBURSED</span>
+              <span>Payroll disbursed: -$4,210</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Navigation
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+      item.addEventListener('click', () => {
+        navItems.forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+      });
+    });
+
+    // Level navigation
+    let currentLevel = 2;
+    const levelDisplay = document.getElementById('levelDisplay');
+    const levelRange = document.getElementById('levelRange');
+    const requirementsContainer = document.getElementById('requirementsContainer');
+    const prevLevelBtn = document.getElementById('prevLevelBtn');
+    const nextLevelBtn = document.getElementById('nextLevelBtn');
+
+    const levelData = {
+      1: {
+        range: 'Level 1 of 30',
+        requirements: [
+          { title: 'Hire 3 Employees', progress: 3, total: 3, completed: true },
+          { title: 'Build 1 Structure', progress: 1, total: 1, completed: true }
+        ],
+        unlocks: ['Employee cap 15', 'Building slots 2', 'Fleet cap 5', 'Highest building tier 1']
+      },
+      2: {
+        range: 'Level 2 of 30',
+        requirements: [
+          { title: 'Sell 300 Silicate on the Galactic Exchange', progress: 0, total: 300, completed: false, link: true },
+          { title: 'Research Basic Extraction Analytics', progress: 1, total: 1, completed: true }
+        ],
+        unlocks: ['Employee cap 45', 'Building slots 4', 'Fleet cap 22', 'Highest building tier 2']
+      },
+      3: {
+        range: 'Level 3 of 30',
+        requirements: [
+          { title: 'Accumulate $50,000 in Cash Reserves', progress: 18061, total: 50000, completed: false },
+          { title: 'Research Advanced Logistics', progress: 0, total: 1, completed: false }
+        ],
+        unlocks: ['Employee cap 80', 'Building slots 6', 'Fleet cap 40', 'Highest building tier 3']
+      },
+      4: {
+        range: 'Level 4 of 30',
+        requirements: [
+          { title: 'Establish 2 Lease Agreements', progress: 1, total: 2, completed: false },
+          { title: 'Deploy 5 Fleet Vessels', progress: 0, total: 5, completed: false }
+        ],
+        unlocks: ['Employee cap 120', 'Building slots 8', 'Fleet cap 60', 'Highest building tier 4']
+      }
+    };
+
+    function updateLevel(level) {
+      if (level < 1 || level > 30) return;
+      currentLevel = level;
+      const data = levelData[level] || levelData[2];
+
+      levelDisplay.textContent = level;
+      levelRange.textContent = data.range;
+
+      requirementsContainer.innerHTML = '';
+      data.requirements.forEach(req => {
+        const progress = Math.round((req.progress / req.total) * 100);
+        const completed = req.completed ? ' req-completed' : '';
+        const linkHTML = req.link ? '<a class="req-link">↳ Go to Galactic Exchange</a>' : '';
+        const statusText = req.completed ? '✓ COMPLETED' : 'OPEN';
+
+        requirementsContainer.innerHTML += `
+          <div class="requirement">
+            <div class="req-title">${req.title}</div>
+            <div class="req-progress">
+              <span class="progress-text">${req.progress} / ${req.total}</span>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${progress}%"></div>
+              </div>
+            </div>
+            ${linkHTML}
+            <div class="req-status${completed}">${statusText}</div>
+          </div>
+        `;
+      });
+
+      const unlocksHTML = data.unlocks.map(u => `<div class="unlock-item">${u}</div>`).join('');
+      requirementsContainer.innerHTML += `
+        <div class="unlocks">
+          <div class="unlocks-title">Reaching Level ${level + 1} Unlocks:</div>
+          ${unlocksHTML}
+        </div>
+      `;
+    }
+
+    prevLevelBtn.addEventListener('click', () => updateLevel(currentLevel - 1));
+    nextLevelBtn.addEventListener('click', () => updateLevel(currentLevel + 1));
+
+    // Feed ticker
+    const feedContainer = document.getElementById('feedContainer');
+    const feedMessages = [
+      { time: 'NOW', action: 'CYCLE', message: 'Extractor MX-02 cycle complete: +23 Silicate' },
+      { time: '14:32', action: 'COMPLETED', message: 'Extractor MX-01 cycle complete: +48 Silicate' },
+      { time: '13:47', action: 'QUEUED', message: 'Research queued: Refinery Chain I' },
+      { time: '11:22', action: 'RENEWED', message: 'Lease MRS-0419 renewed by ISA Claims & Leases Division' },
+      { time: '08:15', action: 'DISBURSED', message: 'Payroll disbursed: -$4,210' }
+    ];
+
+    let feedIndex = 0;
+    setInterval(() => {
+      feedIndex = (feedIndex + 1) % feedMessages.length;
+      const msg = feedMessages[feedIndex];
+      const item = feedContainer.querySelector('.feed-title');
+      item.insertAdjacentHTML('afterend', `
+        <div class="feed-item" style="animation: slideIn 0.3s ease;">
+          <span class="feed-time">${msg.time}</span> — <span class="feed-action">${msg.action}</span>
+          <span>${msg.message}</span>
+        </div>
+      `);
+      const items = feedContainer.querySelectorAll('.feed-item');
+      if (items.length > 5) items[0].remove();
+    }, 8000);
+
+    // Add animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+
+  <div style="position: fixed; bottom: 12px; right: 12px; font-size: 10px; color: #8b6d54; font-family: 'IBM Plex Mono', monospace; opacity: 0.6;">Mockup 35 — Organic Tech</div>
+</body>
+</html>

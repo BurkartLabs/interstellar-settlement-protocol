@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup 34 — Neon Noir</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --neon-cyan: #00ffff;
+      --neon-magenta: #ff00ff;
+      --neon-yellow: #ffff00;
+      --neon-purple: #cc00ff;
+      --dark-bg: #0a0e1a;
+      --dark-panel: #0f1419;
+      --dark-accent: #1a1f2e;
+      --text-primary: #e0e0e0;
+      --text-muted: #888;
+      --warning-red: #ff3366;
+    }
+
+    body {
+      background: linear-gradient(135deg, var(--dark-bg) 0%, #0d0a15 100%);
+      color: var(--text-primary);
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          rgba(255, 0, 255, 0.02) 0px,
+          rgba(255, 0, 255, 0.02) 1px,
+          transparent 1px,
+          transparent 2px
+        );
+      pointer-events: none;
+      z-index: -1;
+      animation: flicker 0.15s infinite;
+    }
+
+    @keyframes flicker {
+      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+      20%, 24%, 55% { opacity: 0.95; }
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 100vh;
+      gap: 0;
+    }
+
+    /* SIDEBAR NAV */
+    .sidebar {
+      background: linear-gradient(180deg, var(--dark-panel) 0%, #0a0d15 100%);
+      border-right: 2px solid var(--neon-cyan);
+      padding: 20px;
+      overflow-y: auto;
+      box-shadow: inset -20px 0 40px rgba(0, 255, 255, 0.1);
+    }
+
+    .sidebar-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--neon-yellow);
+      text-transform: uppercase;
+      margin-bottom: 30px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px var(--neon-yellow), 0 0 20px rgba(255, 255, 0, 0.3);
+    }
+
+    .nav-group {
+      margin-bottom: 24px;
+    }
+
+    .nav-group-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      color: var(--neon-magenta);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+      text-shadow: 0 0 8px var(--neon-magenta);
+    }
+
+    .nav-item {
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      background: transparent;
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      border-left: 3px solid transparent;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      font-family: 'Space Mono', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-item:hover {
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px var(--neon-cyan);
+    }
+
+    .nav-item.active {
+      background: rgba(0, 255, 255, 0.1);
+      border-left-color: var(--neon-cyan);
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan);
+      box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.1);
+    }
+
+    /* MAIN CONTENT */
+    .main-content {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(90deg, var(--dark-panel) 0%, #0d1620 50%, var(--dark-panel) 100%);
+      border-bottom: 2px solid var(--neon-magenta);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 8px 24px rgba(255, 0, 255, 0.1);
+    }
+
+    .header-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 12px var(--neon-cyan);
+      letter-spacing: 1px;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .player-info {
+      text-align: right;
+      font-size: 12px;
+    }
+
+    .player-name {
+      color: var(--neon-magenta);
+      font-weight: 700;
+      text-shadow: 0 0 8px var(--neon-magenta);
+    }
+
+    .corp-name {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .notices {
+      background: rgba(255, 0, 0, 0.1);
+      border: 1px solid var(--warning-red);
+      border-radius: 2px;
+      padding: 6px 12px;
+      color: var(--warning-red);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      text-shadow: 0 0 8px var(--warning-red);
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: 1px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      padding: 6px 14px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      transition: all 0.2s;
+      text-shadow: 0 0 6px var(--neon-cyan);
+    }
+
+    .logout-btn:hover {
+      background: rgba(0, 255, 255, 0.2);
+      box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.2), 0 0 10px var(--neon-cyan);
+    }
+
+    /* CONTENT AREA */
+    .content {
+      overflow-y: auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+    }
+
+    /* PANELS */
+    .panel {
+      background: linear-gradient(135deg, rgba(15, 20, 25, 0.8) 0%, rgba(26, 31, 46, 0.6) 100%);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--neon-cyan), transparent);
+      opacity: 0.6;
+    }
+
+    .panel-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--neon-yellow);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      text-shadow: 0 0 10px var(--neon-yellow);
+      letter-spacing: 1px;
+    }
+
+    .panel-subtitle {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* LEVEL PROGRESS */
+    .level-section {
+      margin-bottom: 24px;
+    }
+
+    .level-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .level-text {
+      color: var(--neon-magenta);
+      font-size: 14px;
+      font-weight: 700;
+      text-shadow: 0 0 8px var(--neon-magenta);
+    }
+
+    .level-nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .level-btn {
+      background: transparent;
+      border: 1px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+      text-shadow: 0 0 6px var(--neon-cyan);
+    }
+
+    .level-btn:hover {
+      background: rgba(0, 255, 255, 0.2);
+      box-shadow: 0 0 10px var(--neon-cyan);
+    }
+
+    .objective {
+      background: rgba(26, 31, 46, 0.8);
+      border-left: 3px solid var(--neon-cyan);
+      padding: 12px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
+
+    .objective-title {
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .objective-progress {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 8px;
+      background: rgba(0, 255, 255, 0.1);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      margin-right: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+      transition: width 0.3s;
+      box-shadow: 0 0 8px var(--neon-cyan);
+    }
+
+    .progress-text {
+      color: var(--neon-cyan);
+      font-size: 11px;
+      white-space: nowrap;
+      text-shadow: 0 0 6px var(--neon-cyan);
+    }
+
+    .objective.complete .progress-fill {
+      background: var(--neon-yellow);
+      box-shadow: 0 0 8px var(--neon-yellow);
+    }
+
+    .objective.complete .progress-text {
+      color: var(--neon-yellow);
+      text-shadow: 0 0 6px var(--neon-yellow);
+    }
+
+    .objective-link {
+      color: var(--neon-magenta);
+      text-decoration: none;
+      cursor: pointer;
+      text-shadow: 0 0 6px var(--neon-magenta);
+      font-size: 11px;
+      margin-top: 8px;
+      display: inline-block;
+      transition: all 0.2s;
+    }
+
+    .objective-link:hover {
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px var(--neon-cyan);
+    }
+
+    .unlock-grid {
+      background: rgba(26, 31, 46, 0.6);
+      border: 1px solid rgba(255, 0, 255, 0.2);
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 11px;
+    }
+
+    .unlock-item {
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+
+    .unlock-item strong {
+      color: var(--neon-yellow);
+      text-shadow: 0 0 6px var(--neon-yellow);
+    }
+
+    /* FEED */
+    .feed {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .feed-entry {
+      padding: 10px;
+      margin-bottom: 8px;
+      border-left: 2px solid var(--neon-magenta);
+      background: rgba(26, 31, 46, 0.6);
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--text-primary);
+    }
+
+    .feed-entry.positive {
+      border-left-color: var(--neon-cyan);
+    }
+
+    .feed-entry.negative {
+      border-left-color: var(--warning-red);
+    }
+
+    .feed-time {
+      color: var(--text-muted);
+      font-size: 10px;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .feed-text {
+      color: var(--text-primary);
+    }
+
+    .feed-value {
+      color: var(--neon-yellow);
+      text-shadow: 0 0 6px var(--neon-yellow);
+      font-weight: 700;
+    }
+
+    .feed-value.positive {
+      color: var(--neon-cyan);
+      text-shadow: 0 0 6px var(--neon-cyan);
+    }
+
+    .feed-value.negative {
+      color: var(--warning-red);
+      text-shadow: 0 0 6px var(--warning-red);
+    }
+
+    /* SIDEBAR RIGHT - KPI */
+    .kpi-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .kpi-card {
+      background: linear-gradient(135deg, rgba(15, 20, 25, 0.9) 0%, rgba(26, 31, 46, 0.7) 100%);
+      border: 2px solid var(--neon-cyan);
+      padding: 16px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card.warning {
+      border-color: var(--warning-red);
+      box-shadow: inset 0 0 15px rgba(255, 51, 102, 0.1), 0 0 15px rgba(255, 51, 102, 0.2);
+    }
+
+    .kpi-card.warning::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--warning-red), transparent);
+    }
+
+    .kpi-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .kpi-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 12px var(--neon-cyan);
+      margin-bottom: 6px;
+    }
+
+    .kpi-card.warning .kpi-value {
+      color: var(--warning-red);
+      text-shadow: 0 0 12px var(--warning-red);
+    }
+
+    .kpi-subtext {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1280px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+
+      .content {
+        padding: 16px;
+        gap: 16px;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .kpi-value {
+        font-size: 18px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        padding: 12px;
+      }
+
+      .header-right {
+        gap: 8px;
+      }
+
+      .notices, .logout-btn {
+        font-size: 10px;
+        padding: 4px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-logo">ISP</div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Company</div>
+        <div class="nav-item active">Overview</div>
+        <div class="nav-item">Inbox</div>
+        <div class="nav-item">Financial Core</div>
+        <div class="nav-item">CEO Insight</div>
+        <div class="nav-item">Assignments</div>
+        <div class="nav-item">Conglomerate</div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Station</div>
+        <div class="nav-item">Station</div>
+        <div class="nav-item">Operations</div>
+        <div class="nav-item">Fleet</div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Industry</div>
+        <div class="nav-item">Corporate R&D</div>
+        <div class="nav-item">Refinery Chains</div>
+        <div class="nav-item">Logistics</div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Market</div>
+        <div class="nav-item">Galactic Exchange</div>
+        <div class="nav-item">Assets</div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Comms</div>
+        <div class="nav-item">Chat</div>
+        <div class="nav-item">Forum</div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-content">
+      <div class="header">
+        <div class="header-title">The Interstellar Settlement Protocol | v0.4 | Est. 2147</div>
+        <div class="header-right">
+          <div class="player-info">
+            <div class="player-name">CEO R. Vance</div>
+            <div class="corp-name">Helix Meridian Holdings (HMH)</div>
+          </div>
+          <div class="notices">23 UNREAD</div>
+          <button class="logout-btn">LOG OUT</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- LEFT COLUMN -->
+        <div>
+          <!-- LEVEL PROGRESS -->
+          <div class="panel level-section">
+            <div class="level-header">
+              <div class="level-text">LEVEL 2 OF 30</div>
+              <div class="level-nav">
+                <button class="level-btn" onclick="prevLevel()">←</button>
+                <button class="level-btn" onclick="nextLevel()">→</button>
+              </div>
+            </div>
+
+            <div class="panel-subtitle">ADVANCING TO LEVEL 3 REQUIRES:</div>
+
+            <div class="objective">
+              <div class="objective-title">Sell 300 Silicate on the Galactic Exchange</div>
+              <div class="objective-progress">
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="progress-text">0 / 300</div>
+              </div>
+              <a class="objective-link" onclick="alert('Navigate to Galactic Exchange')">GO TO GALACTIC EXCHANGE →</a>
+            </div>
+
+            <div class="objective complete">
+              <div class="objective-title">Research Basic Extraction Analytics</div>
+              <div class="objective-progress">
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: 100%"></div>
+                </div>
+                <div class="progress-text">1 / 1</div>
+              </div>
+            </div>
+
+            <div class="unlock-grid">
+              <div style="color: var(--neon-yellow); margin-bottom: 8px; font-weight: 700; text-shadow: 0 0 6px var(--neon-yellow);">LEVEL 3 UNLOCKS:</div>
+              <div class="unlock-item"><strong>45</strong> employee cap</div>
+              <div class="unlock-item"><strong>4</strong> building slots</div>
+              <div class="unlock-item"><strong>22</strong> fleet capacity</div>
+              <div class="unlock-item"><strong>Tier 2</strong> max building tier</div>
+            </div>
+          </div>
+
+          <!-- SITUATION BRIEF -->
+          <div class="panel">
+            <div class="panel-title">EXECUTIVE SITUATION BRIEF</div>
+            <p style="font-size: 12px; line-height: 1.6; color: var(--text-primary);">
+              ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.
+            </p>
+          </div>
+
+          <!-- COMMAND FEEDBACK LOG -->
+          <div class="panel">
+            <div class="panel-title">COMMAND FEEDBACK LOG</div>
+            <div class="feed">
+              <div class="feed-entry">
+                <div class="feed-time">12:47:33</div>
+                <div class="feed-text">Command uplink standing by. Completed actions and queue additions will be logged here.</div>
+              </div>
+              <div class="feed-entry positive">
+                <div class="feed-time">12:46:15</div>
+                <div class="feed-text">Extractor <strong>MX-01</strong> cycle complete: <span class="feed-value positive">+48 Silicate</span></div>
+              </div>
+              <div class="feed-entry">
+                <div class="feed-time">12:31:02</div>
+                <div class="feed-text">Research queued: <strong>Refinery Chain I</strong></div>
+              </div>
+              <div class="feed-entry">
+                <div class="feed-time">11:14:47</div>
+                <div class="feed-text">Lease <strong>MRS-0419</strong> renewed by ISA Claims & Leases Division</div>
+              </div>
+              <div class="feed-entry negative">
+                <div class="feed-time">08:00:00</div>
+                <div class="feed-text">Payroll disbursed: <span class="feed-value negative">-$4,210</span></div>
+              </div>
+              <div class="feed-entry">
+                <div class="feed-time">07:22:19</div>
+                <div class="feed-text">GEX commodity alert: Silicate peg price <span class="feed-value">61 cr/unit</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN - KPI -->
+        <div class="kpi-panel">
+          <div class="panel kpi-card">
+            <div class="kpi-label">CASH RESERVES</div>
+            <div class="kpi-value">$18,061</div>
+            <div class="kpi-subtext">total corporate credits</div>
+          </div>
+
+          <div class="panel kpi-card warning">
+            <div class="kpi-label">NET DAILY FLOW</div>
+            <div class="kpi-value">-$27,915</div>
+            <div class="kpi-subtext">last 24h balance</div>
+          </div>
+
+          <div class="panel kpi-card">
+            <div class="kpi-label">CONGLOMERATE STATUS</div>
+            <div class="kpi-value" style="font-size: 16px;">INDEPENDENT</div>
+            <div class="kpi-subtext">no affiliation</div>
+          </div>
+
+          <div class="panel kpi-card">
+            <div class="kpi-label">MILITARY POWER</div>
+            <div class="kpi-value" style="font-size: 16px;">0 / 0</div>
+            <div class="kpi-subtext">readiness: 100%</div>
+          </div>
+
+          <!-- EXTRAS -->
+          <div class="panel" style="padding: 12px;">
+            <div class="panel-title" style="font-size: 11px; margin-bottom: 12px;">EXTRACTORS (MRS-0419)</div>
+            <div style="font-size: 11px; margin-bottom: 8px;">
+              <div style="margin-bottom: 8px;">
+                <div style="color: var(--neon-cyan); font-weight: 700; text-shadow: 0 0 6px var(--neon-cyan);">MX-01</div>
+                <div class="progress-bar" style="height: 6px; margin: 4px 0;">
+                  <div class="progress-fill" style="width: 72%; background: var(--neon-cyan); box-shadow: 0 0 6px var(--neon-cyan);"></div>
+                </div>
+                <div style="color: var(--text-muted);">72% cycle</div>
+              </div>
+              <div>
+                <div style="color: var(--neon-magenta); font-weight: 700; text-shadow: 0 0 6px var(--neon-magenta);">MX-02</div>
+                <div class="progress-bar" style="height: 6px; margin: 4px 0;">
+                  <div class="progress-fill" style="width: 31%; background: var(--neon-magenta); box-shadow: 0 0 6px var(--neon-magenta);"></div>
+                </div>
+                <div style="color: var(--text-muted);">31% cycle</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" style="padding: 12px;">
+            <div class="panel-title" style="font-size: 11px; margin-bottom: 8px;">STOCK</div>
+            <div style="font-size: 12px; color: var(--neon-yellow); text-shadow: 0 0 6px var(--neon-yellow); font-weight: 700;">142 Silicate</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Employees: 18 / 30</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const levelData = {
+      1: { req: "Complete initial lease setup (MRS-0419)" },
+      2: { req: "Sell 300 Silicate on the Galactic Exchange" },
+      3: { req: "Establish refinery chain production" },
+      4: { req: "Research Advanced Market Analytics" }
+    };
+
+    let currentLevel = 2;
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    window.prevLevel = function() {
+      if (currentLevel > 1) currentLevel--;
+      updateLevel();
+    };
+
+    window.nextLevel = function() {
+      if (currentLevel < 30) currentLevel++;
+      updateLevel();
+    };
+
+    function updateLevel() {
+      document.querySelector('.level-text').textContent = `LEVEL ${currentLevel} OF 30`;
+      const nextLevel = currentLevel + 1;
+      document.querySelector('.panel-subtitle').textContent = `ADVANCING TO LEVEL ${nextLevel} REQUIRES:`;
+    }
+
+    // Animate feed entries on load
+    document.querySelectorAll('.feed-entry').forEach((entry, idx) => {
+      entry.style.opacity = '0';
+      entry.style.transform = 'translateY(10px)';
+      setTimeout(() => {
+        entry.style.transition = 'all 0.3s ease-out';
+        entry.style.opacity = '1';
+        entry.style.transform = 'translateY(0)';
+      }, idx * 100);
+    });
+  </script>
+</body>
+</html>

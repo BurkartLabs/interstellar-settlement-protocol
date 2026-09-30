@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 08 — Celestial Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IM+Fell+English:ital@0;1&family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-deep:#0c1030;
+    --ink-mid:#141a44;
+    --ink-shadow:#070819;
+    --gold:#d4b26a;
+    --gold-bright:#f2d693;
+    --gold-dim:#7c6a41;
+    --starlight:#eef1fb;
+    --starlight-dim:#aab0d6;
+    --crimson:#c1495a;
+    --crimson-glow:#8a2f3d;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 50% -10%, #1c2260 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 100%, #1a1f52 0%, transparent 45%),
+      linear-gradient(160deg, var(--ink-mid) 0%, var(--ink-deep) 55%, var(--ink-shadow) 100%);
+    color:var(--starlight);
+    font-family:'Cormorant Garamond', 'IM Fell English', Georgia, serif;
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+  /* subtle starfield */
+  body::before{
+    content:'';
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      radial-gradient(1px 1px at 12% 18%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 26% 64%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 41% 8%, #fff 0, transparent 60%),
+      radial-gradient(1.5px 1.5px at 63% 32%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 78% 71%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 91% 22%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 8% 85%, #fff 0, transparent 60%),
+      radial-gradient(1.5px 1.5px at 55% 92%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 34% 44%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 70% 51%, #fff 0, transparent 60%);
+    opacity:.55;
+  }
+  /* vellum grain overlay */
+  .vellum{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    mix-blend-mode:overlay; opacity:.35;
+  }
+  .atlas-frame{
+    position:relative; z-index:2;
+    max-width:1440px; margin:0 auto;
+    padding:22px 30px 40px;
+  }
+  .frame-border{
+    position:absolute; inset:10px; z-index:0;
+    border:1px solid var(--gold-dim);
+    box-shadow: inset 0 0 0 6px rgba(212,178,106,.05), inset 0 0 40px rgba(0,0,0,.5);
+    pointer-events:none;
+  }
+  .frame-border::before, .frame-border::after{
+    content:''; position:absolute; inset:8px; border:1px solid rgba(212,178,106,.25);
+  }
+  .corner-rose{ position:absolute; width:46px; height:46px; z-index:1; opacity:.8; }
+  .corner-rose svg{ width:100%; height:100%; }
+  .corner-rose.tl{ top:2px; left:2px; }
+  .corner-rose.tr{ top:2px; right:2px; transform:scaleX(-1); }
+  .corner-rose.bl{ bottom:2px; left:2px; transform:scaleY(-1); }
+  .corner-rose.br{ bottom:2px; right:2px; transform:scale(-1,-1); }
+
+  .mockup-tag{
+    position:relative; z-index:3; text-align:center;
+    font-family:'Cinzel', serif; letter-spacing:.18em; font-size:11px;
+    color:var(--gold-dim); margin-bottom:10px; text-transform:uppercase;
+  }
+
+  /* ===== Header ===== */
+  .atlas-header{
+    position:relative; z-index:2;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:24px; padding:14px 10px 22px; margin-bottom:18px;
+    border-bottom:1px solid var(--gold-dim);
+  }
+  .cartouche{
+    display:flex; align-items:center; gap:8px;
+  }
+  .cartouche .scroll-cap{ width:16px; height:26px; flex:none; opacity:.85; }
+  .cartouche .scroll-cap.right{ transform:scaleX(-1); }
+  .cartouche-body{
+    padding:6px 16px; border-top:1px solid var(--gold); border-bottom:1px solid var(--gold);
+    text-align:center;
+  }
+  .title-block h1{
+    margin:0; font-family:'IM Fell English', serif; font-weight:400;
+    font-size:26px; letter-spacing:.04em; color:var(--gold-bright);
+    text-shadow:0 0 12px rgba(242,214,147,.35);
+  }
+  .title-block .sub{
+    font-family:'Cinzel', serif; font-size:10.5px; letter-spacing:.25em;
+    color:var(--starlight-dim); text-transform:uppercase; margin-top:2px;
+  }
+  .player-block{ display:flex; align-items:center; gap:18px; }
+  .player-seal{
+    width:52px; height:52px; border-radius:50%; flex:none;
+    border:1px solid var(--gold); display:flex; align-items:center; justify-content:center;
+    font-family:'Cinzel'; font-size:15px; color:var(--gold-bright); position:relative;
+    box-shadow:0 0 10px rgba(212,178,106,.25) inset, 0 0 8px rgba(212,178,106,.15);
+  }
+  .player-seal::after{
+    content:''; position:absolute; inset:5px; border:1px solid rgba(212,178,106,.4); border-radius:50%;
+  }
+  .player-meta .name{ font-size:17px; color:var(--starlight); font-style:italic; }
+  .player-meta .corp{ font-family:'Cinzel'; font-size:11.5px; letter-spacing:.08em; color:var(--gold); }
+  .player-meta .ticker{ color:var(--starlight-dim); font-size:11px; }
+  .header-actions{ display:flex; align-items:center; gap:16px; margin-left:6px; }
+  .notice-badge{
+    display:flex; flex-direction:column; align-items:center; font-family:'Cinzel'; font-size:10px;
+    letter-spacing:.1em; color:var(--starlight-dim); text-transform:uppercase; position:relative;
+  }
+  .notice-badge .count{
+    font-family:'Cormorant Garamond'; font-size:20px; color:var(--gold-bright); font-feature-settings:'onum' 1;
+    text-shadow:0 0 8px rgba(242,214,147,.5);
+  }
+  .logout-link{
+    font-family:'Cinzel'; font-size:11px; letter-spacing:.1em; color:var(--starlight-dim);
+    text-decoration:none; border-bottom:1px solid var(--gold-dim); padding-bottom:2px; text-transform:uppercase;
+    cursor:pointer;
+  }
+  .logout-link:hover{ color:var(--gold-bright); border-color:var(--gold); }
+
+  /* ===== Body grid ===== */
+  .atlas-body{
+    position:relative; z-index:2;
+    display:grid; grid-template-columns:250px minmax(0,1fr) 300px;
+    gap:26px; align-items:start;
+  }
+
+  /* ===== Constellation Nav ===== */
+  .constellation-nav{ display:flex; flex-direction:column; gap:26px; }
+  .const-group{ position:relative; }
+  .group-title{
+    display:flex; align-items:center; gap:8px; margin-bottom:6px;
+  }
+  .group-title svg{ width:18px; height:18px; opacity:.75; }
+  .group-title span{
+    font-family:'Cinzel'; font-size:11.5px; letter-spacing:.22em; color:var(--gold);
+    text-transform:uppercase;
+  }
+  .const-svg{ width:100%; overflow:visible; display:block; }
+  .const-line{ fill:none; stroke:var(--gold-dim); stroke-width:1; opacity:.6; }
+  .star-node{ cursor:pointer; }
+  .star-node .halo{ fill:none; stroke:var(--gold-bright); stroke-width:1; opacity:0; transform-origin:center; }
+  .star-node .dot{ fill:var(--starlight-dim); stroke:var(--gold-dim); stroke-width:.5; transition:fill .2s, r .2s; }
+  .star-node .lbl{
+    font-family:'Cinzel'; font-size:10.5px; letter-spacing:.04em; fill:var(--starlight-dim);
+    transition:fill .2s;
+  }
+  .star-node:hover .dot{ fill:var(--gold-bright); }
+  .star-node:hover .lbl{ fill:var(--starlight); }
+  .star-node.active .dot, .star-node.selected .dot{ fill:var(--gold-bright); r:3.4; }
+  .star-node.active .lbl, .star-node.selected .lbl{ fill:var(--gold-bright); }
+  .star-node.active .halo, .star-node.selected .halo{ opacity:1; animation:halo-pulse 2.8s ease-in-out infinite; }
+  @keyframes halo-pulse{
+    0%,100%{ r:6; opacity:.55; } 50%{ r:9; opacity:.15; }
+  }
+
+  /* ===== Main column ===== */
+  .atlas-main{ display:flex; flex-direction:column; gap:24px; min-width:0; }
+
+  .panel{
+    position:relative;
+    background:linear-gradient(160deg, rgba(20,26,68,.55), rgba(7,8,25,.55));
+    border:1px solid var(--gold-dim);
+    padding:20px 22px;
+  }
+  .panel::before{
+    content:''; position:absolute; inset:5px; border:1px solid rgba(212,178,106,.18); pointer-events:none;
+  }
+  .panel-title{
+    display:flex; align-items:center; gap:10px; margin:-2px 0 14px;
+  }
+  .panel-title .scroll-cap{ width:12px; height:20px; opacity:.8; }
+  .panel-title h2{
+    margin:0; font-family:'Cinzel'; font-weight:500; font-size:13px; letter-spacing:.2em;
+    color:var(--gold); text-transform:uppercase;
+  }
+
+  /* Astrolabe */
+  .astrolabe-panel{ display:flex; gap:30px; align-items:flex-start; flex-wrap:wrap; }
+  .astrolabe-wrap{ flex:none; position:relative; width:360px; }
+  .astrolabe-wrap svg{ width:100%; height:auto; display:block; overflow:visible; }
+  .rete{ transform-origin:200px 200px; animation:rete-spin 160s linear infinite; }
+  @keyframes rete-spin{ to{ transform:rotate(360deg); } }
+  .rim-outer{ stroke:url(#brassRim); }
+  .rim-inner{ stroke:var(--gold-dim); }
+  .tick-dim{ stroke:var(--gold-dim); }
+  .tick-lit{ stroke:var(--gold-bright); filter:drop-shadow(0 0 2px rgba(242,214,147,.7)); }
+  .tick-minor{ stroke:var(--gold-dim); opacity:.4; }
+  .deg-numeral{ font-family:'Cormorant Garamond'; font-feature-settings:'onum' 1; text-anchor:middle; }
+  .deg-numeral.lit{ fill:var(--gold-bright); }
+  .deg-numeral.dim{ fill:var(--starlight-dim); }
+  .zodiac-glyph{ fill:none; stroke:var(--gold); stroke-width:0.8; opacity:.8; }
+  .zodiac-ring{ stroke:var(--gold-dim); opacity:.5; }
+  .hour-line{ stroke:var(--gold-dim); stroke-width:0.4; opacity:.45; }
+  .rete-arm{ stroke:var(--gold-dim); opacity:.75; }
+  .rete-pointer{ fill:var(--gold-bright); filter:drop-shadow(0 0 3px rgba(242,214,147,.75)); }
+  .alidade{ stroke:var(--gold-bright); stroke-width:1.4; filter:drop-shadow(0 0 3px rgba(242,214,147,.6)); transition:transform .6s cubic-bezier(.4,0,.2,1); transform-origin:200px 200px; }
+  .req-star{ cursor:default; }
+  .req-star.done .glyph{ fill:var(--gold-bright); filter:drop-shadow(0 0 5px rgba(242,214,147,.85)); }
+  .req-star.open .glyph{ fill:none; stroke:var(--starlight-dim); stroke-width:1; }
+  .level-roman{ font-family:'Cormorant Garamond'; font-size:42px; fill:var(--gold-bright); text-anchor:middle; font-style:italic; }
+  .level-of{ font-family:'Cinzel'; font-size:8.5px; letter-spacing:.15em; fill:var(--starlight-dim); text-anchor:middle; }
+
+  .astrolabe-info{ flex:1; min-width:260px; display:flex; flex-direction:column; }
+  .level-peek-row{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .peek-btn{
+    width:26px; height:26px; border:1px solid var(--gold-dim); background:transparent; color:var(--gold);
+    font-family:'Cinzel'; cursor:pointer; border-radius:50%; font-size:13px; line-height:1;
+    display:flex; align-items:center; justify-content:center; transition:.2s;
+  }
+  .peek-btn:hover{ border-color:var(--gold); color:var(--gold-bright); box-shadow:0 0 6px rgba(212,178,106,.4); }
+  .peek-label{ font-family:'IM Fell English'; font-style:italic; font-size:16px; color:var(--starlight); }
+  .peek-label .curmark{ font-family:'Cinzel'; font-size:9px; letter-spacing:.1em; color:var(--gold-dim); margin-left:6px; }
+  .req-list{ list-style:none; margin:0 0 16px; padding:0; display:flex; flex-direction:column; gap:11px; }
+  .req-list li{
+    display:flex; align-items:baseline; flex-wrap:wrap; gap:6px 10px; font-size:14.5px; color:var(--starlight-dim);
+  }
+  .req-list li .mark{ font-family:'Cinzel'; font-size:11px; width:16px; flex:none; }
+  .req-list li.done .mark{ color:var(--gold-bright); }
+  .req-list li.done{ color:var(--starlight); }
+  .req-list li .prog{ font-feature-settings:'onum' 1; color:var(--gold); margin-left:auto; padding-left:10px; white-space:nowrap; }
+  .req-list li .gex-cta{
+    display:inline-block; width:100%; margin-left:26px; margin-top:2px; text-align:center;
+    background:linear-gradient(160deg, rgba(212,178,106,.16), rgba(212,178,106,.04));
+    border:1px solid var(--gold); color:var(--gold-bright); text-decoration:none;
+    font-family:'Cinzel'; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+    padding:7px 14px; cursor:pointer; transition:.2s;
+  }
+  .req-list li .gex-cta:hover{ background:rgba(212,178,106,.28); box-shadow:0 0 10px rgba(212,178,106,.35); color:var(--starlight); }
+  .unlock-block{ margin-top:auto; border-top:1px solid rgba(212,178,106,.25); padding-top:12px; }
+  .unlock-intro{ font-size:12.5px; font-family:'Cinzel'; letter-spacing:.08em; color:var(--gold); text-transform:uppercase; margin-bottom:8px; }
+  .unlock-table{ width:100%; border-collapse:collapse; }
+  .unlock-table td{ font-size:13.5px; padding:6px 4px; border-top:1px solid rgba(212,178,106,.18); }
+  .unlock-table tr:first-child td{ border-top:1px solid rgba(212,178,106,.4); }
+  .unlock-table td:first-child{ color:var(--starlight-dim); font-family:'Cinzel'; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; }
+  .unlock-table td:last-child{ color:var(--gold-bright); font-family:'Cormorant Garamond'; font-size:17px; font-feature-settings:'onum' 1; text-align:right; }
+
+  /* Brief */
+  .brief-text{ font-family:'IM Fell English'; font-style:italic; font-size:17px; line-height:1.65; color:var(--starlight-dim); }
+  .brief-text::first-letter{ font-size:38px; color:var(--gold-bright); float:left; line-height:.8; margin:2px 6px 0 0; font-style:normal; }
+
+  /* Feedback log */
+  .feed-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column-reverse; gap:8px; max-height:200px; overflow-y:auto; }
+  .feed-list li{
+    font-size:13.5px; color:var(--starlight-dim); border-left:2px solid var(--gold-dim); padding:2px 0 2px 10px;
+    animation:feed-in .5s ease;
+  }
+  .feed-list li .ts{ font-family:'Cinzel'; font-size:9.5px; color:var(--gold-dim); margin-right:8px; letter-spacing:.03em; }
+  @keyframes feed-in{ from{ opacity:0; transform:translateY(-4px);} to{ opacity:1; transform:translateY(0);} }
+  .feed-list::-webkit-scrollbar{ width:6px; }
+  .feed-list::-webkit-scrollbar-thumb{ background:var(--gold-dim); }
+
+  /* ===== Aside ledger ===== */
+  .ledger-aside{ display:flex; flex-direction:column; gap:20px; }
+  .figure-row{ display:flex; justify-content:space-between; align-items:baseline; padding:7px 0; border-bottom:1px solid rgba(212,178,106,.15); }
+  .figure-row:last-child{ border-bottom:none; }
+  .figure-label{ font-family:'Cinzel'; font-size:10.5px; letter-spacing:.1em; color:var(--starlight-dim); text-transform:uppercase; }
+  .figure-value{ font-family:'Cormorant Garamond'; font-size:19px; font-feature-settings:'onum' 1; color:var(--starlight); }
+  .figure-value.gold{ color:var(--gold-bright); }
+  .flow-negative{
+    display:flex; align-items:center; gap:10px; padding:10px; margin-top:4px;
+    background:radial-gradient(circle at 15% 50%, rgba(193,73,90,.18), transparent 70%);
+    border:1px solid var(--crimson-glow);
+  }
+  .comet{ width:34px; height:34px; flex:none; }
+  .flow-negative .fv{ font-size:21px; color:var(--crimson); font-family:'Cormorant Garamond'; font-feature-settings:'onum' 1; }
+  .flow-negative .note{ font-size:11.5px; font-style:italic; color:#e0a3ab; }
+
+  .mini-row{ display:flex; justify-content:space-between; font-size:13px; color:var(--starlight-dim); padding:5px 0; }
+  .mini-row .v{ color:var(--gold); font-feature-settings:'onum' 1; }
+  .gauge-row{ display:flex; align-items:center; gap:10px; padding:6px 0; }
+  .gauge-row svg{ width:34px; height:34px; flex:none; }
+  .gauge-label{ font-size:13px; color:var(--starlight-dim); flex:1; }
+  .gauge-label b{ color:var(--starlight); font-family:'Cinzel'; font-size:11px; letter-spacing:.03em; }
+  .gauge-pct{ font-family:'Cormorant Garamond'; font-feature-settings:'onum' 1; color:var(--gold); font-size:14px; }
+
+  .spark-wrap{ display:flex; align-items:center; gap:10px; }
+  .spark-wrap svg{ width:120px; height:34px; }
+  .spark-price{ font-family:'Cormorant Garamond'; font-size:20px; color:var(--gold-bright); font-feature-settings:'onum' 1; }
+
+  .inbox-list, .queue-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .inbox-list li{ font-size:13px; color:var(--starlight-dim); border-left:2px solid var(--gold-dim); padding-left:9px; }
+  .inbox-list li .from{ display:block; font-family:'Cinzel'; font-size:9.5px; letter-spacing:.08em; color:var(--gold); text-transform:uppercase; margin-bottom:2px; }
+  .queue-item{ font-size:13px; color:var(--starlight-dim); }
+  .queue-item .qt{ display:flex; justify-content:space-between; margin-bottom:4px; }
+  .queue-item .qt b{ color:var(--starlight); font-weight:500; }
+  .qbar{ height:4px; background:rgba(212,178,106,.15); position:relative; overflow:hidden; }
+  .qbar span{ position:absolute; inset:0; background:linear-gradient(90deg, var(--gold-dim), var(--gold-bright)); width:0%; transition:width 1.2s ease; }
+
+  footer.legend{
+    text-align:center; margin-top:30px; font-family:'Cinzel'; font-size:10px; letter-spacing:.15em;
+    color:var(--gold-dim); text-transform:uppercase;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width:1280px){
+    .atlas-body{ grid-template-columns:220px minmax(0,1fr) 270px; gap:18px; }
+    .astrolabe-wrap{ width:300px; }
+  }
+  @media (max-width:900px){
+    .atlas-body{ grid-template-columns:1fr; }
+    .constellation-nav{ display:grid; grid-template-columns:repeat(2,1fr); gap:18px; }
+    .ledger-aside{ order:3; }
+    .atlas-main{ order:2; }
+    .constellation-nav{ order:1; }
+  }
+  @media (max-width:600px){
+    .atlas-frame{ padding:14px 12px 28px; }
+    .atlas-header{ flex-direction:column; align-items:flex-start; gap:14px; }
+    .constellation-nav{ grid-template-columns:1fr 1fr; }
+    .astrolabe-panel{ flex-direction:column; align-items:center; }
+    .astrolabe-wrap{ width:260px; }
+    .title-block h1{ font-size:20px; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0.83  0 0 0 0 0.7  0 0 0 0 0.42  0 0 0 0.05 0"/>
+    </filter>
+    <symbol id="scroll-cap-sym" viewBox="0 0 16 26">
+      <path d="M8,2 C3,2 2,8 5,10 C7,11.3 7,7.5 5,7.2 M8,2 C13,2 14,8 11,10 C9,11.3 9,7.5 11,7.2" fill="none" stroke="var(--gold)" stroke-width="1"/>
+      <line x1="8" y1="2" x2="8" y2="24" stroke="var(--gold)" stroke-width="1"/>
+    </symbol>
+    <symbol id="compass-rose-sym" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="44" fill="none" stroke="var(--gold-dim)" stroke-width="1"/>
+      <circle cx="50" cy="50" r="30" fill="none" stroke="var(--gold-dim)" stroke-width="0.6"/>
+      <line x1="50" y1="4" x2="50" y2="96" stroke="var(--gold-dim)" stroke-width="0.8"/>
+      <line x1="4" y1="50" x2="96" y2="50" stroke="var(--gold-dim)" stroke-width="0.8"/>
+      <line x1="16" y1="16" x2="84" y2="84" stroke="var(--gold-dim)" stroke-width="0.5"/>
+      <line x1="84" y1="16" x2="16" y2="84" stroke="var(--gold-dim)" stroke-width="0.5"/>
+      <path d="M50,4 L55,32 L50,24 L45,32 Z" fill="var(--gold)"/>
+      <circle cx="50" cy="50" r="2.4" fill="var(--gold)"/>
+    </symbol>
+    <linearGradient id="brassRim" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#7c6a41"/>
+      <stop offset="30%" stop-color="#f2d693"/>
+      <stop offset="52%" stop-color="#d4b26a"/>
+      <stop offset="78%" stop-color="#f2d693"/>
+      <stop offset="100%" stop-color="#6b5a37"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<svg class="vellum"><rect width="100%" height="100%" filter="url(#grain)"/></svg>
+
+<div class="atlas-frame">
+  <div class="frame-border"></div>
+  <div class="corner-rose tl"><svg><use href="#compass-rose-sym"/></svg></div>
+  <div class="corner-rose tr"><svg><use href="#compass-rose-sym"/></svg></div>
+  <div class="corner-rose bl"><svg><use href="#compass-rose-sym"/></svg></div>
+  <div class="corner-rose br"><svg><use href="#compass-rose-sym"/></svg></div>
+
+  <div class="mockup-tag">Mockup 08 — Celestial Atlas</div>
+
+  <header class="atlas-header">
+    <div class="cartouche">
+      <svg class="scroll-cap"><use href="#scroll-cap-sym"/></svg>
+      <div class="cartouche-body title-block">
+        <h1>The Interstellar Settlement Protocol</h1>
+        <div class="sub">v0.4 &nbsp;·&nbsp; Est. 2147 &nbsp;·&nbsp; Charted for the Board</div>
+      </div>
+      <svg class="scroll-cap right"><use href="#scroll-cap-sym"/></svg>
+    </div>
+    <div class="player-block">
+      <div class="player-seal">RV</div>
+      <div class="player-meta">
+        <div class="name">CEO R. Vance</div>
+        <div class="corp">Helix Meridian Holdings <span class="ticker">HMH</span></div>
+      </div>
+      <div class="header-actions">
+        <div class="notice-badge"><span class="count" id="noticeCount">0</span>Notices</div>
+        <span class="logout-link">Log Out</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="atlas-body">
+
+    <!-- ===================== NAV ===================== -->
+    <nav class="constellation-nav" id="constNav">
+      <div class="const-group" data-group="Company">
+        <div class="group-title"><svg><use href="#compass-rose-sym"/></svg><span>Company</span></div>
+        <svg class="const-svg" viewBox="0 0 220 290">
+          <path class="const-line" d="M30,30 L55,76 L30,122 L55,168 L30,214 L55,260"/>
+          <g class="star-node active" data-page="Overview"><circle class="halo" cx="30" cy="30" r="6"/><circle class="dot" cx="30" cy="30" r="3"/><text class="lbl" x="42" y="34">Overview</text></g>
+          <g class="star-node" data-page="Inbox"><circle class="halo" cx="55" cy="76" r="6"/><circle class="dot" cx="55" cy="76" r="2.6"/><text class="lbl" x="67" y="80">Inbox</text></g>
+          <g class="star-node" data-page="Financial Core"><circle class="halo" cx="30" cy="122" r="6"/><circle class="dot" cx="30" cy="122" r="2.6"/><text class="lbl" x="42" y="126">Financial Core</text></g>
+          <g class="star-node" data-page="CEO Insight"><circle class="halo" cx="55" cy="168" r="6"/><circle class="dot" cx="55" cy="168" r="2.6"/><text class="lbl" x="67" y="172">CEO Insight</text></g>
+          <g class="star-node" data-page="Assignments"><circle class="halo" cx="30" cy="214" r="6"/><circle class="dot" cx="30" cy="214" r="2.6"/><text class="lbl" x="42" y="218">Assignments</text></g>
+          <g class="star-node" data-page="Conglomerate"><circle class="halo" cx="55" cy="260" r="6"/><circle class="dot" cx="55" cy="260" r="2.6"/><text class="lbl" x="67" y="264">Conglomerate</text></g>
+        </svg>
+      </div>
+
+      <div class="const-group" data-group="Station">
+        <div class="group-title"><svg><use href="#compass-rose-sym"/></svg><span>Station</span></div>
+        <svg class="const-svg" viewBox="0 0 220 150">
+          <path class="const-line" d="M30,30 L55,76 L30,122"/>
+          <g class="star-node" data-page="Station"><circle class="halo" cx="30" cy="30" r="6"/><circle class="dot" cx="30" cy="30" r="2.6"/><text class="lbl" x="42" y="34">Station</text></g>
+          <g class="star-node" data-page="Operations"><circle class="halo" cx="55" cy="76" r="6"/><circle class="dot" cx="55" cy="76" r="2.6"/><text class="lbl" x="67" y="80">Operations</text></g>
+          <g class="star-node" data-page="Fleet"><circle class="halo" cx="30" cy="122" r="6"/><circle class="dot" cx="30" cy="122" r="2.6"/><text class="lbl" x="42" y="126">Fleet</text></g>
+        </svg>
+      </div>
+
+      <div class="const-group" data-group="Industry">
+        <div class="group-title"><svg><use href="#compass-rose-sym"/></svg><span>Industry</span></div>
+        <svg class="const-svg" viewBox="0 0 220 150">
+          <path class="const-line" d="M30,30 L55,76 L30,122"/>
+          <g class="star-node" data-page="Corporate R&D"><circle class="halo" cx="30" cy="30" r="6"/><circle class="dot" cx="30" cy="30" r="2.6"/><text class="lbl" x="42" y="34">Corporate R&amp;D</text></g>
+          <g class="star-node" data-page="Refinery Chains"><circle class="halo" cx="55" cy="76" r="6"/><circle class="dot" cx="55" cy="76" r="2.6"/><text class="lbl" x="67" y="80">Refinery Chains</text></g>
+          <g class="star-node" data-page="Logistics"><circle class="halo" cx="30" cy="122" r="6"/><circle class="dot" cx="30" cy="122" r="2.6"/><text class="lbl" x="42" y="126">Logistics</text></g>
+        </svg>
+      </div>
+
+      <div class="const-group" data-group="Market">
+        <div class="group-title"><svg><use href="#compass-rose-sym"/></svg><span>Market</span></div>
+        <svg class="const-svg" viewBox="0 0 220 105">
+          <path class="const-line" d="M30,30 L55,76"/>
+          <g class="star-node" data-page="Galactic Exchange"><circle class="halo" cx="30" cy="30" r="6"/><circle class="dot" cx="30" cy="30" r="2.6"/><text class="lbl" x="42" y="34">Galactic Exchange</text></g>
+          <g class="star-node" data-page="Assets"><circle class="halo" cx="55" cy="76" r="6"/><circle class="dot" cx="55" cy="76" r="2.6"/><text class="lbl" x="67" y="80">Assets</text></g>
+        </svg>
+      </div>
+
+      <div class="const-group" data-group="Comms">
+        <div class="group-title"><svg><use href="#compass-rose-sym"/></svg><span>Comms</span></div>
+        <svg class="const-svg" viewBox="0 0 220 105">
+          <path class="const-line" d="M30,30 L55,76"/>
+          <g class="star-node" data-page="Chat"><circle class="halo" cx="30" cy="30" r="6"/><circle class="dot" cx="30" cy="30" r="2.6"/><text class="lbl" x="42" y="34">Chat</text></g>
+          <g class="star-node" data-page="Forum"><circle class="halo" cx="55" cy="76" r="6"/><circle class="dot" cx="55" cy="76" r="2.6"/><text class="lbl" x="67" y="80">Forum</text></g>
+        </svg>
+      </div>
+    </nav>
+
+    <!-- ===================== MAIN ===================== -->
+    <main class="atlas-main">
+
+      <section class="panel astrolabe-panel">
+        <div class="astrolabe-wrap">
+          <svg viewBox="0 0 400 400">
+            <circle class="rim-outer" cx="200" cy="200" r="192" fill="none" stroke-width="7"/>
+            <circle class="rim-inner" cx="200" cy="200" r="196" fill="none" stroke-width="0.7"/>
+            <circle class="rim-inner" cx="200" cy="200" r="188" fill="none" stroke-width="0.7"/>
+            <g id="degreeMinor"></g>
+            <circle class="zodiac-ring" cx="200" cy="200" r="156" fill="none" stroke-width="0.6"/>
+            <circle class="zodiac-ring" cx="200" cy="200" r="140" fill="none" stroke-width="0.6"/>
+            <g id="zodiacBand"></g>
+            <circle class="zodiac-ring" cx="200" cy="200" r="128" fill="none" stroke-width="0.6"/>
+            <g id="hourLines"></g>
+            <g id="tickRing"></g>
+            <g id="numerals"></g>
+            <g class="rete">
+              <circle cx="200" cy="200" r="112" fill="none" stroke="var(--gold-dim)" stroke-width="0.5"/>
+              <path class="rete-arm" d="M200,88 L228,138 L282,166 L230,212 L242,272 L200,234 L158,272 L170,212 L118,166 L172,138 Z" fill="none" stroke-width="0.8"/>
+              <path class="rete-arm" d="M200,64 L200,112 M200,288 L200,336 M64,200 L112,200 M288,200 L336,200" stroke-width="0.6" opacity="0.6"/>
+              <g id="retePointers"></g>
+              <circle cx="200" cy="200" r="5" fill="none" stroke="var(--gold)" stroke-width="1"/>
+              <circle cx="200" cy="200" r="2" fill="var(--gold-dim)"/>
+            </g>
+            <line id="alidade" class="alidade" x1="200" y1="200" x2="200" y2="18"/>
+            <g id="reqStars"></g>
+            <circle cx="200" cy="200" r="46" fill="var(--ink-shadow)" opacity="0.55"/>
+            <text class="level-roman" id="levelRoman" x="200" y="196">II</text>
+            <text class="level-of" id="levelOf" x="200" y="222">OF XXX</text>
+          </svg>
+        </div>
+        <div class="astrolabe-info">
+          <div class="level-peek-row">
+            <button class="peek-btn" id="prevLvl" aria-label="Previous level">‹</button>
+            <span class="peek-label">Viewing Level <span id="peekWord">Two</span><span class="curmark" id="curMark">— current</span></span>
+            <button class="peek-btn" id="nextLvl" aria-label="Next level">›</button>
+          </div>
+          <ul class="req-list" id="reqList"></ul>
+          <div class="unlock-block">
+            <div class="unlock-intro" id="unlockIntro">Reaching Level III unlocks</div>
+            <table class="unlock-table"><tbody id="unlockTable"></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title"><svg class="scroll-cap"><use href="#scroll-cap-sym"/></svg><h2>Executive Situation Brief</h2></div>
+        <p class="brief-text">ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.</p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title"><svg class="scroll-cap"><use href="#scroll-cap-sym"/></svg><h2>Command Feedback</h2></div>
+        <ul class="feed-list" id="feedList">
+          <li><span class="ts">—</span>Command uplink standing by. Completed actions and queue additions will be logged here.</li>
+          <li><span class="ts">04:12</span>Extractor MX-01 cycle complete: +48 Silicate</li>
+          <li><span class="ts">03:55</span>Research queued: Refinery Chain I</li>
+          <li><span class="ts">02:30</span>Lease MRS-0419 renewed by ISA Claims &amp; Leases Division</li>
+          <li><span class="ts">00:04</span>Payroll disbursed: -$4,210</li>
+        </ul>
+      </section>
+    </main>
+
+    <!-- ===================== ASIDE ===================== -->
+    <aside class="ledger-aside">
+      <section class="panel">
+        <div class="panel-title"><svg class="scroll-cap"><use href="#scroll-cap-sym"/></svg><h2>Key Figures</h2></div>
+        <div class="figure-row"><span class="figure-label">Cash Reserves</span><span class="figure-value gold" id="cashVal">$0</span></div>
+        <div class="flow-negative">
+          <svg class="comet" viewBox="0 0 40 40"><defs><radialGradient id="cometGrad" cx="70%" cy="30%" r="70%"><stop offset="0%" stop-color="#f2d693"/><stop offset="40%" stop-color="#c1495a"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs><circle cx="28" cy="12" r="6" fill="url(#cometGrad)"/><path d="M26,14 L4,36 M22,10 L2,28 M28,18 L10,38" stroke="#c1495a" stroke-width="1" opacity="0.55"/></svg>
+          <div><div class="fv" id="flowVal">-$0</div><div class="note">Net Daily Flow — an ill omen; costs outpace income</div></div>
+        </div>
+        <div class="figure-row"><span class="figure-label">Conglomerate</span><span class="figure-value">Independent</span></div>
+        <div class="figure-row"><span class="figure-label">Military Power</span><span class="figure-value">0 ATK / 0 DEF</span></div>
+        <div class="figure-row"><span class="figure-label">Readiness</span><span class="figure-value gold">100%</span></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title"><svg class="scroll-cap"><use href="#scroll-cap-sym"/></svg><h2>Mars Lease MRS-0419</h2></div>
+        <div class="gauge-row">
+          <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--gold-dim)" stroke-width="3"/><circle id="gaugeMX01" cx="20" cy="20" r="16" fill="none" stroke="var(--gold-bright)" stroke-width="3" stroke-dasharray="100.5" stroke-dashoffset="100.5" transform="rotate(-90 20 20)"/></svg>
+          <div class="gauge-label"><b>MX-01</b><br>Extractor cycle</div>
+          <div class="gauge-pct" id="mx01pct">0%</div>
+        </div>
+        <div class="gauge-row">
+          <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--gold-dim)" stroke-width="3"/><circle id="gaugeMX02" cx="20" cy="20" r="16" fill="none" stroke="var(--gold-bright)" stroke-width="3" stroke-dasharray="100.5" stroke-dashoffset="100.5" transform="rotate(-90 20 20)"/></svg>
+          <div class="gauge-label"><b>MX-02</b><br>Extractor cycle</div>
+          <div class="gauge-pct" id="mx02pct">0%</div>
+        </div>
+        <div class="mini-row"><span>Silicate Stock</span><span class="v">142 units</span></div>
+        <div class="mini-row"><span>Employees</span><span class="v">18 / 30</span></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title"><svg class="scroll-cap"><use href="#scroll-cap-sym"/></svg><h2>Galactic Exchange Peg</h2></div>
+        <div class="spark-wrap">
+          <svg viewBox="0 0 120 34"><polyline id="sparkline" points="" fill="none" stroke="var(--gold-bright)" stroke-width="1.4"/></svg>
+          <div><div class="spark-price">61 cr</div><div class="mini-row" style="padding:0"><span>per unit, Silicate</span></div></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title"><svg class="scroll-cap"><use href="#scroll-cap-sym"/></svg><h2>Correspondence</h2></div>
+        <ul class="inbox-list">
+          <li><span class="from">ISA Claims &amp; Leases</span>Lease MRS-0419 renewal confirmed for the current cycle.</li>
+          <li><span class="from">Station Administration</span>Docking bay maintenance notice — Bay 4 closed 06:00–09:00.</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title"><svg class="scroll-cap"><use href="#scroll-cap-sym"/></svg><h2>Research Queue</h2></div>
+        <div class="queue-item">
+          <div class="qt"><b>Refinery Chain I</b><span>34%</span></div>
+          <div class="qbar"><span id="researchBar"></span></div>
+        </div>
+        <div class="mini-row" style="margin-top:8px;"><span>Queued next</span><span class="v">Deep Core Drilling</span></div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="legend">Chart drawn under ISA licence · all bearings approximate · the stars belong to no one</footer>
+</div>
+
+<script>
+(function(){
+  // ---------- helpers ----------
+  function animateNumber(el, to, prefix, duration){
+    prefix = prefix || ''; duration = duration || 1200;
+    var start = performance.now();
+    function tick(now){
+      var p = Math.min(1, (now - start) / duration);
+      var eased = 1 - Math.pow(1 - p, 3);
+      var val = Math.round(to * eased);
+      el.textContent = prefix + val.toLocaleString('en-US');
+      if(p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // ---------- notices ----------
+  animateNumber(document.getElementById('noticeCount'), 23, '', 1000);
+  animateNumber(document.getElementById('cashVal'), 18061, '$', 1400);
+
+  var flowEl = document.getElementById('flowVal');
+  (function(){
+    var to = 27915, start = performance.now();
+    function tick(now){
+      var p = Math.min(1, (now - start) / 1400);
+      var val = Math.round(to * (1 - Math.pow(1 - p, 3)));
+      flowEl.textContent = '-$' + val.toLocaleString('en-US');
+      if(p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  })();
+
+  // ---------- extractor gauges ----------
+  function setGauge(id, pct){
+    var c = document.getElementById(id);
+    var circumference = 2 * Math.PI * 16;
+    var offset = circumference * (1 - pct / 100);
+    c.style.transition = 'stroke-dashoffset 1.4s ease';
+    requestAnimationFrame(function(){ c.setAttribute('stroke-dashoffset', offset.toFixed(1)); });
+  }
+  setGauge('gaugeMX01', 72); setGauge('gaugeMX02', 31);
+  animateNumber(document.getElementById('mx01pct'), 72, '', 1200);
+  animateNumber(document.getElementById('mx02pct'), 31, '', 1200);
+
+  // ---------- sparkline ----------
+  var prices = [54,57,55,59,58,60,61];
+  var max = Math.max.apply(null, prices), min = Math.min.apply(null, prices);
+  var pts = prices.map(function(p, i){
+    var x = (i / (prices.length - 1)) * 116 + 2;
+    var y = 30 - ((p - min) / (max - min || 1)) * 24;
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  document.getElementById('sparkline').setAttribute('points', pts);
+
+  // ---------- research bar ----------
+  requestAnimationFrame(function(){
+    setTimeout(function(){ document.getElementById('researchBar').style.width = '34%'; }, 250);
+  });
+
+  // ---------- constellation nav selection ----------
+  var allStars = document.querySelectorAll('.star-node');
+  allStars.forEach(function(node){
+    node.addEventListener('click', function(){
+      allStars.forEach(function(n){ n.classList.remove('selected'); n.classList.remove('active'); });
+      node.classList.add('selected');
+    });
+  });
+
+  // ---------- astrolabe / level data ----------
+  var ROMANS = {1:'I', 2:'II', 3:'III', 4:'IV'};
+  var WORDS = {1:'One', 2:'Two', 3:'Three', 4:'Four'};
+  var CURRENT_LEVEL = 2;
+  var TOTAL_LEVELS = 30;
+  var LEVELS = {
+    1: {
+      requirements: [
+        {text:'Establish first lease on Mars', prog:'1 / 1', done:true},
+        {text:'Hire 5 employees', prog:'5 / 5', done:true}
+      ],
+      unlocks: [['Employee Cap','30'],['Building Slots','3'],['Fleet Cap','15'],['Highest Building Tier','1']]
+    },
+    2: {
+      requirements: [
+        {text:'Sell 300 Silicate on the Galactic Exchange', prog:'0 / 300', done:false, link:true},
+        {text:'Research Basic Extraction Analytics', prog:'1 / 1', done:true}
+      ],
+      unlocks: [['Employee Cap','45'],['Building Slots','4'],['Fleet Cap','22'],['Highest Building Tier','2']]
+    },
+    3: {
+      requirements: [
+        {text:'Sell 750 Silicate on the Galactic Exchange', prog:'0 / 750', done:false, link:true},
+        {text:'Complete Refinery Chain I research', prog:'0 / 1', done:false}
+      ],
+      unlocks: [['Employee Cap','60'],['Building Slots','5'],['Fleet Cap','30'],['Highest Building Tier','3']]
+    },
+    4: {
+      requirements: [
+        {text:'Establish a second planetary lease', prog:'0 / 1', done:false},
+        {text:'Sell 1,200 Refined Silicate on the Galactic Exchange', prog:'0 / 1200', done:false, link:true}
+      ],
+      unlocks: [['Employee Cap','80'],['Building Slots','6'],['Fleet Cap','40'],['Highest Building Tier','3']]
+    }
+  };
+
+  var viewingLevel = CURRENT_LEVEL;
+  var svgNS = 'http://www.w3.org/2000/svg';
+  function mkEl(tag, attrs){
+    var el = document.createElementNS(svgNS, tag);
+    for(var k in attrs){ el.setAttribute(k, attrs[k]); }
+    return el;
+  }
+  function pt(r, angleDeg){
+    var rad = angleDeg * Math.PI / 180;
+    return { x: 200 + r * Math.cos(rad), y: 200 + r * Math.sin(rad) };
+  }
+
+  // draw the 30-division major tick ring + numerals once
+  var ring = document.getElementById('tickRing');
+  var numerals = document.getElementById('numerals');
+  for(var i = 0; i < TOTAL_LEVELS; i++){
+    var angle = (i / TOTAL_LEVELS) * 360 - 90;
+    var p1 = pt(174, angle), p2 = pt(192, angle);
+    ring.appendChild(mkEl('line', {
+      x1:p1.x.toFixed(1), y1:p1.y.toFixed(1), x2:p2.x.toFixed(1), y2:p2.y.toFixed(1),
+      'stroke-width': 1.5, 'class': i < CURRENT_LEVEL ? 'tick-lit' : 'tick-dim'
+    }));
+    var pn = pt(163, angle);
+    var t = mkEl('text', { x:pn.x.toFixed(1), y:(pn.y+2.8).toFixed(1), 'class': 'deg-numeral ' + (i < CURRENT_LEVEL ? 'lit' : 'dim'), 'font-size': 8 });
+    t.textContent = i + 1;
+    numerals.appendChild(t);
+  }
+
+  // fine degree scale — minor ticks all the way around, four per major division
+  var minorRing = document.getElementById('degreeMinor');
+  for(var d = 0; d < 360; d += 3){
+    var mp1 = pt(185, d - 90), mp2 = pt(192, d - 90);
+    minorRing.appendChild(mkEl('line', { x1:mp1.x.toFixed(1), y1:mp1.y.toFixed(1), x2:mp2.x.toFixed(1), y2:mp2.y.toFixed(1), 'stroke-width':0.5, 'class':'tick-minor' }));
+  }
+
+  // sigil / zodiac band — twelve alternating glyphs
+  var zodiac = document.getElementById('zodiacBand');
+  var glyphMakers = [
+    function(x,y){ return 'M'+(x-5)+','+y+' A5,5 0 1,1 '+(x+5)+','+y+' A5,5 0 1,1 '+(x-5)+','+y+' M'+x+','+y+' m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0'; },
+    function(x,y){ return 'M'+x+','+(y-6)+' L'+(x+5.2)+','+(y+4)+' L'+(x-5.2)+','+(y+4)+' Z'; },
+    function(x,y){ return 'M'+(x-5)+','+(y-2)+' Q'+x+','+(y-9)+' '+(x+5)+','+(y-2)+' Q'+x+','+(y+3)+' '+(x-5)+','+(y-2)+' Z'; },
+    function(x,y){ return 'M'+x+','+(y-6)+' L'+(x+6)+','+y+' L'+x+','+(y+6)+' L'+(x-6)+','+y+' Z M'+(x-6)+','+y+' L'+(x+6)+','+y+' M'+x+','+(y-6)+' L'+x+','+(y+6); }
+  ];
+  for(var z = 0; z < 12; z++){
+    var zp = pt(148, z * 30 - 90);
+    var d2 = glyphMakers[z % glyphMakers.length](zp.x, zp.y);
+    zodiac.appendChild(mkEl('path', { d:d2, 'class':'zodiac-glyph' }));
+  }
+
+  // inner hour lines — fixed radial web beneath the rete
+  var hourLines = document.getElementById('hourLines');
+  for(var h = 0; h < 24; h++){
+    var hp1 = pt(28, h * 15 - 90), hp2 = pt(96, h * 15 - 90);
+    hourLines.appendChild(mkEl('line', { x1:hp1.x.toFixed(1), y1:hp1.y.toFixed(1), x2:hp2.x.toFixed(1), y2:hp2.y.toFixed(1), 'class':'hour-line' }));
+  }
+
+  // rete star-pointers at the five outer spikes of the lattice
+  var reteTips = [[200,88],[282,166],[242,272],[158,272],[118,166]];
+  var retePointers = document.getElementById('retePointers');
+  reteTips.forEach(function(tip){
+    var x = tip[0], y = tip[1];
+    retePointers.appendChild(mkEl('path', {
+      d: 'M'+x+','+(y-5)+' L'+(x+2.4)+','+(y-1.2)+' L'+(x+5)+','+y+' L'+(x+2.4)+','+(y+1.2)+' L'+x+','+(y+5)+' L'+(x-2.4)+','+(y+1.2)+' L'+(x-5)+','+y+' L'+(x-2.4)+','+(y-1.2)+' Z',
+      'class':'rete-pointer'
+    }));
+  });
+
+  function angleForLevel(lvl){ return ((lvl - 1) / TOTAL_LEVELS) * 360 - 90; }
+
+  function renderReqStars(reqs){
+    var g = document.getElementById('reqStars');
+    g.innerHTML = '';
+    var baseAngles = [-58, -18];
+    reqs.slice(0,2).forEach(function(req, idx){
+      var rad = baseAngles[idx] * Math.PI / 180;
+      var r = 100;
+      var x = 200 + r * Math.cos(rad), y = 200 + r * Math.sin(rad);
+      var grp = document.createElementNS('http://www.w3.org/2000/svg','g');
+      grp.setAttribute('class', 'req-star ' + (req.done ? 'done' : 'open'));
+      var star = document.createElementNS('http://www.w3.org/2000/svg','path');
+      var s = 8;
+      var d = 'M'+x+','+(y-s)+' L'+(x+s*0.28)+','+(y-s*0.28)+' L'+(x+s)+','+y+' L'+(x+s*0.28)+','+(y+s*0.28)+
+              ' L'+x+','+(y+s)+' L'+(x-s*0.28)+','+(y+s*0.28)+' L'+(x-s)+','+y+' L'+(x-s*0.28)+','+(y-s*0.28)+' Z';
+      star.setAttribute('d', d);
+      star.setAttribute('class', 'glyph');
+      var title = document.createElementNS('http://www.w3.org/2000/svg','title');
+      title.textContent = req.text + ' (' + req.prog + ')';
+      grp.appendChild(star); grp.appendChild(title);
+      g.appendChild(grp);
+    });
+  }
+
+  function renderLevel(lvl){
+    var data = LEVELS[lvl];
+    document.getElementById('levelRoman').textContent = ROMANS[lvl];
+    document.getElementById('levelOf').textContent = 'OF XXX';
+    document.getElementById('peekWord').textContent = WORDS[lvl];
+    document.getElementById('curMark').style.display = (lvl === CURRENT_LEVEL) ? 'inline' : 'none';
+    document.getElementById('alidade').style.transform = 'rotate(' + (angleForLevel(lvl) + 90) + 'deg)';
+
+    var list = document.getElementById('reqList');
+    list.innerHTML = '';
+    data.requirements.forEach(function(req){
+      var li = document.createElement('li');
+      li.className = req.done ? 'done' : '';
+      var mark = document.createElement('span');
+      mark.className = 'mark'; mark.textContent = req.done ? '✦' : '✧';
+      li.appendChild(mark);
+      var span = document.createElement('span');
+      span.textContent = req.text;
+      li.appendChild(span);
+      var prog = document.createElement('span');
+      prog.className = 'prog'; prog.textContent = req.prog;
+      li.appendChild(prog);
+      if(req.link){
+        var a = document.createElement('a');
+        a.href = '#'; a.className = 'gex-cta'; a.textContent = 'Go to Galactic Exchange';
+        li.appendChild(a);
+      }
+      list.appendChild(li);
+    });
+
+    document.getElementById('unlockIntro').textContent = 'Reaching Level ' + ROMANS[Math.min(lvl+1,4)] + ' unlocks';
+    var tbody = document.getElementById('unlockTable');
+    tbody.innerHTML = '';
+    data.unlocks.forEach(function(row){
+      var tr = document.createElement('tr');
+      var tdLabel = document.createElement('td'); tdLabel.textContent = row[0];
+      var tdValue = document.createElement('td'); tdValue.textContent = row[1];
+      tr.appendChild(tdLabel); tr.appendChild(tdValue);
+      tbody.appendChild(tr);
+    });
+    renderReqStars(data.requirements);
+  }
+
+  renderLevel(viewingLevel);
+
+  document.getElementById('prevLvl').addEventListener('click', function(){
+    viewingLevel = Math.max(1, viewingLevel - 1);
+    renderLevel(viewingLevel);
+  });
+  document.getElementById('nextLvl').addEventListener('click', function(){
+    viewingLevel = Math.min(4, viewingLevel + 1);
+    renderLevel(viewingLevel);
+  });
+
+  // ---------- ticking command feed ----------
+  var pool = [
+    'Extractor MX-02 cycle complete: +21 Silicate',
+    'GEX peg adjusted: Silicate 61 → 62 cr/unit',
+    'Notice received: STA docking bay schedule updated',
+    'Fleet telemetry sync complete',
+    'Research progress: Refinery Chain I +2%',
+    'Sell order posted: 40 Silicate at 61 cr/unit'
+  ];
+  var feedList = document.getElementById('feedList');
+  function stamp(){
+    var d = new Date();
+    return (d.getHours()+'').padStart(2,'0') + ':' + (d.getMinutes()+'').padStart(2,'0');
+  }
+  setInterval(function(){
+    var msg = pool[Math.floor(Math.random() * pool.length)];
+    var li = document.createElement('li');
+    li.innerHTML = '<span class="ts">' + stamp() + '</span>' + msg;
+    feedList.appendChild(li);
+    while(feedList.children.length > 9){ feedList.removeChild(feedList.children[0]); }
+    feedList.scrollTop = feedList.scrollHeight;
+  }, 9000);
+})();
+</script>
+</body>
+</html>

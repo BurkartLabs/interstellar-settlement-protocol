@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 02 v2 — Phosphor Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:      #0a0700;
+    --black-2:    #120d00;
+    --amber-dim:  #7a5200;
+    --amber-mid:  #b47b1f;
+    --amber-brt:  #ffbf3d;
+    --amber-body: #c99a4e;
+    --amber-glow: rgba(255,191,61,0.30);
+    --amber-04:   rgba(255,176,0,0.035);
+    --amber-08:   rgba(255,176,0,0.07);
+    --amber-14:   rgba(255,176,0,0.12);
+    --bg-tint:    rgba(255,176,0,0.045);
+    --font-display: 'VT323', 'Courier New', monospace;
+    --font-body: 'IBM Plex Mono', 'Consolas', 'Courier New', monospace;
+  }
+
+  :root[data-scheme="soft"]{
+    --amber-dim:  #5b5140;
+    --amber-mid:  #8c7c5a;
+    --amber-brt:  #d6c39a;
+    --amber-body: #a6976f;
+    --amber-glow: rgba(214,195,154,0.22);
+    --amber-04:   rgba(214,195,154,0.03);
+    --amber-08:   rgba(214,195,154,0.06);
+    --amber-14:   rgba(214,195,154,0.10);
+    --bg-tint:    rgba(214,195,154,0.035);
+  }
+
+  :root[data-scheme="green"]{
+    --amber-dim:  #21622f;
+    --amber-mid:  #3d9950;
+    --amber-brt:  #8fffa8;
+    --amber-body: #56b46a;
+    --amber-glow: rgba(143,255,168,0.28);
+    --amber-04:   rgba(90,255,140,0.035);
+    --amber-08:   rgba(90,255,140,0.07);
+    --amber-14:   rgba(90,255,140,0.12);
+    --bg-tint:    rgba(90,255,140,0.04);
+  }
+
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--black);
+    color: var(--amber-body);
+    font-family: var(--font-body);
+  }
+
+  body {
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  /* ============ CRT SHELL (calm: no flicker, faint scanlines, small low-alpha bloom) ============ */
+  .crt {
+    position: relative;
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at 50% 30%, var(--bg-tint) 0%, rgba(0,0,0,0) 60%),
+      linear-gradient(180deg, #0d0900 0%, #0a0700 60%, #070500 100%);
+  }
+
+  /* scanlines: very faint, static, no animation */
+  .crt::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0.045) 1px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0) 3px
+    );
+    mix-blend-mode: multiply;
+  }
+
+  /* soft vignette, no motion */
+  .crt::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 6;
+    background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.40) 100%);
+    box-shadow: inset 0 0 140px 30px rgba(0,0,0,0.55);
+  }
+
+  a { color: var(--amber-brt); text-decoration: none; }
+  ::selection { background: var(--amber-brt); color: #1a0f00; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--black-2); }
+  ::-webkit-scrollbar-thumb { background: var(--amber-dim); border: 1px solid var(--black); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--amber-mid); }
+
+  /* ============ APP SHELL: sidebar + main ============ */
+  .app-shell {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ============ SIDEBAR: terminal menu tree ============ */
+  .sidebar {
+    width: 272px;
+    flex-shrink: 0;
+    align-self: flex-start;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    border-right: 1px solid var(--amber-dim);
+    background: linear-gradient(180deg, var(--bg-tint), rgba(0,0,0,0) 30%);
+    padding: 16px 0 20px;
+  }
+  .sidebar:focus { outline: none; }
+  .sidebar-hd {
+    padding: 0 16px 12px;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed var(--amber-dim);
+  }
+  .sidebar-hd .t1 { color: var(--amber-brt); font-size: 13px; letter-spacing: 0.06em; text-shadow: 0 0 3px var(--amber-glow); }
+  .sidebar-hd .t2 { color: var(--amber-dim); font-size: 11px; margin-top: 3px; }
+
+  .nav-group-hd {
+    color: var(--amber-dim);
+    font-size: 11.5px;
+    letter-spacing: 0.1em;
+    padding: 14px 16px 4px;
+  }
+  .nav-group-hd:first-of-type { padding-top: 4px; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    font-size: 13.5px;
+    color: var(--amber-mid);
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .nav-cursor { width: 14px; flex-shrink: 0; color: transparent; }
+  .nav-tree { color: var(--amber-dim); flex-shrink: 0; }
+  .nav-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  .nav-key {
+    color: var(--amber-dim);
+    font-size: 10.5px;
+    border: 1px solid var(--amber-dim);
+    padding: 0 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .nav-item:hover { color: var(--amber-brt); background: var(--amber-04); }
+  .nav-item.kbd-focus {
+    outline: 1px dashed var(--amber-mid);
+    outline-offset: -1px;
+    background: var(--amber-04);
+  }
+  .nav-item.active {
+    color: var(--amber-brt);
+    background: var(--amber-08);
+    text-shadow: 0 0 3px var(--amber-glow);
+  }
+  .nav-item.active .nav-cursor { color: var(--amber-brt); }
+  .nav-item.active .nav-key { color: var(--amber-brt); border-color: var(--amber-brt); }
+
+  /* ============ MAIN COLUMN ============ */
+  .main {
+    flex: 1;
+    min-width: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ============ MOTD ============ */
+  .motd {
+    border-bottom: 1px solid var(--amber-dim);
+    background: linear-gradient(180deg, var(--bg-tint), rgba(0,0,0,0));
+    padding: 10px 24px 8px;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+  }
+  .motd-row { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px 18px; color: var(--amber-mid); }
+  .motd-left { display:flex; gap: 18px; flex-wrap: wrap; }
+  .motd .hi { color: var(--amber-brt); }
+  .motd .sep { color: var(--amber-dim); }
+  .clock { color: var(--amber-mid); font-variant-numeric: tabular-nums; }
+  .motd-line2 { margin-top: 4px; color: var(--amber-dim); font-size: 11px; }
+
+  /* ============ MASTHEAD ============ */
+  .masthead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 20px 24px 14px;
+    border-bottom: 1px solid var(--amber-dim);
+    flex-wrap: wrap;
+  }
+  .brand-block { display: flex; align-items: center; gap: 20px; }
+  .glyph {
+    font-family: var(--font-body);
+    font-size: 12px;
+    line-height: 1.15;
+    color: var(--amber-mid);
+    white-space: pre;
+    user-select: none;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .brand-title {
+    font-family: var(--font-display);
+    font-size: 32px;
+    letter-spacing: 0.03em;
+    color: var(--amber-brt);
+    text-shadow: 0 0 4px var(--amber-glow);
+    line-height: 1;
+  }
+  .brand-sub { font-size: 12px; color: var(--amber-dim); margin-top: 4px; letter-spacing: 0.07em; }
+  .header-right { display: flex; align-items: center; gap: 18px; font-size: 12.5px; flex-wrap: wrap; }
+  .id-chip { border: 1px solid var(--amber-dim); padding: 6px 12px; background: var(--amber-04); }
+  .id-chip .k { color: var(--amber-dim); font-size: 10px; letter-spacing: 0.08em; }
+  .id-chip .v { color: var(--amber-brt); font-size: 13px; }
+  .notice-pill { border: 1px solid var(--amber-mid); color: var(--amber-mid); padding: 6px 10px; font-size: 12px; cursor: pointer; background: var(--amber-04); }
+  .notice-pill:hover { background: var(--amber-14); color: var(--amber-brt); border-color: var(--amber-brt); }
+  .logout-link { border: 1px solid var(--amber-dim); color: var(--amber-dim); padding: 6px 10px; font-size: 12px; cursor: pointer; background: transparent; }
+  .logout-link:hover { border-color: var(--amber-mid); color: var(--amber-mid); }
+
+  .scheme-toggle {
+    border: 1px solid var(--amber-dim);
+    color: var(--amber-dim);
+    padding: 6px 10px;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    background: transparent;
+    font-family: inherit;
+  }
+  .scheme-toggle:hover { border-color: var(--amber-mid); color: var(--amber-mid); }
+  .scheme-toggle .v { color: var(--amber-brt); }
+
+  .mockup-tag {
+    font-size: 10px;
+    color: var(--amber-dim);
+    letter-spacing: 0.06em;
+    opacity: 0.75;
+    white-space: nowrap;
+    align-self: center;
+    padding-left: 4px;
+    border-left: 1px dashed var(--amber-dim);
+  }
+
+  /* ============ STAGE / PANELS ============ */
+  .stage {
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 22px 24px 24px;
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 28px;
+    flex: 1;
+  }
+  .col { display: flex; flex-direction: column; gap: 26px; min-width: 0; }
+
+  .panel {
+    border: 1px solid var(--amber-dim);
+    background: linear-gradient(180deg, var(--bg-tint), rgba(0,0,0,0) 40%);
+    position: relative;
+    padding: 0 0 16px 0;
+  }
+  .panel-title-row {
+    display: flex;
+    align-items: center;
+    padding: 11px 16px 9px;
+    color: var(--amber-brt);
+    font-size: 13.5px;
+    letter-spacing: 0.02em;
+    border-bottom: 1px dashed var(--amber-dim);
+    margin-bottom: 12px;
+    white-space: nowrap;
+    overflow-x: auto;
+    text-shadow: 0 0 3px var(--amber-glow);
+  }
+  .panel-title-row .fill { color: var(--amber-dim); flex: 1; overflow: hidden; text-shadow: none; }
+  .panel-body { padding: 0 18px; font-size: 14px; line-height: 1.55; }
+  .panel small.hint { color: var(--amber-dim); font-size: 11px; }
+
+  /* ============ KEY FIGURES ============ */
+  .figs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--amber-dim); border: 1px solid var(--amber-dim); }
+  .fig { background: var(--black); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .fig .lbl { font-size: 10.5px; color: var(--amber-dim); letter-spacing: 0.08em; }
+  .fig .val { font-family: var(--font-display); font-size: 26px; color: var(--amber-brt); line-height: 1; text-shadow: 0 0 3px var(--amber-glow); }
+  .fig .sub { font-size: 11px; color: var(--amber-mid); }
+  .fig.deficit .val {
+    display: inline-block;
+    background: var(--amber-brt);
+    color: #150e00;
+    padding: 1px 8px;
+    text-shadow: none;
+  }
+  .deficit-flag {
+    display: inline-block;
+    margin-top: 4px;
+    background: var(--amber-brt);
+    color: #150e00;
+    padding: 1px 8px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+
+  /* ============ LEVEL PANEL ============ */
+  .level-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+  .level-title { font-family: var(--font-display); font-size: 24px; color: var(--amber-brt); text-shadow: 0 0 3px var(--amber-glow); }
+  .level-nav { display: flex; gap: 8px; font-size: 12px; }
+  .level-nav button { background: transparent; border: 1px solid var(--amber-dim); color: var(--amber-mid); font-family: var(--font-body); font-size: 11.5px; padding: 4px 9px; cursor: pointer; }
+  .level-nav button:hover:not(:disabled) { border-color: var(--amber-mid); color: var(--amber-brt); }
+  .level-nav button:disabled { opacity: 0.3; cursor: default; }
+
+  .ascii-bar { font-family: var(--font-body); letter-spacing: 0; color: var(--amber-brt); font-size: 15px; }
+  .ascii-bar .fill { color: var(--amber-brt); }
+  .ascii-bar .empty { color: var(--amber-dim); }
+
+  .req-list { list-style: none; margin: 12px 0 4px; padding: 0; }
+  .req-list li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dotted rgba(122,82,0,0.4); flex-wrap: wrap; }
+  .req-list li:last-child { border-bottom: none; }
+  .req-check { min-width: 30px; flex-shrink: 0; white-space: nowrap; }
+  .req-check.done { color: var(--amber-brt); }
+  .req-check.open { color: var(--amber-dim); }
+  .req-text { flex: 1; min-width: 180px; }
+  .req-text .strike { color: var(--amber-mid); }
+  .req-progress { color: var(--amber-dim); font-size: 12px; white-space: nowrap; }
+  .req-link {
+    border: 1px solid var(--amber-mid);
+    color: var(--amber-mid);
+    padding: 3px 9px;
+    font-family: inherit;
+    font-size: 11.5px;
+    cursor: pointer;
+    background: var(--amber-04);
+    white-space: nowrap;
+  }
+  .req-link:hover { background: var(--amber-brt); color: #150e00; border-color: var(--amber-brt); }
+
+  .unlocks-box { margin-top: 14px; border-top: 1px dashed var(--amber-dim); padding-top: 12px; font-size: 12.5px; color: var(--amber-mid); }
+  .unlocks-box b { color: var(--amber-brt); }
+  .unlock-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .unlock-chips span { border: 1px solid var(--amber-dim); padding: 3px 8px; font-size: 11px; color: var(--amber-dim); }
+
+  .brief-text { color: var(--amber-body); }
+  .brief-text .q { color: var(--amber-brt); }
+
+  .log-window { height: 230px; overflow-y: auto; font-size: 13.5px; line-height: 1.7; padding-right: 6px; }
+  .log-line { display: flex; gap: 8px; }
+  .log-line .ts { color: var(--amber-dim); flex-shrink: 0; }
+  .log-line .msg { color: var(--amber-mid); }
+  .log-line.warn .msg { color: var(--amber-brt); }
+
+  .cursor-block { display: inline-block; width: 9px; height: 15px; background: var(--amber-brt); vertical-align: -3px; }
+
+  .kv-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .kv-table td { padding: 6px 0; border-bottom: 1px dotted rgba(122,82,0,0.35); }
+  .kv-table td.k { color: var(--amber-dim); width: 55%; }
+  .kv-table td.v { color: var(--amber-brt); text-align: right; }
+  .kv-table tr:last-child td { border-bottom: none; }
+
+  .mini-hist { display: flex; align-items: flex-end; gap: 3px; height: 34px; margin-top: 8px; }
+  .mini-hist i { display: block; width: 8px; background: var(--amber-dim); }
+  .mini-hist i.up { background: var(--amber-brt); }
+
+  .inbox-item { padding: 8px 0; border-bottom: 1px dotted rgba(122,82,0,0.35); }
+  .inbox-item:last-child { border-bottom: none; }
+  .inbox-item .from { color: var(--amber-dim); font-size: 11px; letter-spacing: 0.04em; }
+  .inbox-item .subj { color: var(--amber-brt); font-size: 12.5px; }
+  .inbox-unread { display: inline-block; width: 6px; height: 6px; background: var(--amber-brt); border-radius: 50%; margin-right: 6px; }
+
+  .frac { color: var(--amber-dim); }
+
+  .view-note { font-size: 11.5px; color: var(--amber-dim); border: 1px dashed var(--amber-dim); padding: 9px 11px; margin-bottom: 0; }
+
+  /* ============ COMMAND PROMPT (sticky bottom of main) ============ */
+  .prompt-row {
+    position: sticky;
+    bottom: 0;
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border-top: 1px solid var(--amber-dim);
+    background: linear-gradient(180deg, rgba(10,7,0,0.25), var(--black) 45%);
+    font-size: 13.5px;
+    z-index: 10;
+  }
+  .prompt-tag { color: var(--amber-brt); white-space: nowrap; }
+  .prompt-input-wrap { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+  #cmdInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--amber-brt);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    caret-color: transparent;
+    min-width: 0;
+  }
+  .prompt-hint { color: var(--amber-dim); font-size: 11px; white-space: nowrap; }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1280px) {
+    .stage { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 860px) {
+    .sidebar { width: 230px; }
+  }
+  @media (max-width: 720px) {
+    .app-shell { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; max-height: 240px; position: static; border-right: none; border-bottom: 1px solid var(--amber-dim); }
+    .main { min-height: 0; }
+    .prompt-row { position: static; margin-top: 0; }
+    .figs-grid { grid-template-columns: repeat(2, 1fr); }
+    .masthead { flex-direction: column; }
+    .brand-block { flex-direction: column; align-items: flex-start; gap: 10px; }
+  }
+  @media (max-width: 420px) {
+    .brand-title { font-size: 22px; }
+    .glyph { font-size: 9px; }
+    .motd-row { flex-direction: column; align-items: flex-start; }
+    .header-right { gap: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="crt">
+  <div class="app-shell">
+
+    <!-- ============ SIDEBAR: terminal menu tree ============ -->
+    <nav class="sidebar" id="sidebar" tabindex="0" role="tree" aria-label="Main navigation">
+      <div class="sidebar-hd">
+        <div class="t1">// SYSTEM MENU</div>
+        <div class="t2">&uarr;&darr; navigate &middot; ENTER select</div>
+      </div>
+      <div id="navTree"><!-- populated by JS --></div>
+    </nav>
+
+    <!-- ============ MAIN COLUMN ============ -->
+    <div class="main">
+
+      <!-- MOTD / LOGIN BANNER -->
+      <div class="motd">
+        <div class="motd-row">
+          <div class="motd-left">
+            <span class="hi">ISA REMOTE TERMINAL SERVICES</span>
+            <span class="sep">|</span>
+            <span>SESSION LEASE #A-77241</span>
+            <span class="sep">|</span>
+            <span>LINK: SECURE</span>
+          </div>
+          <div class="clock" id="sysClock">2147-03-14 &nbsp; 09:41:02 UTC</div>
+        </div>
+        <div class="motd-line2">MOTD: Scheduled maintenance on the GEX settlement relay, 2147-03-16 0200&ndash;0400 UTC. Lease renewals for the Mars quadrant now processed same-cycle. &mdash; ISA Claims &amp; Leases Division</div>
+      </div>
+
+      <!-- MASTHEAD -->
+      <div class="masthead">
+        <div class="brand-block">
+          <div class="glyph" aria-hidden="true">     .    *     .        ___
+   .     .    .   *    /(Q)\    .
+       *    .        |[||]|  .
+     .    .      ___|_||_|___     *
+  ~~~~~~~~~~~~~/  MARS LEASE  \~~~~~~~~~~~~~
+  ~~~~~~~~~~~~~\   MRS-0419   /~~~~~~~~~~~~~
+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        ISA CLAIMS &amp; LEASES DIVISION</div>
+          <div>
+            <div class="brand-title">THE INTERSTELLAR SETTLEMENT PROTOCOL</div>
+            <div class="brand-sub">v0.4 &middot; est. 2147 &middot; leased terminal, property of the ISA</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="id-chip"><div class="k">CEO</div><div class="v">R. VANCE</div></div>
+          <div class="id-chip"><div class="k">CORPORATION</div><div class="v">HELIX MERIDIAN HOLDINGS &middot; HMH</div></div>
+          <div class="notice-pill" id="noticeBtn" tabindex="0">&#9679; 23 UNREAD</div>
+          <div class="logout-link" id="logoutBtn" tabindex="0">[ LOG OUT ]</div>
+          <button class="scheme-toggle" id="schemeToggle" type="button">DISPLAY: <span class="v" id="schemeVal">AMBER</span></button>
+          <div class="mockup-tag">MOCKUP 02 v2 &mdash; PHOSPHOR TERMINAL</div>
+        </div>
+      </div>
+
+      <!-- STAGE -->
+      <div class="stage">
+
+        <!-- LEFT COLUMN -->
+        <div class="col">
+
+          <div class="view-note" id="viewNote">VIEWING: COMPANY &raquo; OVERVIEW &nbsp;&mdash;&nbsp; use the menu tree at left, or type a command at the prompt.</div>
+
+          <!-- KEY FIGURES -->
+          <div class="figs-grid">
+            <div class="fig">
+              <span class="lbl">CASH RESERVES</span>
+              <span class="val" id="cashVal">$18,061</span>
+              <span class="sub">total corporate credits on hand</span>
+            </div>
+            <div class="fig deficit">
+              <span class="lbl">NET DAILY FLOW</span>
+              <span class="val">&minus;$27,915</span>
+              <span class="deficit-flag">!! DEFICIT</span>
+            </div>
+            <div class="fig">
+              <span class="lbl">CONGLOMERATE</span>
+              <span class="val" style="font-size:20px;">INDEPENDENT</span>
+              <span class="sub">not affiliated with a conglomerate</span>
+            </div>
+            <div class="fig">
+              <span class="lbl">MILITARY POWER</span>
+              <span class="val" style="font-size:20px;">0 ATK / 0 DEF</span>
+              <span class="sub">readiness 100%</span>
+            </div>
+          </div>
+
+          <!-- LEVEL / MILESTONE PANEL -->
+          <div class="panel">
+            <div class="panel-title-row">&#9556;&#9552;[ CORPORATION LEVEL ]&#9552;<span class="fill">&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;</span>&#9552;&#9559;</div>
+            <div class="panel-body">
+              <div class="level-head">
+                <div class="level-title" id="levelTitle">LEVEL 2 <span style="color:var(--amber-dim); font-size:16px;">OF 30</span></div>
+                <div class="level-nav">
+                  <button id="levelPrev">&laquo; PREV</button>
+                  <button id="levelCurrent" disabled>CURRENT</button>
+                  <button id="levelNext">NEXT &raquo;</button>
+                </div>
+              </div>
+              <div id="levelBody"><!-- populated by JS --></div>
+            </div>
+          </div>
+
+          <!-- SITUATION BRIEF -->
+          <div class="panel">
+            <div class="panel-title-row">&#9556;&#9552;[ EXECUTIVE SITUATION BRIEF ]&#9552;<span class="fill">&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;</span>&#9552;&#9559;</div>
+            <div class="panel-body brief-text">
+              ISP is designed as a multi-year strategy arc. Corporation levels are <span class="q">milestone-gated, not
+              XP-gated</span>, and each unlock expands market access, infrastructure depth, and interstellar reach.
+              <br><br>
+              <small class="hint">&mdash; Office of the CEO, standing brief, revision 14</small>
+            </div>
+          </div>
+
+          <!-- COMMAND FEEDBACK LOG -->
+          <div class="panel">
+            <div class="panel-title-row">&#9556;&#9552;[ COMMAND FEEDBACK LOG ]&#9552;<span class="fill">&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;</span>&#9552;&#9559;</div>
+            <div class="panel-body">
+              <div class="log-window" id="logWindow"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="col">
+
+          <!-- STATION / EXTRACTION -->
+          <div class="panel">
+            <div class="panel-title-row">&#9556;&#9552;[ MARS LEASE MRS-0419 ]&#9552;<span class="fill">&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;</span>&#9552;&#9559;</div>
+            <div class="panel-body">
+              <table class="kv-table">
+                <tr><td class="k">EXTRACTOR MX-01 &mdash; CYCLE</td><td class="v" id="mx01">72%</td></tr>
+                <tr><td class="k">EXTRACTOR MX-02 &mdash; CYCLE</td><td class="v" id="mx02">31%</td></tr>
+                <tr><td class="k">SILICATE STOCK</td><td class="v">142 units</td></tr>
+                <tr><td class="k">EMPLOYEES</td><td class="v">18 <span class="frac">/ 30</span></td></tr>
+              </table>
+              <div style="margin-top:12px; font-size:12px;" class="ascii-bar" id="mx01bar"></div>
+              <div style="margin-top:5px; font-size:12px;" class="ascii-bar" id="mx02bar"></div>
+            </div>
+          </div>
+
+          <!-- GALACTIC EXCHANGE -->
+          <div class="panel">
+            <div class="panel-title-row">&#9556;&#9552;[ GALACTIC EXCHANGE &mdash; SILICATE ]&#9552;<span class="fill">&#9552;&#9552;&#9552;</span>&#9552;&#9559;</div>
+            <div class="panel-body">
+              <table class="kv-table">
+                <tr><td class="k">PEG PRICE</td><td class="v">61 cr / unit</td></tr>
+                <tr><td class="k">24H CHANGE</td><td class="v">+2 cr</td></tr>
+              </table>
+              <div class="mini-hist" aria-hidden="true">
+                <i style="height:40%"></i><i style="height:55%"></i><i style="height:48%"></i>
+                <i style="height:62%"></i><i class="up" style="height:70%"></i><i class="up" style="height:80%"></i>
+                <i class="up" style="height:100%"></i>
+              </div>
+              <div style="margin-top:12px;">
+                <button class="req-link" id="gexBtn" style="width:100%; text-align:center;">&gt; SELL SILICATE &mdash; GO TO GALACTIC EXCHANGE</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- INBOX PREVIEW -->
+          <div class="panel">
+            <div class="panel-title-row">&#9556;&#9552;[ INBOX ]&#9552;<span class="fill">&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;</span>&#9552;&#9559;</div>
+            <div class="panel-body">
+              <div class="inbox-item"><span class="inbox-unread"></span><span class="from">ISA CLAIMS &amp; LEASES DIV.</span><br><span class="subj">Lease MRS-0419 renewal confirmed</span></div>
+              <div class="inbox-item"><span class="inbox-unread"></span><span class="from">STATION ADMINISTRATION</span><br><span class="subj">Dock fee schedule revised, effective next cycle</span></div>
+              <div class="inbox-item"><span class="from">GEX COMMODITIES AUTHORITY</span><br><span class="subj">Silicate peg review: no action required</span></div>
+            </div>
+          </div>
+
+          <!-- R&D QUEUE -->
+          <div class="panel">
+            <div class="panel-title-row">&#9556;&#9552;[ CORPORATE R&amp;D QUEUE ]&#9552;<span class="fill">&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;</span>&#9552;&#9559;</div>
+            <div class="panel-body">
+              <div style="margin-bottom:6px;">Refinery Chain I &mdash; <span style="color:var(--amber-brt);">IN PROGRESS</span></div>
+              <div class="ascii-bar" id="rndbar" style="font-size:13px;"></div>
+              <div class="hint" style="margin-top:8px;">ETA: 14h 22m &middot; assigned: R&amp;D Wing, Earth Station Prime</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ============ COMMAND PROMPT LINE ============ -->
+      <div class="prompt-row">
+        <span class="prompt-tag">ISA&gt;</span>
+        <div class="prompt-input-wrap">
+          <input id="cmdInput" type="text" autocomplete="off" spellcheck="false" placeholder="type a command&hellip; try: help">
+          <span class="cursor-block" id="cmdCursor"></span>
+        </div>
+        <span class="prompt-hint">[HELP] [EXCHANGE] [LEVEL 3] [CASH]</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- DISPLAY SCHEME (AMBER / SOFT / GREEN), persisted ---------------- */
+  var schemes = ['amber', 'soft', 'green'];
+  var schemeLabels = { amber: 'AMBER', soft: 'SOFT', green: 'GREEN' };
+  var schemeKey = 'isp-mockup02v2-scheme';
+  var curScheme = 'amber';
+  try {
+    var saved = localStorage.getItem(schemeKey);
+    if (saved && schemes.indexOf(saved) !== -1) curScheme = saved;
+  } catch (e) { /* localStorage unavailable; fall back to default scheme */ }
+
+  var schemeValEl = document.getElementById('schemeVal');
+  function applyScheme(s){
+    curScheme = s;
+    if (s === 'amber') {
+      document.documentElement.removeAttribute('data-scheme');
+    } else {
+      document.documentElement.setAttribute('data-scheme', s);
+    }
+    schemeValEl.textContent = schemeLabels[s];
+  }
+  applyScheme(curScheme);
+
+  document.getElementById('schemeToggle').addEventListener('click', function(){
+    var idx = schemes.indexOf(curScheme);
+    var next = schemes[(idx + 1) % schemes.length];
+    applyScheme(next);
+    try { localStorage.setItem(schemeKey, next); } catch (e) { /* ignore persistence failure */ }
+  });
+
+  /* ---------------- CLOCK ---------------- */
+  var clockEl = document.getElementById('sysClock');
+  var simTime = new Date(2147, 2, 14, 9, 41, 2).getTime();
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function renderClock(){
+    var d = new Date(simTime);
+    var str = '2147-03-' + pad(d.getDate()) + ' &nbsp; ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + ' UTC';
+    clockEl.innerHTML = str;
+  }
+  renderClock();
+  setInterval(function(){ simTime += 1000; renderClock(); }, 1000);
+
+  /* ---------------- ASCII PROGRESS BAR HELPER ---------------- */
+  function asciiBar(current, total, width){
+    width = width || 20;
+    var ratio = total > 0 ? Math.min(1, current / total) : 0;
+    var filled = Math.round(ratio * width);
+    var empty = width - filled;
+    var full = '█'.repeat(filled);
+    var rest = '·'.repeat(empty);
+    return '[<span class="fill">' + full + '</span><span class="empty">' + rest + '</span>] ' + current + '/' + total;
+  }
+  function asciiPct(pct, width){
+    width = width || 20;
+    var filled = Math.round((pct/100) * width);
+    var full = '█'.repeat(filled);
+    var rest = '·'.repeat(width - filled);
+    return '[<span class="fill">' + full + '</span><span class="empty">' + rest + '</span>] ' + pct + '%';
+  }
+
+  document.getElementById('mx01bar').innerHTML = 'MX-01 ' + asciiPct(72, 16);
+  document.getElementById('mx02bar').innerHTML = 'MX-02 ' + asciiPct(31, 16);
+  document.getElementById('rndbar').innerHTML = asciiPct(64, 24);
+
+  /* ---------------- LEVEL DATA + PEEK ---------------- */
+  var levels = {
+    1: {
+      title: 'LEVEL 1', of: '30',
+      reqs: [
+        { text: 'Sell 100 Silicate on the Galactic Exchange', cur: 100, total: 100, done: true },
+        { text: 'Hire first employee', cur: 1, total: 1, done: true }
+      ],
+      unlocks: ['Employee cap 15', 'Building slots 2', 'Fleet cap 5', 'Highest building tier 1'],
+      state: 'COMPLETED &mdash; cleared 2147-01-09'
+    },
+    2: {
+      title: 'LEVEL 2', of: '30',
+      reqs: [
+        { text: 'Sell 300 Silicate on the Galactic Exchange', cur: 0, total: 300, done: false, link: true },
+        { text: 'Research Basic Extraction Analytics', cur: 1, total: 1, done: true }
+      ],
+      unlocks: ['Employee cap 45', 'Building slots 4', 'Fleet cap 22', 'Highest building tier 2'],
+      state: 'CURRENT &mdash; in progress'
+    },
+    3: {
+      title: 'LEVEL 3', of: '30',
+      reqs: [
+        { text: 'Sell 750 Silicate on the Galactic Exchange', cur: 0, total: 750, done: false },
+        { text: 'Research Refinery Chain I', cur: 0, total: 1, done: false },
+        { text: 'Maintain positive Net Daily Flow for 3 cycles', cur: 0, total: 3, done: false }
+      ],
+      unlocks: ['Employee cap 80', 'Building slots 6', 'Fleet cap 40', 'Highest building tier 3'],
+      state: 'LOCKED &mdash; preview only'
+    },
+    4: {
+      title: 'LEVEL 4', of: '30',
+      reqs: [
+        { text: 'Sell 1,500 Silicate or 400 Refined Alloy', cur: 0, total: 1500, done: false },
+        { text: 'Commission a second Mars lease', cur: 0, total: 1, done: false }
+      ],
+      unlocks: ['Employee cap 130', 'Building slots 8', 'Fleet cap 60', 'Highest building tier 3'],
+      state: 'LOCKED &mdash; preview only'
+    }
+  };
+  var curLevel = 2;
+
+  function renderLevel(n){
+    var lv = levels[n];
+    if(!lv) return;
+    document.getElementById('levelTitle').innerHTML = lv.title + ' <span style="color:var(--amber-dim); font-size:16px;">OF ' + lv.of + '</span>';
+    document.getElementById('levelPrev').disabled = !levels[n-1];
+    var body = document.getElementById('levelBody');
+    var html = '<ul class="req-list">';
+    lv.reqs.forEach(function(r){
+      html += '<li>';
+      html += '<span class="req-check ' + (r.done ? 'done' : 'open') + '">' + (r.done ? '[X]' : '[ ]') + '</span>';
+      html += '<span class="req-text">' + (r.done ? '<span class="strike">' + r.text + '</span>' : r.text) + '</span>';
+      html += '<span class="req-progress">' + asciiBar(r.cur, r.total, 12) + '</span>';
+      if(r.link && !r.done){
+        html += '<button class="req-link" data-goto="exchange">GO TO GALACTIC EXCHANGE &raquo;</button>';
+      }
+      html += '</li>';
+    });
+    html += '</ul>';
+    html += '<div class="unlocks-box"><b>' + lv.state + '.</b> Reaching the next level unlocks:';
+    html += '<div class="unlock-chips">';
+    lv.unlocks.forEach(function(u){ html += '<span>' + u + '</span>'; });
+    html += '</div></div>';
+    body.innerHTML = html;
+
+    document.getElementById('levelNext').disabled = !levels[n+1];
+
+    var links = body.querySelectorAll('[data-goto="exchange"]');
+    links.forEach(function(btn){ btn.addEventListener('click', function(){ selectSection('exchange'); logLine('Navigating to Galactic Exchange from Level ' + n + ' requirement.', false); }); });
+  }
+
+  renderLevel(curLevel);
+
+  document.getElementById('levelPrev').addEventListener('click', function(){
+    if(levels[curLevel - 1]){ curLevel -= 1; renderLevel(curLevel); }
+  });
+  document.getElementById('levelNext').addEventListener('click', function(){
+    if(levels[curLevel + 1]){ curLevel += 1; renderLevel(curLevel); }
+  });
+
+  /* ---------------- COMMAND FEEDBACK LOG ---------------- */
+  var logWindow = document.getElementById('logWindow');
+  var logEntries = [
+    'Command uplink standing by. Completed actions and queue additions will be logged here.',
+    'Extractor MX-01 cycle complete: +48 Silicate',
+    'Research queued: Refinery Chain I',
+    'Lease MRS-0419 renewed by ISA Claims & Leases Division',
+    'Payroll disbursed: -$4,210'
+  ];
+  function logLine(text, warn){
+    var ts = new Date(simTime);
+    var stamp = pad(ts.getHours()) + ':' + pad(ts.getMinutes()) + ':' + pad(ts.getSeconds());
+    var row = document.createElement('div');
+    row.className = 'log-line' + (warn ? ' warn' : '');
+    row.innerHTML = '<span class="ts">[' + stamp + ']</span><span class="msg">' + text + '</span>';
+    logWindow.appendChild(row);
+    logWindow.scrollTop = logWindow.scrollHeight;
+  }
+  logEntries.forEach(function(e){ logLine(e, false); });
+
+  var tickerMessages = [
+    'Extractor MX-02 cycle complete: +21 Silicate',
+    'GEX peg price for Silicate updated: 61 cr/unit',
+    'Employee shift change logged: Refinery Wing',
+    'Sell order queued: 40 Silicate @ 61 cr/unit',
+    'Diagnostic sweep complete, no faults found'
+  ];
+  var tickerIdx = 0;
+  setInterval(function(){
+    logLine(tickerMessages[tickerIdx % tickerMessages.length], false);
+    tickerIdx++;
+  }, 9000);
+
+  /* ---------------- CASH COUNTER (subtle animated) ---------------- */
+  var cashEl = document.getElementById('cashVal');
+  var cashTarget = 18061;
+  var cashShown = 17600;
+  function animateCash(){
+    if(cashShown < cashTarget){
+      cashShown += Math.max(1, Math.round((cashTarget - cashShown) / 8));
+      if(cashShown > cashTarget) cashShown = cashTarget;
+      cashEl.textContent = '$' + cashShown.toLocaleString('en-US');
+      requestAnimationFrame(animateCash);
+    } else {
+      cashEl.textContent = '$' + cashTarget.toLocaleString('en-US');
+    }
+  }
+  animateCash();
+
+  /* ---------------- SIDEBAR MENU TREE + KEYBOARD NAV ---------------- */
+  var nav = [
+    { group: 'COMPANY', items: [
+      { key: '1', label: 'Overview', id: 'overview' },
+      { key: '2', label: 'Inbox', id: 'inbox' },
+      { key: '3', label: 'Financial Core', id: 'financial' },
+      { key: '4', label: 'CEO Insight', id: 'insight' },
+      { key: '5', label: 'Assignments', id: 'assignments' },
+      { key: '6', label: 'Conglomerate', id: 'conglomerate' }
+    ]},
+    { group: 'STATION', items: [
+      { key: '7', label: 'Station', id: 'station' },
+      { key: '8', label: 'Operations', id: 'operations' },
+      { key: '9', label: 'Fleet', id: 'fleet' }
+    ]},
+    { group: 'INDUSTRY', items: [
+      { key: 'r', label: 'Corporate R&D', id: 'rnd' },
+      { key: 'f', label: 'Refinery Chains', id: 'refinery' },
+      { key: 'l', label: 'Logistics', id: 'logistics' }
+    ]},
+    { group: 'MARKET', items: [
+      { key: 'x', label: 'Galactic Exchange', id: 'exchange' },
+      { key: 'a', label: 'Assets', id: 'assets' }
+    ]},
+    { group: 'COMMS', items: [
+      { key: 'c', label: 'Chat', id: 'chat' },
+      { key: 'o', label: 'Forum', id: 'forum' }
+    ]}
+  ];
+
+  var sectionLabels = {
+    overview: 'COMPANY &raquo; OVERVIEW',
+    inbox: 'COMPANY &raquo; INBOX',
+    financial: 'COMPANY &raquo; FINANCIAL CORE',
+    insight: 'COMPANY &raquo; CEO INSIGHT',
+    assignments: 'COMPANY &raquo; ASSIGNMENTS',
+    conglomerate: 'COMPANY &raquo; CONGLOMERATE',
+    station: 'STATION &raquo; STATION',
+    operations: 'STATION &raquo; OPERATIONS',
+    fleet: 'STATION &raquo; FLEET',
+    rnd: 'INDUSTRY &raquo; CORPORATE R&amp;D',
+    refinery: 'INDUSTRY &raquo; REFINERY CHAINS',
+    logistics: 'INDUSTRY &raquo; LOGISTICS',
+    exchange: 'MARKET &raquo; GALACTIC EXCHANGE',
+    assets: 'MARKET &raquo; ASSETS',
+    chat: 'COMMS &raquo; CHAT',
+    forum: 'COMMS &raquo; FORUM'
+  };
+
+  var navTreeEl = document.getElementById('navTree');
+  var keyMap = {};
+  var itemsFlat = []; // { id, el }
+  var focusIdx = 0;
+  var activeId = 'overview';
+
+  nav.forEach(function(g){
+    var hd = document.createElement('div');
+    hd.className = 'nav-group-hd';
+    hd.textContent = '[' + g.group + ']';
+    navTreeEl.appendChild(hd);
+
+    g.items.forEach(function(item, i){
+      var row = document.createElement('div');
+      row.className = 'nav-item';
+      row.dataset.section = item.id;
+      row.setAttribute('role', 'treeitem');
+      var isLast = i === g.items.length - 1;
+      row.innerHTML =
+        '<span class="nav-cursor">&#9654;</span>' +
+        '<span class="nav-tree">' + (isLast ? '&#9492;&#9472;' : '&#9500;&#9472;') + '</span>' +
+        '<span class="nav-label">' + item.label + '</span>' +
+        '<span class="nav-key">' + item.key.toUpperCase() + '</span>';
+      row.addEventListener('click', function(){
+        var idx = itemsFlat.indexOf(row);
+        focusIdx = idx;
+        selectSection(item.id);
+        sidebarEl.focus();
+      });
+      navTreeEl.appendChild(row);
+      itemsFlat.push(row);
+      keyMap[item.key.toLowerCase()] = item.id;
+    });
+  });
+
+  function syncFocusVisual(){
+    itemsFlat.forEach(function(el, i){ el.classList.toggle('kbd-focus', i === focusIdx); });
+  }
+
+  var viewNote = document.getElementById('viewNote');
+  function selectSection(id){
+    activeId = id;
+    itemsFlat.forEach(function(el){ el.classList.toggle('active', el.dataset.section === id); });
+    var idx = itemsFlat.findIndex(function(el){ return el.dataset.section === id; });
+    if(idx !== -1) focusIdx = idx;
+    syncFocusVisual();
+    var label = sectionLabels[id] || id.toUpperCase();
+    if(id === 'overview'){
+      viewNote.innerHTML = 'VIEWING: ' + label + ' &nbsp;&mdash;&nbsp; use the menu tree at left, or type a command at the prompt.';
+    } else {
+      viewNote.innerHTML = 'VIEWING: ' + label + ' &nbsp;&mdash;&nbsp; this mockup renders OVERVIEW only. Other screens route here in the live build.';
+    }
+    logLine('Section change: ' + label.replace(/&raquo;/g,'>').replace(/&amp;/g,'&'), false);
+  }
+
+  var sidebarEl = document.getElementById('sidebar');
+  sidebarEl.addEventListener('keydown', function(e){
+    if(e.key === 'ArrowDown'){
+      e.preventDefault();
+      focusIdx = Math.min(focusIdx + 1, itemsFlat.length - 1);
+      syncFocusVisual();
+    } else if(e.key === 'ArrowUp'){
+      e.preventDefault();
+      focusIdx = Math.max(focusIdx - 1, 0);
+      syncFocusVisual();
+    } else if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      var el = itemsFlat[focusIdx];
+      if(el) selectSection(el.dataset.section);
+    }
+  });
+  sidebarEl.addEventListener('focus', function(){ syncFocusVisual(); });
+
+  selectSection('overview');
+
+  document.addEventListener('keydown', function(e){
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if(tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if(document.activeElement === sidebarEl) return; /* sidebar handles its own arrow/enter nav */
+    var k = e.key.toLowerCase();
+    if(keyMap[k]){ selectSection(keyMap[k]); }
+  });
+
+  /* ---------------- GEX SHORTCUT BUTTON ---------------- */
+  document.getElementById('gexBtn').addEventListener('click', function(){
+    selectSection('exchange');
+  });
+
+  /* ---------------- NOTICES / LOGOUT (cosmetic) ---------------- */
+  document.getElementById('noticeBtn').addEventListener('click', function(){
+    selectSection('inbox');
+  });
+  document.getElementById('logoutBtn').addEventListener('click', function(){
+    logLine('Session termination requested. (disabled in mockup)', true);
+  });
+
+  /* ---------------- COMMAND PROMPT ---------------- */
+  var cmdInput = document.getElementById('cmdInput');
+  var cmdCursor = document.getElementById('cmdCursor');
+
+  cmdInput.addEventListener('focus', function(){ cmdCursor.style.display = 'none'; });
+  cmdInput.addEventListener('blur', function(){ if(!cmdInput.value) cmdCursor.style.display = 'inline-block'; });
+  cmdInput.addEventListener('input', function(){ cmdCursor.style.display = cmdInput.value ? 'none' : 'inline-block'; });
+
+  var helpText = 'AVAILABLE COMMANDS: help, overview, inbox, exchange, level [n], cash, clear';
+
+  function runCommand(raw){
+    var cmd = raw.trim().toLowerCase();
+    if(!cmd) return;
+    logLine('<span style="color:var(--amber-brt);">ISA&gt; ' + escapeHtml(raw) + '</span>', false);
+
+    if(cmd === 'help'){
+      logLine(helpText, false);
+    } else if(cmd === 'exchange' || cmd === 'gex'){
+      logLine('Routing to Galactic Exchange&hellip;', false);
+      selectSection('exchange');
+    } else if(cmd === 'overview'){
+      logLine('Routing to Company Overview&hellip;', false);
+      selectSection('overview');
+    } else if(cmd === 'inbox'){
+      logLine('Routing to Inbox &mdash; 23 unread&hellip;', false);
+      selectSection('inbox');
+    } else if(cmd === 'cash'){
+      logLine('Cash Reserves: $18,061 &middot; Net Daily Flow: -$27,915 <span class="deficit-flag" style="margin-left:6px;">!! DEFICIT</span>', true);
+    } else if(cmd.indexOf('level') === 0){
+      var m = cmd.match(/level\s*(\d+)/);
+      if(m && levels[m[1]]){
+        curLevel = parseInt(m[1], 10);
+        renderLevel(curLevel);
+        logLine('Level query resolved: displaying Level ' + curLevel + '.', false);
+      } else if(m){
+        logLine('No milestone data cached for Level ' + m[1] + '. Levels 1&ndash;4 available in this session.', true);
+      } else {
+        logLine('Usage: level [n]', false);
+      }
+    } else if(cmd === 'clear') {
+      logWindow.innerHTML = '';
+      logLine('Log cleared.', false);
+    } else {
+      logLine('Unrecognized command: "' + escapeHtml(cmd) + '". Type "help" for a command list.', true);
+    }
+  }
+
+  function escapeHtml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  cmdInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){
+      runCommand(cmdInput.value);
+      cmdInput.value = '';
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

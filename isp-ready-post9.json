@@ -1,0 +1,105 @@
+[
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10009.0,
+      "System.Id": 949,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; ui; v1.0",
+      "System.Title": "ISP-253 Pay off the placeholder and art debt, or name what must be bought"
+    },
+    "id": 949,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 5,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/949"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10028.0,
+      "System.Id": 968,
+      "System.Tags": "agent-ready; economy; product:interstellar-settlement-protocol; v1.0",
+      "System.Title": "ISP-272 Apply the balance changes with before-and-after numbers and player-facing patch notes"
+    },
+    "id": 968,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 5,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/968"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10029.0,
+      "System.Id": 969,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; security; v1.0",
+      "System.Title": "Stand up a minimal production environment for launch"
+    },
+    "id": 969,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 8,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/969"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10030.0,
+      "System.Id": 970,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; security; v1.0",
+      "System.Title": "Start everyone fresh at 1.0: archive the beta and open production empty"
+    },
+    "id": 970,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 8,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/970"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10031.0,
+      "System.Id": 971,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; ui; v1.0",
+      "System.Title": "ISP-275 Run the 1.0 release-candidate gate on the production-like build"
+    },
+    "id": 971,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 5,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/971"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10032.0,
+      "System.Id": 972,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; security; v1.0",
+      "System.Title": "ISP-276 Open ISP to the public"
+    },
+    "id": 972,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 8,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/972"
+  },
+  {
+    "fields": {
+      "Microsoft.VSTS.Common.StackRank": 10033.0,
+      "System.Id": 973,
+      "System.Tags": "agent-ready; product:interstellar-settlement-protocol; v1.0",
+      "System.Title": "ISP-277 Write the 1.0 LEARNING.md and record the video overview"
+    },
+    "id": 973,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 5,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/973"
+  },
+  {
+    "fields": {
+      "System.Id": 4655,
+      "System.Tags": "agent-ready; economy; product:interstellar-settlement-protocol; v0.12",
+      "System.Title": "ISP-212b Govern the sales tax at a conglomerate station: members pay none, non-members pay the treasury (server)"
+    },
+    "id": 4655,
+    "multilineFieldsFormat": {},
+    "relations": null,
+    "rev": 2,
+    "url": "https://dev.azure.com/paulburkart1/_apis/wit/workItems/4655"
+  }
+]

@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 18 — Monochrome Accent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --accent: #00d4ff;
+            --bg-dark: #0a0e14;
+            --bg-mid: #141820;
+            --bg-light: #1e2330;
+            --text-primary: #e8eaed;
+            --text-secondary: #a8acb1;
+            --border: #2a3038;
+            --warning: #ff6b35;
+            --grid: 8px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-mid);
+            border-bottom: 1px solid var(--border);
+            padding: calc(var(--grid) * 2) calc(var(--grid) * 3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: calc(var(--grid) * 2);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: calc(var(--grid) * 3);
+            flex: 1;
+        }
+
+        .logo {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+        }
+
+        .logo small {
+            display: block;
+            font-size: 10px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .player-info {
+            display: flex;
+            gap: calc(var(--grid) * 2);
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .player-info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .player-info-item .label {
+            color: var(--text-secondary);
+            font-size: 10px;
+        }
+
+        .player-info-item .value {
+            font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: calc(var(--grid) * 2);
+        }
+
+        .notice-badge {
+            background: var(--accent);
+            color: var(--bg-dark);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        .logout-btn {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            padding: calc(var(--grid) * 1) calc(var(--grid) * 2);
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Main content */
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Sidebar nav */
+        .sidebar {
+            width: 220px;
+            background: var(--bg-mid);
+            border-right: 1px solid var(--border);
+            padding: calc(var(--grid) * 2);
+            overflow-y: auto;
+        }
+
+        .nav-group {
+            margin-bottom: calc(var(--grid) * 3);
+        }
+
+        .nav-group-title {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: calc(var(--grid) * 1.5);
+            text-transform: uppercase;
+        }
+
+        .nav-item {
+            padding: calc(var(--grid) * 1.5) calc(var(--grid) * 2);
+            margin-bottom: calc(var(--grid) * 1);
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            color: var(--text-primary);
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .nav-item.active {
+            color: var(--accent);
+            background: rgba(0, 212, 255, 0.1);
+            border-left-color: var(--accent);
+        }
+
+        /* Content area */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content-header {
+            padding: calc(var(--grid) * 3);
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-mid);
+        }
+
+        .content-header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: calc(var(--grid) * 0.5);
+        }
+
+        .content-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: calc(var(--grid) * 3);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: calc(var(--grid) * 3);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            padding: calc(var(--grid) * 2);
+        }
+
+        .card-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: calc(var(--grid) * 1.5);
+            text-transform: uppercase;
+        }
+
+        /* Level progress */
+        .level-card {
+            grid-column: 1 / 3;
+        }
+
+        .level-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: calc(var(--grid) * 2);
+        }
+
+        .level-display {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .level-nav {
+            display: flex;
+            gap: calc(var(--grid) * 1);
+        }
+
+        .level-nav button {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .level-nav button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .requirements {
+            display: flex;
+            flex-direction: column;
+            gap: calc(var(--grid) * 1.5);
+        }
+
+        .requirement {
+            border-left: 2px solid var(--border);
+            padding-left: calc(var(--grid) * 2);
+        }
+
+        .requirement.completed {
+            border-left-color: var(--accent);
+        }
+
+        .requirement-title {
+            font-size: 13px;
+            margin-bottom: calc(var(--grid) * 0.5);
+        }
+
+        .requirement-progress {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: calc(var(--grid) * 0.5);
+        }
+
+        .requirement-bar {
+            flex: 1;
+            height: 6px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            margin-right: calc(var(--grid) * 1);
+            overflow: hidden;
+        }
+
+        .requirement-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        .requirement-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .requirement-link {
+            color: var(--accent);
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 12px;
+            margin-top: calc(var(--grid) * 0.5);
+            display: inline-block;
+        }
+
+        .requirement-link:hover {
+            text-decoration: underline;
+        }
+
+        .unlocks {
+            margin-top: calc(var(--grid) * 2);
+            padding-top: calc(var(--grid) * 2);
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .unlocks strong {
+            color: var(--text-primary);
+        }
+
+        /* Feed */
+        .feed-card {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feed {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: calc(var(--grid) * 1);
+        }
+
+        .feed-item {
+            padding: calc(var(--grid) * 1.5);
+            background: rgba(0, 212, 255, 0.02);
+            border-left: 2px solid var(--border);
+            border-radius: 1px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .feed-item:hover {
+            border-left-color: var(--accent);
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .feed-item.notice {
+            border-left-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        /* Metrics */
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: calc(var(--grid) * 2);
+        }
+
+        .metric {
+            padding: calc(var(--grid) * 2);
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+        }
+
+        .metric-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: calc(var(--grid) * 1);
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .metric-value.warning {
+            color: var(--warning);
+        }
+
+        .metric-secondary {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: calc(var(--grid) * 0.5);
+        }
+
+        /* Brief */
+        .brief-card {
+            grid-column: 1 / 3;
+        }
+
+        .brief-text {
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .mockup-label {
+            position: fixed;
+            bottom: calc(var(--grid) * 1);
+            right: calc(var(--grid) * 1.5);
+            font-size: 10px;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1280px) {
+            .content-body {
+                grid-template-columns: 1fr;
+            }
+
+            .level-card {
+                grid-column: 1;
+            }
+
+            .brief-card {
+                grid-column: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 150px;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                gap: calc(var(--grid) * 3);
+                overflow-x: auto;
+                overflow-y: hidden;
+            }
+
+            .nav-group {
+                margin-bottom: 0;
+                flex-shrink: 0;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: calc(var(--grid) * 1);
+            }
+
+            .header-left,
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .content-body {
+                padding: calc(var(--grid) * 2);
+                gap: calc(var(--grid) * 2);
+            }
+
+            .card {
+                padding: calc(var(--grid) * 1.5);
+            }
+
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .level-nav button {
+                width: 20px;
+                height: 20px;
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 390px) {
+            body {
+                font-size: 12px;
+            }
+
+            .header {
+                padding: calc(var(--grid) * 1.5) calc(var(--grid) * 1);
+            }
+
+            .sidebar {
+                max-height: 120px;
+            }
+
+            .content-header {
+                padding: calc(var(--grid) * 1.5);
+            }
+
+            .content-body {
+                padding: calc(var(--grid) * 1);
+                gap: calc(var(--grid) * 1);
+            }
+
+            .card {
+                padding: calc(var(--grid) * 1);
+            }
+
+            .card-title {
+                font-size: 11px;
+            }
+
+            .level-header h2 {
+                font-size: 14px;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-mid);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">
+                    ISP<br><small>v0.4 · est. 2147</small>
+                </div>
+                <div class="player-info">
+                    <div class="player-info-item">
+                        <span class="label">CEO</span>
+                        <span class="value">R. Vance</span>
+                    </div>
+                    <div class="player-info-item">
+                        <span class="label">Corporation</span>
+                        <span class="value">Helix Meridian Holdings (HMH)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="notice-badge" id="noticeCount">23</div>
+                <button class="logout-btn">Log Out</button>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="sidebar" id="sidebar">
+                <div class="nav-group">
+                    <div class="nav-group-title">Company</div>
+                    <div class="nav-item active" data-page="overview">Overview</div>
+                    <div class="nav-item" data-page="inbox">Inbox</div>
+                    <div class="nav-item" data-page="financial">Financial Core</div>
+                    <div class="nav-item" data-page="insight">CEO Insight</div>
+                    <div class="nav-item" data-page="assignments">Assignments</div>
+                    <div class="nav-item" data-page="conglomerate">Conglomerate</div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">Station</div>
+                    <div class="nav-item" data-page="station">Station</div>
+                    <div class="nav-item" data-page="operations">Operations</div>
+                    <div class="nav-item" data-page="fleet">Fleet</div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">Industry</div>
+                    <div class="nav-item" data-page="rnd">Corporate R&D</div>
+                    <div class="nav-item" data-page="refinery">Refinery Chains</div>
+                    <div class="nav-item" data-page="logistics">Logistics</div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">Market</div>
+                    <div class="nav-item" data-page="gex">Galactic Exchange</div>
+                    <div class="nav-item" data-page="assets">Assets</div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">Comms</div>
+                    <div class="nav-item" data-page="chat">Chat</div>
+                    <div class="nav-item" data-page="forum">Forum</div>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="content-header">
+                    <h1>Corporation Overview</h1>
+                </div>
+
+                <div class="content-body">
+                    <!-- Level Progress -->
+                    <div class="card level-card">
+                        <div class="card-title">Level Progression</div>
+                        <div class="level-header">
+                            <div class="level-display">Level <span id="currentLevel">2</span> of 30</div>
+                            <div class="level-nav">
+                                <button onclick="changeLevel(-1)">&lt;</button>
+                                <button onclick="changeLevel(1)">&gt;</button>
+                            </div>
+                        </div>
+
+                        <div class="requirements">
+                            <div class="requirement" id="req0">
+                                <div class="requirement-title">Sell 300 Silicate on the Galactic Exchange</div>
+                                <div class="requirement-progress">
+                                    <div class="requirement-bar">
+                                        <div class="requirement-bar-fill" style="width: 0%;" id="progress0"></div>
+                                    </div>
+                                    <span class="requirement-text"><span id="progressText0">0</span> / 300</span>
+                                </div>
+                                <a class="requirement-link" onclick="navigate('gex')">Go to Galactic Exchange</a>
+                            </div>
+
+                            <div class="requirement completed" id="req1">
+                                <div class="requirement-title">Research Basic Extraction Analytics</div>
+                                <div class="requirement-progress">
+                                    <div class="requirement-bar">
+                                        <div class="requirement-bar-fill" style="width: 100%;"></div>
+                                    </div>
+                                    <span class="requirement-text">1 / 1</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="unlocks">
+                            <strong>Level 3 Unlocks:</strong><br>
+                            Employee cap 45 • Building slots 4 • Fleet cap 22 • Highest building tier 2
+                        </div>
+                    </div>
+
+                    <!-- Feed -->
+                    <div class="card feed-card">
+                        <div class="card-title">Command Feedback Log</div>
+                        <div class="feed" id="feed">
+                            <div class="feed-item notice">Command uplink standing by. Completed actions and queue additions will be logged here.</div>
+                            <div class="feed-item">Extractor MX-01 cycle complete: +48 Silicate</div>
+                            <div class="feed-item">Research queued: Refinery Chain I</div>
+                            <div class="feed-item">Lease MRS-0419 renewed by ISA Claims & Leases Division</div>
+                            <div class="feed-item">Payroll disbursed: -$4,210</div>
+                        </div>
+                    </div>
+
+                    <!-- Key Metrics -->
+                    <div class="metric">
+                        <div class="metric-label">Cash Reserves</div>
+                        <div class="metric-value">$18,061</div>
+                        <div class="metric-secondary">Total corporate credits on hand</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Net Daily Flow</div>
+                        <div class="metric-value warning">-$27,915</div>
+                        <div class="metric-secondary">Income minus costs (24h)</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Conglomerate Status</div>
+                        <div class="metric-value">Independent</div>
+                        <div class="metric-secondary">No conglomerate affiliation</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Military Power</div>
+                        <div class="metric-value">0 ATK / 0 DEF</div>
+                        <div class="metric-secondary">Readiness 100%</div>
+                    </div>
+
+                    <!-- Brief -->
+                    <div class="card brief-card">
+                        <div class="card-title">Executive Situation Brief</div>
+                        <div class="brief-text">
+                            ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach. Current focus: acquire Silicate reserves and establish supply chain to Galactic Exchange. Monitor daily cashflow closely.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mockup-label">Mockup 18 – Monochrome Accent</div>
+
+    <script>
+        const levels = {
+            1: { requirements: [{ title: "Establish first lease on Mars", progress: 1, total: 1, completed: true }, { title: "Hire 5 employees", progress: 5, total: 5, completed: true }], unlocks: "Employee cap 15 • Building slots 2 • Fleet cap 5 • Highest building tier 1" },
+            2: { requirements: [{ title: "Sell 300 Silicate on the Galactic Exchange", progress: 0, total: 300, completed: false }, { title: "Research Basic Extraction Analytics", progress: 1, total: 1, completed: true }], unlocks: "Employee cap 45 • Building slots 4 • Fleet cap 22 • Highest building tier 2" },
+            3: { requirements: [{ title: "Deploy 3 extraction sites", progress: 2, total: 3, completed: false }, { title: "Establish trade route to Earth Station", progress: 1, total: 1, completed: true }], unlocks: "Employee cap 90 • Building slots 6 • Fleet cap 45 • Highest building tier 3" },
+            4: { requirements: [{ title: "Research advanced refinery tech", progress: 0, total: 1, completed: false }, { title: "Achieve revenue of $500k", progress: 450000, total: 500000, completed: false }], unlocks: "Employee cap 150 • Building slots 8 • Fleet cap 75 • Highest building tier 4" }
+        };
+
+        let currentLevel = 2;
+
+        function changeLevel(direction) {
+            const newLevel = currentLevel + direction;
+            if (newLevel >= 1 && newLevel <= 4) {
+                currentLevel = newLevel;
+                updateLevelDisplay();
+            }
+        }
+
+        function updateLevelDisplay() {
+            document.getElementById('currentLevel').textContent = currentLevel;
+            const level = levels[currentLevel];
+            const reqsContainer = document.querySelector('.requirements');
+
+            reqsContainer.innerHTML = level.requirements.map((req, idx) => {
+                const percent = (req.progress / req.total) * 100;
+                return `
+                    <div class="requirement ${req.completed ? 'completed' : ''}" id="req${idx}">
+                        <div class="requirement-title">${req.title}</div>
+                        <div class="requirement-progress">
+                            <div class="requirement-bar">
+                                <div class="requirement-bar-fill" style="width: ${percent}%;"></div>
+                            </div>
+                            <span class="requirement-text">${req.progress} / ${req.total}</span>
+                        </div>
+                        ${!req.completed && idx === 0 ? '<a class="requirement-link" onclick="navigate(\'gex\')">Go to Galactic Exchange</a>' : ''}
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelector('.unlocks').innerHTML = `<strong>Level ${currentLevel + 1} Unlocks:</strong><br>${level.unlocks}`;
+        }
+
+        function navigate(page) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelector(`[data-page="${page}"]`).classList.add('active');
+        }
+
+        // Add a new feed item every 5 seconds
+        const feedMessages = [
+            "Silicate price updated: 61 cr/unit",
+            "Employee MJ-4521 promoted to Senior Analyst",
+            "Extractor MX-02 cycle 31% complete",
+            "Station update: atmospheric processors online",
+            "Market alert: Competitor pricing detected on Silicate",
+            "Research progress: Refinery Chain I 45% complete"
+        ];
+
+        setInterval(() => {
+            const feed = document.getElementById('feed');
+            const newItem = document.createElement('div');
+            newItem.className = 'feed-item';
+            newItem.textContent = feedMessages[Math.floor(Math.random() * feedMessages.length)];
+            feed.insertBefore(newItem, feed.firstChild);
+
+            // Keep only last 10 items
+            const items = feed.querySelectorAll('.feed-item');
+            if (items.length > 10) {
+                items[items.length - 1].remove();
+            }
+        }, 5000);
+
+        // Nav interactivity
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Animate progress bar on load
+        setTimeout(() => {
+            document.getElementById('progress0').style.width = '0%';
+        }, 100);
+    </script>
+</body>
+</html>

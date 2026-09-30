@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup 19 — Brutalist Web</title>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Courier Prime', Courier, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #e0e0e0;
+      background: #0a0e14;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid #333;
+      padding: 12px 20px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .header-title {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .header-meta {
+      font-size: 12px;
+      color: #999;
+    }
+
+    .player-info {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .player-info button {
+      background: none;
+      border: 1px solid #333;
+      color: #e0e0e0;
+      padding: 4px 12px;
+      cursor: pointer;
+      font-family: 'Courier Prime', Courier, monospace;
+      font-size: 12px;
+    }
+
+    .player-info button:hover {
+      border-color: #666;
+    }
+
+    /* Main container */
+    .container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar navigation */
+    nav {
+      width: 220px;
+      border-right: 1px solid #333;
+      overflow-y: auto;
+      font-size: 13px;
+    }
+
+    nav section {
+      border-bottom: 1px solid #222;
+    }
+
+    .nav-group-title {
+      padding: 12px 16px;
+      color: #666;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .nav-items {
+      list-style: none;
+    }
+
+    .nav-items li {
+      border-left: 2px solid transparent;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .nav-items li:hover {
+      border-left-color: #555;
+      color: #fff;
+    }
+
+    .nav-items li.active {
+      border-left-color: #e0e0e0;
+      color: #fff;
+      background: rgba(224, 224, 224, 0.05);
+    }
+
+    /* Main content */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content {
+      padding: 20px;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-content: start;
+    }
+
+    /* Sections */
+    section {
+      border: 1px solid #333;
+      padding: 16px;
+    }
+
+    section > h2 {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Level progress */
+    .level-section {
+      grid-column: 1 / -1;
+    }
+
+    .level-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .level-nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .level-nav button {
+      background: none;
+      border: 1px solid #333;
+      color: #e0e0e0;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      font-family: 'Courier Prime', Courier, monospace;
+      font-size: 12px;
+    }
+
+    .level-nav button:hover {
+      border-color: #666;
+    }
+
+    .milestone {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #222;
+      font-size: 12px;
+    }
+
+    .milestone:last-child {
+      border-bottom: none;
+    }
+
+    .milestone-name {
+      flex: 1;
+    }
+
+    .milestone-progress {
+      color: #999;
+      margin-right: 12px;
+    }
+
+    .milestone-progress.completed {
+      color: #6a9;
+    }
+
+    .milestone-link {
+      color: #6a9;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .milestone-link:hover {
+      color: #9cf;
+    }
+
+    .level-unlocks {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #222;
+      font-size: 12px;
+      color: #999;
+    }
+
+    .level-unlocks strong {
+      color: #e0e0e0;
+    }
+
+    /* Key figures */
+    .figures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .figure {
+      border: 1px solid #222;
+      padding: 12px;
+      font-size: 12px;
+    }
+
+    .figure-label {
+      color: #666;
+      font-size: 11px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .figure-value {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .figure-value.warning {
+      color: #c66;
+    }
+
+    /* Command feed */
+    .feed-section {
+      grid-column: 1 / -1;
+    }
+
+    .feed {
+      max-height: 180px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+
+    .feed-entry {
+      padding: 8px 0;
+      border-bottom: 1px solid #222;
+      color: #999;
+    }
+
+    .feed-entry:last-child {
+      border-bottom: none;
+    }
+
+    .feed-entry.highlight {
+      color: #e0e0e0;
+    }
+
+    .feed-entry strong {
+      color: #6a9;
+    }
+
+    .feed-time {
+      color: #555;
+      font-size: 11px;
+      margin-right: 8px;
+    }
+
+    /* Brief */
+    .brief-section {
+      grid-column: 1 / 2;
+    }
+
+    .brief-section p {
+      font-size: 12px;
+      line-height: 1.7;
+      color: #999;
+    }
+
+    /* Infrastructure */
+    .infra-section {
+      grid-column: 2 / -1;
+    }
+
+    .infra-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #222;
+      font-size: 12px;
+    }
+
+    .infra-row:last-child {
+      border-bottom: none;
+    }
+
+    .infra-name {
+      flex: 1;
+    }
+
+    .infra-status {
+      text-align: right;
+      color: #999;
+    }
+
+    .infra-status.active {
+      color: #6a9;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0a0e14;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 0;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+    /* Responsive */
+    @media (max-width: 1280px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .brief-section,
+      .infra-section {
+        grid-column: 1 / -1 !important;
+      }
+    }
+
+    @media (max-width: 800px) {
+      .container {
+        flex-direction: column;
+      }
+
+      nav {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #333;
+        max-height: 120px;
+      }
+
+      .nav-items li {
+        display: inline-block;
+        padding: 6px 12px;
+        border-left: none;
+        border-bottom: 2px solid transparent;
+      }
+
+      .nav-items li.active {
+        border-left: none;
+        border-bottom-color: #e0e0e0;
+      }
+
+      .nav-items li:hover {
+        border-left: none;
+        border-bottom-color: #555;
+      }
+
+      nav section {
+        display: inline-block;
+        border-bottom: none;
+        border-right: 1px solid #222;
+        margin-right: 0;
+      }
+
+      .nav-group-title {
+        display: none;
+      }
+
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .level-section,
+      .feed-section {
+        grid-column: 1 / -1 !important;
+      }
+    }
+
+    /* Utility */
+    .mockup-label {
+      position: fixed;
+      bottom: 8px;
+      right: 12px;
+      font-size: 10px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-top">
+      <div>
+        <div class="header-title">The Interstellar Settlement Protocol</div>
+        <div class="header-meta">v0.4 | est. 2147</div>
+      </div>
+      <div class="player-info">
+        <span>CEO <strong>R. Vance</strong> | <strong>Helix Meridian Holdings</strong> (HMH)</span>
+        <span>Notices: <strong id="notice-count">23</strong> unread</span>
+        <button onclick="alert('Logged out')">Log out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <nav>
+      <section>
+        <div class="nav-group-title">Company</div>
+        <ul class="nav-items">
+          <li class="active" data-section="overview">Overview</li>
+          <li data-section="inbox">Inbox</li>
+          <li data-section="financial">Financial Core</li>
+          <li data-section="insight">CEO Insight</li>
+          <li data-section="assignments">Assignments</li>
+          <li data-section="conglomerate">Conglomerate</li>
+        </ul>
+      </section>
+      <section>
+        <div class="nav-group-title">Station</div>
+        <ul class="nav-items">
+          <li data-section="station">Station</li>
+          <li data-section="operations">Operations</li>
+          <li data-section="fleet">Fleet</li>
+        </ul>
+      </section>
+      <section>
+        <div class="nav-group-title">Industry</div>
+        <ul class="nav-items">
+          <li data-section="rd">Corporate R&D</li>
+          <li data-section="refinery">Refinery Chains</li>
+          <li data-section="logistics">Logistics</li>
+        </ul>
+      </section>
+      <section>
+        <div class="nav-group-title">Market</div>
+        <ul class="nav-items">
+          <li data-section="exchange">Galactic Exchange</li>
+          <li data-section="assets">Assets</li>
+        </ul>
+      </section>
+      <section>
+        <div class="nav-group-title">Comms</div>
+        <ul class="nav-items">
+          <li data-section="chat">Chat</li>
+          <li data-section="forum">Forum</li>
+        </ul>
+      </section>
+    </nav>
+
+    <main>
+      <div class="content">
+        <!-- Corporation Level -->
+        <section class="level-section">
+          <div class="level-header">
+            <h2>Corporation Level</h2>
+            <div class="level-nav">
+              <button onclick="peekLevel(-1)">&lt;</button>
+              <button onclick="peekLevel(1)">&gt;</button>
+            </div>
+          </div>
+          <div id="level-display">
+            <div style="font-weight: 700; margin-bottom: 12px;">Level <span id="current-level">2</span> of 30</div>
+            <div id="level-content"></div>
+          </div>
+        </section>
+
+        <!-- Key Figures -->
+        <section>
+          <h2>Key Figures</h2>
+          <div class="figures">
+            <div class="figure">
+              <div class="figure-label">Cash Reserves</div>
+              <div class="figure-value" id="cash-display">$18,061</div>
+            </div>
+            <div class="figure">
+              <div class="figure-label">Net Daily Flow</div>
+              <div class="figure-value warning" id="flow-display">-$27,915</div>
+            </div>
+            <div class="figure">
+              <div class="figure-label">Conglomerate</div>
+              <div class="figure-value">Independent</div>
+            </div>
+            <div class="figure">
+              <div class="figure-label">Military Power</div>
+              <div class="figure-value">0 ATK / 0 DEF</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Executive Brief -->
+        <section class="brief-section">
+          <h2>Executive Situation Brief</h2>
+          <p>ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.</p>
+          <p style="margin-top: 12px; color: #666; font-size: 11px;">"Humanity didn't reach the stars for freedom. It reached them for market share."</p>
+        </section>
+
+        <!-- Infrastructure Status -->
+        <section class="infra-section">
+          <h2>Infrastructure</h2>
+          <div class="infra-row">
+            <span class="infra-name">Silicate Extractor MX-01 (Mars MRS-0419)</span>
+            <span class="infra-status active">72% cycle</span>
+          </div>
+          <div class="infra-row">
+            <span class="infra-name">Silicate Extractor MX-02 (Mars MRS-0419)</span>
+            <span class="infra-status active">31% cycle</span>
+          </div>
+          <div class="infra-row">
+            <span class="infra-name">Silicate Stock</span>
+            <span class="infra-status">142 units</span>
+          </div>
+          <div class="infra-row">
+            <span class="infra-name">Workforce</span>
+            <span class="infra-status">18 / 30 employees</span>
+          </div>
+          <div class="infra-row">
+            <span class="infra-name">GEX Silicate Peg Price</span>
+            <span class="infra-status">61 cr/unit</span>
+          </div>
+        </section>
+
+        <!-- Command Feedback Log -->
+        <section class="feed-section">
+          <h2>Command Feedback</h2>
+          <div class="feed" id="feed-log">
+            <div class="feed-entry" style="color: #666;">Command uplink standing by. Completed actions and queue additions will be logged here.</div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="mockup-label">Mockup 19 - Brutalist Web</div>
+
+  <script>
+    // Level data structure
+    const levelData = {
+      1: {
+        milestones: [
+          { name: 'Hire 3 employees', progress: '3 / 3', completed: true },
+          { name: 'Lease mining site on Mars', progress: '1 / 1', completed: true }
+        ],
+        unlocks: 'Employee cap 20, Building slots 2, Mining available'
+      },
+      2: {
+        milestones: [
+          { name: 'Sell 300 Silicate on the Galactic Exchange', progress: '0 / 300', completed: false, link: true },
+          { name: 'Research Basic Extraction Analytics', progress: '1 / 1', completed: true }
+        ],
+        unlocks: 'Employee cap 45, Building slots 4, Fleet cap 22, Highest building tier 2'
+      },
+      3: {
+        milestones: [
+          { name: 'Establish trade route to outer colonies', progress: '0 / 1', completed: false },
+          { name: 'Deploy defensive fleet assets', progress: '0 / 1', completed: false }
+        ],
+        unlocks: 'Employee cap 80, Building slots 6, Fleet cap 40, Refinery tech'
+      },
+      4: {
+        milestones: [
+          { name: 'Achieve $500K in total revenue', progress: '$0 / $500K', completed: false },
+          { name: 'Research Advanced Logistics II', progress: '0 / 1', completed: false }
+        ],
+        unlocks: 'Employee cap 120, Building slots 10, Fleet cap 60, Conglomerate formation'
+      }
+    };
+
+    let currentLevel = 2;
+
+    function renderLevel(level) {
+      const data = levelData[level];
+      let html = '';
+
+      for (const m of data.milestones) {
+        html += `<div class="milestone">
+          <span class="milestone-name">${m.name}</span>`;
+        if (m.link) {
+          html += `<span class="milestone-progress"><span class="milestone-link" onclick="alert('Navigate to Galactic Exchange')">${m.progress}</span></span>`;
+        } else {
+          html += `<span class="milestone-progress${m.completed ? ' completed' : ''}">${m.progress}</span>`;
+        }
+        html += `</div>`;
+      }
+
+      html += `<div class="level-unlocks"><strong>Unlocks:</strong> ${data.unlocks}</div>`;
+
+      document.getElementById('level-content').innerHTML = html;
+      document.getElementById('current-level').textContent = level;
+    }
+
+    function peekLevel(direction) {
+      let newLevel = currentLevel + direction;
+      if (newLevel >= 1 && newLevel <= 30) {
+        currentLevel = newLevel;
+        renderLevel(currentLevel);
+      }
+    }
+
+    // Navigation
+    document.querySelectorAll('.nav-items li').forEach(item => {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.nav-items li').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // Simulated feed entries
+    const feedMessages = [
+      'Extractor MX-01 cycle complete: +48 Silicate',
+      'Research queued: Refinery Chain I',
+      'Lease MRS-0419 renewed by ISA Claims &amp; Leases Division',
+      'Payroll disbursed: -$4,210',
+      'Incoming transmission from Earth Assembly Station Admin',
+      'Market data updated: Silicate peg now 61 cr/unit',
+      'Employee rotation: Martinez transferred to Operations'
+    ];
+
+    function addFeedEntry(message) {
+      const feed = document.getElementById('feed-log');
+      const entry = document.createElement('div');
+      entry.className = 'feed-entry highlight';
+      const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+      entry.innerHTML = `<span class="feed-time">${time}</span>${message}`;
+      feed.insertBefore(entry, feed.firstChild);
+      if (feed.children.length > 10) {
+        feed.removeChild(feed.lastChild);
+      }
+    }
+
+    // Animate counters and simulate feed updates
+    renderLevel(2);
+
+    setInterval(() => {
+      if (Math.random() > 0.6) {
+        const msg = feedMessages[Math.floor(Math.random() * feedMessages.length)];
+        addFeedEntry(msg);
+      }
+    }, 4000);
+
+    // Simulate ticker update on cash display
+    setInterval(() => {
+      const rand = Math.random() > 0.5 ? -1 : 1;
+      const current = parseInt(document.getElementById('cash-display').textContent.replace(/[^0-9]/g, ''));
+      const newVal = current + (rand * Math.floor(Math.random() * 500));
+      document.getElementById('cash-display').textContent = '$' + newVal.toLocaleString();
+    }, 8000);
+  </script>
+</body>
+</html>

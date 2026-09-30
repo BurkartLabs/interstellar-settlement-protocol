@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 07 — Zaibatsu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0a0a;
+    --panel:#161210;
+    --panel-2:#1d1815;
+    --panel-3:#241e19;
+    --hairline:rgba(244,238,227,0.09);
+    --hairline-strong:rgba(244,238,227,0.16);
+    --vermilion:#e0402a;
+    --vermilion-dim:rgba(224,64,42,0.16);
+    --vermilion-glow:rgba(224,64,42,0.35);
+    --white:#f4efe4;
+    --white-dim:rgba(244,239,228,0.58);
+    --white-faint:rgba(244,239,228,0.32);
+    --gold:#c9a35b;
+    --gold-dim:rgba(201,163,91,0.35);
+    --sans:'Zen Kaku Gothic New','IBM Plex Sans Condensed',sans-serif;
+    --jp:'Noto Sans JP',sans-serif;
+    --mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--ink);}
+  body{
+    font-family:var(--sans);
+    color:var(--white);
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(224,64,42,0.06), transparent 45%),
+      radial-gradient(ellipse at 90% 110%, rgba(201,163,91,0.05), transparent 40%),
+      var(--ink);
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  .mono{font-family:var(--mono);}
+
+  /* ---------- decorative vertical kanji edges ---------- */
+  .kanji-rail{
+    position:fixed;
+    top:0; bottom:0;
+    width:52px;
+    z-index:5;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-between;
+    background:linear-gradient(180deg, var(--panel), var(--ink) 70%);
+    padding:18px 0;
+  }
+  .kanji-rail.left{left:0; border-right:1px solid var(--hairline-strong);}
+  .kanji-rail.right{right:0; border-left:1px solid var(--hairline-strong);}
+  .kanji-rail .stack{
+    writing-mode:vertical-rl;
+    text-orientation:upright;
+    font-family:var(--jp);
+    font-weight:900;
+    font-size:20px;
+    letter-spacing:0.35em;
+    color:var(--white-faint);
+    line-height:1.9;
+  }
+  .kanji-rail.left .stack{ color:rgba(224,64,42,0.55); }
+  .kanji-rail .tick{ width:1px; height:40px; background:var(--gold-dim); }
+  .kanji-rail .railmark{
+    font-family:var(--mono);
+    font-size:9px;
+    letter-spacing:0.15em;
+    color:var(--white-faint);
+    writing-mode:vertical-rl;
+    transform:rotate(180deg);
+  }
+
+  .frame{ margin-left:52px; margin-right:52px; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ---------- top strip ---------- */
+  .topstrip{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 28px;
+    border-bottom:1px solid var(--hairline-strong);
+    background:linear-gradient(180deg, var(--panel-2), var(--panel));
+  }
+  .brand{ display:flex; align-items:baseline; gap:12px; }
+  .brand .jpmark{ font-family:var(--jp); font-weight:900; font-size:15px; color:var(--vermilion); letter-spacing:0.08em; }
+  .brand .title{
+    font-family:var(--sans); font-weight:900; font-size:14px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--white);
+  }
+  .brand .ver{ font-family:var(--mono); font-size:10.5px; color:var(--white-faint); letter-spacing:0.05em; }
+  .player{ display:flex; align-items:center; gap:22px; }
+  .player .id{ text-align:right; }
+  .player .id .name{ font-size:13px; font-weight:700; letter-spacing:0.02em; }
+  .player .id .corp{ font-family:var(--mono); font-size:11px; color:var(--white-dim); }
+  .player .corp b{ color:var(--gold); font-weight:600; }
+  .notice-pill{
+    display:flex; align-items:center; gap:7px;
+    border:1px solid var(--vermilion); background:var(--vermilion-dim);
+    color:var(--white); font-family:var(--mono); font-size:11px; padding:6px 10px;
+    border-radius:2px; cursor:pointer;
+  }
+  .notice-pill .dot{ width:6px; height:6px; border-radius:50%; background:var(--vermilion); box-shadow:0 0 8px var(--vermilion-glow); }
+  .logout-btn{
+    font-family:var(--sans); font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--white-dim); border:1px solid var(--hairline-strong); background:transparent;
+    padding:7px 12px; border-radius:2px; cursor:pointer;
+  }
+  .logout-btn:hover{ color:var(--white); border-color:var(--white-faint); }
+
+  /* ---------- tab rail : train signage ---------- */
+  .tabrail{
+    display:flex; align-items:stretch; flex-wrap:wrap; gap:0;
+    background:var(--ink);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .rail-group{ display:flex; align-items:stretch; flex:0 1 auto; border-right:1px solid var(--hairline); border-bottom:1px solid var(--hairline); }
+  .rail-group-label{
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:8px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--white-faint); padding:0 4px; background:var(--panel);
+    writing-mode:vertical-rl;
+    border-right:1px solid var(--hairline);
+    min-width:14px; flex-shrink:0;
+  }
+  .station{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    padding:7px 5px 6px; cursor:pointer; width:72px; flex-shrink:0;
+    border-right:1px solid var(--hairline);
+    position:relative;
+    background:var(--ink);
+    transition:background .15s;
+  }
+  .station:hover{ background:var(--panel-2); }
+  .station .code-badge{
+    width:22px; height:22px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:700; font-size:8.5px;
+    border:1.5px solid var(--white-faint); color:var(--white-dim);
+  }
+  .station .code-badge b{ font-size:9.5px; }
+  .station .label{
+    font-size:9px; font-weight:500; color:var(--white-dim); letter-spacing:0.005em;
+    white-space:normal; text-align:center; line-height:1.15;
+  }
+  .station.active{ background:var(--panel-3); }
+  .station.active .code-badge{ border-color:var(--vermilion); background:var(--vermilion); color:var(--white); box-shadow:0 0 10px var(--vermilion-glow); }
+  .station.active .label{ color:var(--white); font-weight:700; }
+  .station.active::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:2px; background:var(--vermilion);
+  }
+  .viewing-strip{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.1em; color:var(--white-faint);
+    padding:6px 28px; border-bottom:1px solid var(--hairline); background:var(--panel);
+  }
+  .viewing-strip b{ color:var(--gold); font-weight:600; }
+
+  /* ---------- page header ---------- */
+  .page-head{ padding:26px 28px 8px; }
+  .page-head .eyebrow{ font-family:var(--jp); font-weight:900; font-size:13px; color:var(--vermilion); letter-spacing:0.1em; margin-bottom:2px;}
+  .headline{
+    font-family:var(--sans); font-weight:900; font-size:40px; letter-spacing:0.01em;
+    text-transform:uppercase; color:var(--white); margin:0;
+    transform:scaleY(1.28); transform-origin:left bottom;
+    display:inline-block;
+  }
+  .headline .sub{ font-size:18px; color:var(--white-faint); font-weight:700; margin-left:14px; }
+  .page-head .meta-line{
+    display:flex; gap:18px; margin-top:14px; font-family:var(--mono); font-size:10.5px; color:var(--white-faint);
+    letter-spacing:0.06em; flex-wrap:wrap;
+  }
+  .page-head .meta-line span b{ color:var(--white); font-weight:600;}
+
+  /* ---------- layout grid ---------- */
+  .content{ padding:6px 28px 60px; flex:1; }
+  .train-section{
+    margin:18px 0 26px; border:1px solid var(--hairline-strong); background:var(--panel);
+    padding:20px 24px 16px;
+  }
+  .train-section-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:38px; flex-wrap:wrap; gap:10px;}
+  .train-section-head h2{
+    font-size:12px; text-transform:uppercase; letter-spacing:0.18em; color:var(--white-dim); margin:0; font-weight:700;
+  }
+  .train-section-head h2 em{ font-family:var(--jp); font-style:normal; color:var(--gold); margin-right:8px; font-weight:900;}
+  .line-key{ font-family:var(--mono); font-size:10px; color:var(--white-faint); }
+  .line-key b{ color:var(--vermilion); }
+
+  .track-wrap{ position:relative; padding:34px 6px 10px; }
+  .track{ position:relative; height:4px; background:var(--hairline-strong); border-radius:2px; }
+  .track-fill{ position:absolute; top:0; left:0; height:4px; background:var(--vermilion); border-radius:2px; box-shadow:0 0 10px var(--vermilion-glow); transition:width .5s; }
+  .stations-row{ position:absolute; top:-8px; left:0; width:100%; height:20px; }
+  .node{
+    position:absolute; top:0; width:20px; height:20px; border-radius:50%;
+    background:var(--ink); border:2px solid var(--hairline-strong);
+    transform:translateX(-50%);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .node.passed{ border-color:var(--vermilion); background:var(--vermilion); }
+  .node.minor{ width:6px; height:6px; top:7px; border-width:0; background:var(--white-faint); }
+  .node.minor.passed{ background:var(--vermilion); }
+  .node .num{ font-family:var(--mono); font-size:8.5px; color:var(--white-faint); position:absolute; top:24px; white-space:nowrap; }
+  .node.passed .num{ color:var(--white-dim); }
+  .node.peek{ box-shadow:0 0 0 4px var(--gold-dim); }
+  .train-icon{
+    position:absolute; top:-10px; width:34px; height:22px; transform:translateX(-50%);
+    filter:drop-shadow(0 0 6px var(--vermilion-glow));
+    animation:trainDrift 2.4s ease-in-out infinite;
+  }
+  @keyframes trainDrift{ 0%,100%{ transform:translateX(-50%) translateY(0px);} 50%{ transform:translateX(-50%) translateY(-2px);} }
+
+  .peek-panel{ margin-top:34px; display:grid; grid-template-columns:1fr 300px; gap:20px; }
+  .peek-controls{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .peek-btn{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.05em; color:var(--white-dim);
+    background:var(--panel-2); border:1px solid var(--hairline-strong); padding:6px 12px; cursor:pointer; border-radius:2px;
+  }
+  .peek-btn:hover{ border-color:var(--gold); color:var(--white); }
+  .peek-btn:disabled{ opacity:.3; cursor:not-allowed; }
+  .peek-level-title{ font-family:var(--sans); font-weight:900; font-size:20px; text-transform:uppercase; letter-spacing:0.03em; }
+  .peek-level-title .tag{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em; padding:2px 7px; margin-left:10px;
+    border:1px solid var(--gold); color:var(--gold); border-radius:2px; vertical-align:middle;
+  }
+  .peek-level-title .tag.now{ border-color:var(--vermilion); color:var(--vermilion); }
+  .peek-level-title .tag.locked{ border-color:var(--white-faint); color:var(--white-faint); border-style:dashed; }
+
+  .req-list{ list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .req-item{
+    position:relative; display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:12px 14px; border:1px solid var(--hairline-strong); background:var(--panel-2);
+  }
+  .req-item.done{ border-color:var(--gold-dim); padding-right:62px; }
+  .req-item.locked{ opacity:.55; border-style:dashed; }
+  .req-item .rq-text{ font-size:13px; }
+  .req-item .rq-progress{ font-family:var(--mono); font-size:12px; color:var(--white-dim); white-space:nowrap; }
+  .req-item.done .rq-progress{ color:var(--gold); }
+  .req-item .rq-action{
+    font-family:var(--sans); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; font-weight:700;
+    color:var(--white); background:var(--vermilion); padding:7px 12px; white-space:nowrap; border-radius:2px;
+  }
+  .req-item .rq-action:hover{ background:#f04d34; }
+
+  .hanko{ position:absolute; top:50%; right:10px; width:40px; height:40px; pointer-events:none; }
+
+  .unlock-box{ border:1px solid var(--hairline-strong); background:var(--panel-2); padding:14px 16px; }
+  .unlock-box h3{ margin:0 0 10px; font-size:10.5px; text-transform:uppercase; letter-spacing:0.14em; color:var(--white-faint); font-weight:700; }
+  .unlock-box h3 em{ font-family:var(--jp); font-style:normal; color:var(--gold); margin-right:6px; }
+  .unlock-grid{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .unlock-grid div{ font-size:11.5px; color:var(--white-dim); }
+  .unlock-grid div b{ display:block; font-family:var(--mono); font-size:15px; color:var(--white); font-weight:600; }
+
+  /* ---------- three column dashboard ---------- */
+  .dash{ display:grid; grid-template-columns:300px 1fr 320px; gap:18px; align-items:start; }
+  .col{ display:flex; flex-direction:column; gap:16px; }
+  .panel{ border:1px solid var(--hairline-strong); background:var(--panel); }
+  .panel-head{
+    display:flex; align-items:center; justify-content:space-between; padding:10px 14px;
+    border-bottom:1px solid var(--hairline); background:var(--panel-2);
+  }
+  .panel-head h3{ margin:0; font-size:10.5px; text-transform:uppercase; letter-spacing:0.14em; font-weight:700; color:var(--white-dim); }
+  .panel-head h3 em{ font-family:var(--jp); font-style:normal; color:var(--vermilion); font-weight:900; margin-right:7px; }
+  .panel-body{ padding:14px; }
+
+  .kpi{ display:flex; flex-direction:column; gap:2px; padding:12px 14px; border-bottom:1px solid var(--hairline); }
+  .kpi:last-child{ border-bottom:none; }
+  .kpi .k-label{ font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--white-faint); }
+  .kpi .k-value{ font-family:var(--mono); font-size:22px; font-weight:600; color:var(--white); }
+  .kpi .k-note{ font-size:10.5px; color:var(--white-faint); }
+
+  .warn-block{
+    margin:0; padding:14px;
+    background:repeating-linear-gradient(135deg, var(--vermilion) 0 10px, #8a2417 10px 20px);
+    border-top:1px solid var(--hairline-strong); border-bottom:1px solid var(--hairline-strong);
+  }
+  .warn-inner{ background:var(--ink); padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .warn-inner .wtxt-col{ display:flex; align-items:baseline; gap:8px; }
+  .warn-inner .wjp{ font-family:var(--jp); font-weight:900; font-size:15px; color:var(--vermilion); }
+  .warn-inner .wtext{ font-size:10.5px; letter-spacing:0.1em; color:var(--white-dim); text-transform:uppercase; white-space:nowrap; }
+  .warn-inner .wval{ font-family:var(--mono); font-size:26px; font-weight:700; color:var(--vermilion); white-space:nowrap; }
+
+  .mini-row{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--hairline); font-size:12px; }
+  .mini-row:last-child{ border-bottom:none; }
+  .mini-row .mv{ font-family:var(--mono); color:var(--white); }
+
+  .brief-text{ font-size:13px; line-height:1.7; color:var(--white-dim); }
+  .brief-text .drop{ font-family:var(--jp); font-weight:900; color:var(--gold); font-size:12px; display:block; margin-bottom:6px; letter-spacing:0.08em; }
+  .quote-line{ margin-top:12px; padding-left:12px; border-left:2px solid var(--vermilion); font-size:12px; font-style:normal; color:var(--white-faint); }
+
+  .extractor{ display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--hairline); }
+  .extractor:last-child{ border-bottom:none; }
+  .extractor svg{ flex-shrink:0; }
+  .extractor .ex-info{ font-size:12px; }
+  .extractor .ex-info .ex-id{ font-family:var(--mono); font-weight:600; color:var(--white); }
+  .extractor .ex-info .ex-sub{ color:var(--white-faint); font-size:10.5px; }
+
+  .feed-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; max-height:230px; overflow:hidden; }
+  .feed-item{ font-family:var(--mono); font-size:11px; color:var(--white-dim); display:flex; gap:8px; opacity:0; animation:fadeIn .4s forwards; }
+  @keyframes fadeIn{ to{ opacity:1; } }
+  .feed-item .ts{ color:var(--white-faint); flex-shrink:0; }
+  .feed-item.standby{ color:var(--white-faint); font-style:italic; }
+
+  .inbox-item{ padding:9px 0; border-bottom:1px solid var(--hairline); font-size:12px; display:flex; justify-content:space-between; gap:10px;}
+  .inbox-item:last-child{ border-bottom:none; }
+  .inbox-item .from{ font-family:var(--mono); font-size:10px; color:var(--vermilion); display:block; margin-bottom:2px; letter-spacing:.04em;}
+  .inbox-item .unreaddot{ width:6px; height:6px; border-radius:50%; background:var(--vermilion); flex-shrink:0; margin-top:5px; }
+
+  .sparkline-row{ display:flex; align-items:center; justify-content:space-between; }
+  .sparkline-row .price{ font-family:var(--mono); font-size:18px; color:var(--white); }
+  .sparkline-row .price small{ font-size:10px; color:var(--white-faint); }
+
+  .mocklabel{
+    font-family:var(--mono); font-size:9.5px; color:var(--white-faint); letter-spacing:0.08em;
+    border-left:1px solid var(--hairline-strong); padding-left:12px; margin-left:4px; white-space:nowrap;
+  }
+
+  /* ---------- responsive ---------- */
+  /* nav rail: all 16 stations fit one row down to ~1300px. Below that, invisible
+     zero-height "breaker" items force deliberate line splits (rather than letting
+     flex-wrap dump whichever group happens to overflow onto its own lonely line):
+     <=1300px: Company+Station / Industry+Market+Comms (two balanced rows)
+     <=760px:  Company / Station+Industry / Market+Comms (three rows, narrower still fits) */
+  .rail-break{ flex-basis:0; width:0; height:0; overflow:hidden; }
+  @media (max-width:1300px){
+    .rail-break.b1{ flex-basis:100%; }
+  }
+  @media (max-width:760px){
+    .rail-break.b2{ flex-basis:100%; }
+  }
+  @media (max-width:1280px){
+    .dash{ grid-template-columns:1fr 1fr; }
+    .dash .col:nth-child(2){ grid-column:1 / -1; order:-1; }
+    .peek-panel{ grid-template-columns:1fr; }
+  }
+  @media (max-width:760px){
+    .kanji-rail{ width:26px; }
+    .kanji-rail .stack{ font-size:13px; letter-spacing:0.2em; }
+    .frame{ margin-left:26px; margin-right:26px; }
+    .dash{ grid-template-columns:1fr; }
+    .dash .col:nth-child(2){ order:0; }
+    .headline{ font-size:26px; }
+    .topstrip{ flex-wrap:wrap; gap:10px; }
+  }
+  @media (max-width:540px){
+    .kanji-rail{ display:none; }
+    .frame{ margin-left:0; margin-right:0; }
+    .rail-group{ flex:0 0 100%; flex-wrap:wrap; border-right:none; border-bottom:1px solid var(--hairline-strong); }
+    .rail-group-label{
+      writing-mode:horizontal-tb; transform:none; width:100%; min-width:0;
+      justify-content:flex-start; padding:4px 8px; border-right:none; border-bottom:1px solid var(--hairline);
+    }
+    .station{ width:60px; flex:0 0 auto; padding:7px 6px 5px; }
+    .headline{ font-size:21px; transform:scaleY(1.15); }
+    .train-section{ padding:16px 14px; }
+    .content, .page-head{ padding-left:14px; padding-right:14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="kanji-rail left">
+  <span class="railmark">ISA / EARTH STN PRIME</span>
+  <div class="stack">星間入植協定・星間入植協定・星間入植協定</div>
+  <div class="tick"></div>
+</div>
+<div class="kanji-rail right">
+  <span class="railmark">ZAIBATSU OS v0.4</span>
+  <div class="stack">概要・昇格・警告</div>
+  <div class="tick"></div>
+</div>
+
+<div class="frame">
+
+  <div class="topstrip">
+    <div class="brand">
+      <span class="jpmark">星間入植協定</span>
+      <span class="title">The Interstellar Settlement Protocol</span>
+      <span class="ver">v0.4 &nbsp;/&nbsp; EST. 2147</span>
+      <span class="mocklabel">MOCKUP 07 — ZAIBATSU</span>
+    </div>
+    <div class="player">
+      <div class="notice-pill" id="noticePill"><span class="dot"></span> 23 UNREAD</div>
+      <div class="id">
+        <div class="name">R. VANCE <span style="color:var(--white-faint); font-weight:400;">— CEO</span></div>
+        <div class="corp"><b>HELIX MERIDIAN HOLDINGS</b> · HMH</div>
+      </div>
+      <button class="logout-btn" id="logoutBtn">Log Out</button>
+    </div>
+  </div>
+
+  <nav class="tabrail" id="tabrail">
+    <div class="rail-group">
+      <div class="rail-group-label">COMPANY</div>
+      <div class="station active" data-group="Company" data-name="Overview"><div class="code-badge"><b>C</b>01</div><div class="label">Overview</div></div>
+      <div class="station" data-group="Company" data-name="Inbox"><div class="code-badge"><b>C</b>02</div><div class="label">Inbox</div></div>
+      <div class="station" data-group="Company" data-name="Financial Core"><div class="code-badge"><b>C</b>03</div><div class="label">Financial Core</div></div>
+      <div class="station" data-group="Company" data-name="CEO Insight"><div class="code-badge"><b>C</b>04</div><div class="label">CEO Insight</div></div>
+      <div class="station" data-group="Company" data-name="Assignments"><div class="code-badge"><b>C</b>05</div><div class="label">Assignments</div></div>
+      <div class="station" data-group="Company" data-name="Conglomerate"><div class="code-badge"><b>C</b>06</div><div class="label">Conglomerate</div></div>
+    </div>
+    <div class="rail-break b2"></div>
+    <div class="rail-group">
+      <div class="rail-group-label">STATION</div>
+      <div class="station" data-group="Station" data-name="Station"><div class="code-badge"><b>S</b>01</div><div class="label">Station</div></div>
+      <div class="station" data-group="Station" data-name="Operations"><div class="code-badge"><b>S</b>02</div><div class="label">Operations</div></div>
+      <div class="station" data-group="Station" data-name="Fleet"><div class="code-badge"><b>S</b>03</div><div class="label">Fleet</div></div>
+    </div>
+    <div class="rail-break b1"></div>
+    <div class="rail-group">
+      <div class="rail-group-label">INDUSTRY</div>
+      <div class="station" data-group="Industry" data-name="Corporate R&amp;D"><div class="code-badge"><b>I</b>01</div><div class="label">Corporate R&amp;D</div></div>
+      <div class="station" data-group="Industry" data-name="Refinery Chains"><div class="code-badge"><b>I</b>02</div><div class="label">Refinery Chains</div></div>
+      <div class="station" data-group="Industry" data-name="Logistics"><div class="code-badge"><b>I</b>03</div><div class="label">Logistics</div></div>
+    </div>
+    <div class="rail-group">
+      <div class="rail-group-label">MARKET</div>
+      <div class="station" data-group="Market" data-name="Galactic Exchange"><div class="code-badge"><b>M</b>01</div><div class="label">Galactic Exchange</div></div>
+      <div class="station" data-group="Market" data-name="Assets"><div class="code-badge"><b>M</b>02</div><div class="label">Assets</div></div>
+    </div>
+    <div class="rail-group" style="border-right:none;">
+      <div class="rail-group-label">COMMS</div>
+      <div class="station" data-group="Comms" data-name="Chat"><div class="code-badge"><b>X</b>01</div><div class="label">Chat</div></div>
+      <div class="station" data-group="Comms" data-name="Forum"><div class="code-badge"><b>X</b>02</div><div class="label">Forum</div></div>
+    </div>
+  </nav>
+  <div class="viewing-strip">VIEWING: <b id="viewingName">Company — Overview</b> &nbsp;/&nbsp; STATION C-01 &nbsp;/&nbsp; ROUTE NORMAL</div>
+
+  <div class="page-head">
+    <div class="eyebrow">概要</div>
+    <h1 class="headline">Overview<span class="sub">Corporation Dashboard</span></h1>
+    <div class="meta-line">
+      <span>CORP ID: <b>HMH-01</b></span>
+      <span>CHARTER: <b>ISA / Earth Assembly</b></span>
+      <span>HOME: <b>Earth Station Prime</b></span>
+      <span>LEASE: <b>Mars — MRS-0419</b></span>
+      <span>SERVER TIME: <b class="mono" id="clock">—</b></span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <section class="train-section">
+      <div class="train-section-head">
+        <h2><em>昇格</em>Corporation Level Progress — <span id="lvlHeadNum">Level 2 of 30</span></h2>
+        <div class="line-key"><b>—</b> passed &nbsp; <b style="color:var(--white-faint);">○</b> ahead &nbsp; ▲ train position</div>
+      </div>
+
+      <div class="track-wrap">
+        <div class="track"><div class="track-fill" id="trackFill" style="width:6.7%"></div></div>
+        <div class="stations-row" id="stationsRow"></div>
+      </div>
+
+      <div class="peek-panel">
+        <div>
+          <div class="peek-controls">
+            <button class="peek-btn" id="peekPrev">◁ PREV STATION</button>
+            <span class="peek-level-title" id="peekTitle">Level 2 <span class="tag now">CURRENT</span></span>
+            <button class="peek-btn" id="peekNext">NEXT STATION ▷</button>
+          </div>
+          <ul class="req-list" id="reqList"></ul>
+        </div>
+        <div class="unlock-box">
+          <h3><em>解放</em>Unlocks at this level</h3>
+          <div class="unlock-grid" id="unlockGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="dash">
+
+      <!-- LEFT COLUMN -->
+      <div class="col">
+        <div class="panel">
+          <div class="panel-head"><h3><em>財務</em>Key Figures</h3></div>
+          <div class="kpi">
+            <div class="k-label">Cash Reserves</div>
+            <div class="k-value mono">$<span id="cashVal">0</span></div>
+            <div class="k-note">Total corporate credits on hand</div>
+          </div>
+          <div class="warn-block">
+            <div class="warn-inner">
+              <div class="wtxt-col">
+                <div class="wjp">警告</div>
+                <div class="wtext">Net Daily Flow — Warning</div>
+              </div>
+              <div class="wval">-$27,915</div>
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Conglomerate</div>
+            <div class="k-value" style="font-size:16px;">Independent</div>
+            <div class="k-note">Not affiliated with any conglomerate</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Military Power</div>
+            <div class="k-value mono">0 <span style="font-size:12px;color:var(--white-faint);">ATK</span> &nbsp;/&nbsp; 0 <span style="font-size:12px;color:var(--white-faint);">DEF</span></div>
+            <div class="k-note">Readiness 100%</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3><em>労務</em>Workforce</h3></div>
+          <div class="panel-body">
+            <div class="mini-row"><span>Employees</span><span class="mv">18 / 30</span></div>
+            <div class="mini-row"><span>Silicate Stock</span><span class="mv">142 units</span></div>
+            <div class="mini-row"><span>Building Slots Used</span><span class="mv">3 / 3</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER COLUMN -->
+      <div class="col">
+        <div class="panel">
+          <div class="panel-head"><h3><em>指令</em>Executive Situation Brief</h3></div>
+          <div class="panel-body brief-text">
+            <span class="drop">経営概況</span>
+            ISP is designed as a multi-year strategy arc. Corporation levels are milestone-gated, not
+            XP-gated, and each unlock expands market access, infrastructure depth, and interstellar reach.
+            <div class="quote-line">"Humanity didn't reach the stars for freedom. It reached them for market share."</div>
+            <div class="quote-line">"The stars belong to no one. That is why we have lawyers."</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3><em>採掘</em>Mars Lease MRS-0419 — Extraction</h3></div>
+          <div class="panel-body">
+            <div class="extractor">
+              <svg width="46" height="46" viewBox="0 0 46 46">
+                <circle cx="23" cy="23" r="19" fill="none" stroke="var(--hairline-strong)" stroke-width="4"/>
+                <circle cx="23" cy="23" r="19" fill="none" stroke="var(--vermilion)" stroke-width="4"
+                  stroke-dasharray="119.4" stroke-dashoffset="33.4" stroke-linecap="round" transform="rotate(-90 23 23)"/>
+                <text x="23" y="27" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#f4efe4">72%</text>
+              </svg>
+              <div class="ex-info"><div class="ex-id">MX-01</div><div class="ex-sub">Cycle 72% complete</div></div>
+            </div>
+            <div class="extractor">
+              <svg width="46" height="46" viewBox="0 0 46 46">
+                <circle cx="23" cy="23" r="19" fill="none" stroke="var(--hairline-strong)" stroke-width="4"/>
+                <circle cx="23" cy="23" r="19" fill="none" stroke="var(--gold)" stroke-width="4"
+                  stroke-dasharray="119.4" stroke-dashoffset="82.4" stroke-linecap="round" transform="rotate(-90 23 23)"/>
+                <text x="23" y="27" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#f4efe4">31%</text>
+              </svg>
+              <div class="ex-info"><div class="ex-id">MX-02</div><div class="ex-sub">Cycle 31% complete</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3><em>研究</em>Research Queue</h3></div>
+          <div class="panel-body">
+            <div class="mini-row" style="border-bottom:none; flex-direction:column; align-items:stretch; gap:6px;">
+              <span>Refinery Chain I <span class="mono" style="color:var(--white-faint); font-size:10.5px;">IN PROGRESS</span></span>
+              <div style="height:6px; background:var(--panel-2); border:1px solid var(--hairline-strong);">
+                <div style="height:100%; width:40%; background:var(--gold);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="col">
+        <div class="panel">
+          <div class="panel-head"><h3><em>受信</em>Inbox</h3><span class="mono" style="font-size:10px;color:var(--vermilion);">2 NEW</span></div>
+          <div class="panel-body">
+            <div class="inbox-item"><div><span class="from">ISA CLAIMS &amp; LEASES DIV.</span>Lease MRS-0419 renewal confirmed for next cycle.</div><span class="unreaddot"></span></div>
+            <div class="inbox-item"><div><span class="from">STATION ADMINISTRATION</span>Docking bay maintenance window: 0300–0500 STT.</div><span class="unreaddot"></span></div>
+            <div class="inbox-item" style="opacity:.55;"><div><span class="from">GEX COMMODITIES AUTH.</span>Silicate peg price review — no change.</div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3><em>市場</em>GEX — Silicate Peg</h3></div>
+          <div class="panel-body">
+            <div class="sparkline-row">
+              <div class="price">61<small> cr/unit</small></div>
+              <svg width="120" height="34" viewBox="0 0 120 34">
+                <polyline points="0,20 15,24 30,18 45,22 60,14 75,17 90,10 105,13 120,8" fill="none" stroke="var(--vermilion)" stroke-width="2"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3><em>通信</em>Command Feedback</h3></div>
+          <div class="panel-body">
+            <ul class="feed-list" id="feedList">
+              <li class="feed-item standby">Command uplink standing by. Completed actions and queue additions will be logged here.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<script>
+(function(){
+
+  /* ---------------- clock ---------------- */
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  function tickClock(){
+    var d = new Date();
+    document.getElementById('clock').textContent = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())+' STT';
+  }
+  tickClock(); setInterval(tickClock, 1000);
+
+  /* ---------------- nav tabs ---------------- */
+  var stations = document.querySelectorAll('.tabrail .station');
+  var viewingName = document.getElementById('viewingName');
+  stations.forEach(function(s){
+    s.addEventListener('click', function(){
+      stations.forEach(function(o){ o.classList.remove('active'); });
+      s.classList.add('active');
+      viewingName.textContent = s.dataset.group + ' — ' + s.dataset.name;
+    });
+  });
+
+  /* ---------------- notice / logout (mockup no-ops) ---------------- */
+  document.getElementById('noticePill').addEventListener('click', function(){
+    this.style.opacity = 0.6; this.querySelector('.dot').style.animation = 'none';
+  });
+  document.getElementById('logoutBtn').addEventListener('click', function(){
+    alert('Session end requested. (Mockup — no backend.)');
+  });
+
+  /* ---------------- cash counter ---------------- */
+  (function(){
+    var target = 18061, el = document.getElementById('cashVal'), start = null, dur = 1100;
+    function step(ts){
+      if(!start) start = ts;
+      var p = Math.min(1, (ts-start)/dur);
+      var eased = 1 - Math.pow(1-p, 3);
+      el.textContent = Math.round(eased*target).toLocaleString('en-US');
+      if(p<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  })();
+
+  /* ---------------- level data & train line ---------------- */
+  var LEVELS = {
+    1: { tag:'PASSED', reqs:[
+          {text:'Establish Earth Station Prime charter', prog:'1 / 1', done:true},
+          {text:'Lease Mars claim MRS-0419', prog:'1 / 1', done:true}
+        ], unlocks:{ 'Employee Cap':20, 'Building Slots':2, 'Fleet Cap':10, 'Highest Bldg Tier':1 } },
+    2: { tag:'CURRENT', reqs:[
+          {text:'Sell 300 Silicate on the Galactic Exchange', prog:'0 / 300', done:false, action:'Go to Galactic Exchange'},
+          {text:'Research Basic Extraction Analytics', prog:'1 / 1', done:true, hanko:true}
+        ], unlocks:{ 'Employee Cap':45, 'Building Slots':4, 'Fleet Cap':22, 'Highest Bldg Tier':2 } },
+    3: { tag:'NEXT', locked:true, reqs:[
+          {text:'Sell 300 Silicate on the Galactic Exchange', prog:'0 / 300', done:false},
+          {text:'Research Basic Extraction Analytics', prog:'1 / 1', done:true}
+        ], unlocks:{ 'Employee Cap':45, 'Building Slots':4, 'Fleet Cap':22, 'Highest Bldg Tier':2 } },
+    4: { tag:'LOCKED', locked:true, reqs:[
+          {text:'Sell 800 Silicate on the Galactic Exchange', prog:'0 / 800', done:false},
+          {text:'Research Refinery Chain I', prog:'0 / 1', done:false},
+          {text:'Commission 2nd hauler vessel', prog:'0 / 1', done:false}
+        ], unlocks:{ 'Employee Cap':60, 'Building Slots':5, 'Fleet Cap':30, 'Highest Bldg Tier':3 } }
+  };
+  var CURRENT_LEVEL = 2, TOTAL = 30, peekLevel = CURRENT_LEVEL;
+
+  var stationsRow = document.getElementById('stationsRow');
+  function pctFor(n){ return (n-1)/(TOTAL-1)*100; }
+  for(var i=1;i<=TOTAL;i++){
+    var major = (i<=4) || (i%5===0) || i===TOTAL;
+    var node = document.createElement('div');
+    node.className = 'node' + (major?'':' minor') + (i<=CURRENT_LEVEL?' passed':'');
+    node.style.left = pctFor(i)+'%';
+    node.dataset.lvl = i;
+    if(major){
+      var lbl = document.createElement('span'); lbl.className='num'; lbl.textContent = i;
+      node.appendChild(lbl);
+    }
+    if(i<=4){ node.addEventListener('click', function(){ setPeek(parseInt(this.dataset.lvl,10)); }); node.style.cursor='pointer'; }
+    else { node.style.cursor='default'; }
+    stationsRow.appendChild(node);
+  }
+  document.getElementById('trackFill').style.width = pctFor(CURRENT_LEVEL)+'%';
+
+  var trainIcon = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  trainIcon.setAttribute('viewBox','0 0 34 22'); trainIcon.setAttribute('class','train-icon'); trainIcon.setAttribute('id','trainIcon');
+  trainIcon.innerHTML = '<rect x="1" y="4" width="32" height="14" rx="3" fill="#e0402a"/><rect x="4" y="7" width="7" height="6" fill="#0a0a0a"/><rect x="14" y="7" width="7" height="6" fill="#0a0a0a"/><rect x="24" y="7" width="6" height="6" fill="#0a0a0a"/><circle cx="8" cy="19" r="2.2" fill="#f4efe4"/><circle cx="26" cy="19" r="2.2" fill="#f4efe4"/>';
+  var trainPos = pctFor(CURRENT_LEVEL) + (pctFor(CURRENT_LEVEL+1)-pctFor(CURRENT_LEVEL))*0.55;
+  trainIcon.style.left = trainPos + '%';
+  stationsRow.appendChild(trainIcon);
+
+  function renderPeek(){
+    var lv = LEVELS[peekLevel];
+    var titleEl = document.getElementById('peekTitle');
+    var tagClass = peekLevel===CURRENT_LEVEL ? 'now' : (lv.locked ? 'locked' : '');
+    titleEl.innerHTML = 'Level '+peekLevel+' <span class="tag '+tagClass+'">'+lv.tag+'</span>';
+
+    var reqList = document.getElementById('reqList');
+    reqList.innerHTML = '';
+    lv.reqs.forEach(function(r){
+      var li = document.createElement('li');
+      li.className = 'req-item' + (r.done?' done':'') + (lv.locked && peekLevel!==CURRENT_LEVEL && !r.done ? ' locked':'');
+      var actionHtml = r.action ? '<span class="rq-action">'+r.action+'</span>' : '';
+      li.innerHTML = '<span class="rq-text">'+r.text+'</span><span class="rq-progress">'+r.prog+'</span>'+actionHtml;
+      if(r.hanko){
+        var wrap = document.createElement('div');
+        wrap.style.position='relative';
+        li.style.position='relative';
+        li.insertAdjacentHTML('beforeend', hankoSVG());
+      }
+      reqList.appendChild(li);
+      if(r.action){
+        li.querySelector('.rq-action').addEventListener('click', function(){
+          document.querySelector('.station[data-name="Galactic Exchange"]').click();
+          window.scrollTo({top:0, behavior:'smooth'});
+        });
+      }
+    });
+
+    var unlockGrid = document.getElementById('unlockGrid');
+    unlockGrid.innerHTML = '';
+    Object.keys(lv.unlocks).forEach(function(k){
+      var d = document.createElement('div');
+      d.innerHTML = '<b>'+lv.unlocks[k]+'</b>'+k;
+      unlockGrid.appendChild(d);
+    });
+
+    document.querySelectorAll('.node.peek').forEach(function(n){ n.classList.remove('peek'); });
+    var target = stationsRow.querySelector('.node[data-lvl="'+peekLevel+'"]');
+    if(target) target.classList.add('peek');
+
+    document.getElementById('peekPrev').disabled = peekLevel<=1;
+    document.getElementById('peekNext').disabled = peekLevel>=4;
+  }
+
+  function hankoSVG(){
+    return '<svg class="hanko" viewBox="0 0 100 100" style="transform:translateY(-50%) rotate(-8deg);">'+
+      '<circle cx="50" cy="50" r="42" fill="none" stroke="#e0402a" stroke-width="5" opacity="0.92"/>'+
+      '<circle cx="50" cy="50" r="34" fill="none" stroke="#e0402a" stroke-width="1.5" opacity="0.7"/>'+
+      '<text x="50" y="40" text-anchor="middle" font-family="Noto Sans JP" font-weight="900" font-size="19" fill="#e0402a" opacity="0.92">承</text>'+
+      '<text x="50" y="68" text-anchor="middle" font-family="Noto Sans JP" font-weight="900" font-size="19" fill="#e0402a" opacity="0.92">認</text>'+
+      '<text x="50" y="94" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#e0402a" opacity="0.85" letter-spacing="1">APPROVED</text>'+
+    '</svg>';
+  }
+
+  function setPeek(n){ peekLevel = Math.max(1, Math.min(4, n)); renderPeek(); }
+  document.getElementById('peekPrev').addEventListener('click', function(){ setPeek(peekLevel-1); });
+  document.getElementById('peekNext').addEventListener('click', function(){ setPeek(peekLevel+1); });
+  renderPeek();
+
+  /* ---------------- live command feed ---------------- */
+  var feedPool = [
+    'Extractor MX-01 cycle complete: +48 Silicate',
+    'Research queued: Refinery Chain I',
+    'Lease MRS-0419 renewed by ISA Claims & Leases Division',
+    'Payroll disbursed: -$4,210',
+    'Sell order posted: 40 Silicate @ 61 cr/unit',
+    'Extractor MX-02 cycle progressing: 31%',
+    'Docking fee settled: Station Administration',
+    'Market tick: Silicate peg holds at 61 cr/unit'
+  ];
+  var feedList = document.getElementById('feedList');
+  var poolIdx = 0;
+  function pushFeed(){
+    var standby = feedList.querySelector('.standby');
+    if(standby) standby.remove();
+    var li = document.createElement('li');
+    li.className = 'feed-item';
+    var d = new Date();
+    li.innerHTML = '<span class="ts">'+pad(d.getHours())+':'+pad(d.getMinutes())+'</span><span>'+feedPool[poolIdx % feedPool.length]+'</span>';
+    feedList.insertBefore(li, feedList.firstChild);
+    poolIdx++;
+    while(feedList.children.length > 6){ feedList.removeChild(feedList.lastChild); }
+  }
+  setInterval(pushFeed, 5200);
+
+})();
+</script>
+</body>
+</html>

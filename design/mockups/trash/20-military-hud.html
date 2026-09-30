@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 20 — Tactical Military HUD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000000;
+            color: #00ff00;
+            overflow: hidden;
+            text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+            line-height: 1.4;
+            font-size: 13px;
+        }
+
+        .hud-frame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .hud-container {
+            position: relative;
+            width: 90%;
+            height: 90%;
+            max-width: 1400px;
+            max-height: 900px;
+            display: grid;
+            grid-template-columns: 1fr 300px 1fr;
+            grid-template-rows: 120px 1fr 120px;
+            gap: 16px;
+            padding: 20px;
+            pointer-events: auto;
+        }
+
+        .crosshair-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .crosshair {
+            position: absolute;
+            background: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+
+        .crosshair-h {
+            width: 60px;
+            height: 2px;
+            top: 50%;
+            left: 30px;
+            transform: translateY(-50%);
+        }
+
+        .crosshair-v {
+            width: 2px;
+            height: 60px;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .crosshair-corner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #00ff00;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+        }
+
+        .corner-tl {
+            top: 0;
+            left: 0;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .corner-tr {
+            top: 0;
+            right: 0;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .corner-bl {
+            bottom: 0;
+            left: 0;
+            border-right: none;
+            border-top: none;
+        }
+
+        .corner-br {
+            bottom: 0;
+            right: 0;
+            border-left: none;
+            border-top: none;
+        }
+
+        .hud-panel {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff00;
+            border-radius: 2px;
+            padding: 16px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3) inset;
+            overflow-y: auto;
+        }
+
+        .hud-panel.amber {
+            color: #ffaa00;
+            border-color: #ffaa00;
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.3) inset;
+            text-shadow: 0 0 8px rgba(255, 170, 0, 0.5);
+        }
+
+        .hud-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .hud-panel::-webkit-scrollbar-track {
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .hud-panel::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            box-shadow: 0 0 6px rgba(0, 255, 0, 0.5);
+        }
+
+        .panel-header {
+            font-weight: bold;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid currentColor;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 12px;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+        }
+
+        .hud-row:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            opacity: 0.7;
+            margin-right: 12px;
+        }
+
+        .value {
+            font-weight: bold;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .threat-high {
+            color: #ff4444;
+            text-shadow: 0 0 8px rgba(255, 68, 68, 0.8);
+            font-weight: bold;
+        }
+
+        .threat-medium {
+            color: #ffaa00;
+            text-shadow: 0 0 8px rgba(255, 170, 0, 0.8);
+        }
+
+        .threat-low {
+            color: #00ff00;
+        }
+
+        .status-bar {
+            width: 100%;
+            height: 16px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid currentColor;
+            margin-top: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffaa00);
+            width: 0%;
+            transition: width 0.3s;
+            box-shadow: 0 0 6px rgba(0, 255, 0, 0.8);
+        }
+
+        .status-fill.critical {
+            background: #ff4444;
+            box-shadow: 0 0 6px rgba(255, 68, 68, 0.8);
+        }
+
+        .radar {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            border: 2px solid #00ff00;
+            border-radius: 50%;
+            margin: 0 auto 12px;
+            background: radial-gradient(circle, rgba(0, 255, 0, 0.05) 0%, rgba(0, 255, 0, 0.01) 100%);
+            box-shadow: 0 0 12px rgba(0, 255, 0, 0.4) inset;
+        }
+
+        .radar-ring {
+            position: absolute;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .radar-center {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #00ff00;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.8);
+        }
+
+        .radar-scan {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            top: 0;
+            left: 0;
+            opacity: 0.2;
+            border: 2px solid #00ff00;
+            animation: radar-sweep 3s linear infinite;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
+        }
+
+        @keyframes radar-sweep {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .radar-blip {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #ffaa00;
+            border-radius: 50%;
+            top: 40%;
+            left: 55%;
+            box-shadow: 0 0 4px rgba(255, 170, 0, 0.8);
+        }
+
+        .target-box {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid #ffaa00;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: target-pulse 1s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(255, 170, 0, 0.6);
+        }
+
+        @keyframes target-pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .compass-rose {
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .compass-main {
+            display: flex;
+            justify-content: space-around;
+            margin: 8px 0;
+            font-size: 10px;
+        }
+
+        .compass-dir {
+            width: 20px;
+            text-align: center;
+        }
+
+        .compass-dir.active {
+            color: #ffaa00;
+            text-shadow: 0 0 6px rgba(255, 170, 0, 0.8);
+        }
+
+        .tactical-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.05;
+            background-image:
+                linear-gradient(0deg, transparent 24%, rgba(0, 255, 0, 0.1) 25%, rgba(0, 255, 0, 0.1) 26%, transparent 27%, transparent 74%, rgba(0, 255, 0, 0.1) 75%, rgba(0, 255, 0, 0.1) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(0, 255, 0, 0.1) 25%, rgba(0, 255, 0, 0.1) 26%, transparent 27%, transparent 74%, rgba(0, 255, 0, 0.1) 75%, rgba(0, 255, 0, 0.1) 76%, transparent 77%, transparent);
+            background-size: 40px 40px;
+        }
+
+        .top-bar {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+
+        .center-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .left-panel {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .center-panel {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .right-panel {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        .bottom-bar {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .scan-line {
+            position: fixed;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.3), transparent);
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            animation: scan-move 4s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes scan-move {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .status-indicator.active {
+            background: #00ff00;
+            box-shadow: 0 0 4px rgba(0, 255, 0, 0.8);
+        }
+
+        .status-indicator.inactive {
+            background: rgba(255, 68, 68, 0.5);
+            box-shadow: 0 0 4px rgba(255, 68, 68, 0.5);
+        }
+
+        .readout-label {
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            opacity: 0.6;
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 1280px) {
+            .hud-container {
+                grid-template-columns: 1fr 250px 1fr;
+                gap: 12px;
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hud-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto auto auto;
+                width: 100%;
+                height: 100%;
+                max-width: 100%;
+                max-height: 100%;
+            }
+
+            .top-bar, .left-panel, .center-panel, .right-panel, .bottom-bar {
+                grid-column: 1 !important;
+            }
+
+            .left-panel { grid-row: 2; }
+            .center-panel { grid-row: 3; }
+            .right-panel { grid-row: 4; }
+            .top-bar { grid-row: 1; grid-template-columns: 1fr; }
+            .bottom-bar { grid-row: 5; grid-template-columns: 1fr; }
+
+            .hud-panel {
+                max-height: 200px;
+            }
+
+            body {
+                font-size: 12px;
+            }
+        }
+
+        .mockup-label {
+            position: fixed;
+            bottom: 8px;
+            right: 12px;
+            font-size: 9px;
+            opacity: 0.4;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="scan-line"></div>
+    <div class="tactical-grid"></div>
+
+    <div class="crosshair-overlay">
+        <div class="crosshair crosshair-h"></div>
+        <div class="crosshair crosshair-v"></div>
+        <div class="crosshair-corner corner-tl"></div>
+        <div class="crosshair-corner corner-tr"></div>
+        <div class="crosshair-corner corner-bl"></div>
+        <div class="crosshair-corner corner-br"></div>
+    </div>
+
+    <div class="hud-frame">
+        <div class="hud-container">
+            <!-- TOP BAR -->
+            <div class="top-bar">
+                <div class="hud-panel">
+                    <div class="panel-header">VESSEL STATUS</div>
+                    <div class="hud-row">
+                        <span class="label">HULL INTEGRITY</span>
+                        <span class="value">87%</span>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-fill" style="width: 87%;"></div>
+                    </div>
+                    <div class="hud-row" style="margin-top: 8px;">
+                        <span class="label">SHIELD STATUS</span>
+                        <span class="value threat-medium">DEGRADED</span>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-fill critical" style="width: 42%;"></div>
+                    </div>
+                    <div class="hud-row">
+                        <span class="label">POWER CORE</span>
+                        <span class="value">94%</span>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-fill" style="width: 94%;"></div>
+                    </div>
+                </div>
+
+                <div class="center-display">
+                    <div class="readout-label">TARGET LOCK</div>
+                    <div style="position: relative; width: 120px; height: 120px; margin: 0 auto;">
+                        <div class="target-box"></div>
+                        <svg style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="#ffaa00" stroke-width="2" opacity="0.5"/>
+                            <circle cx="60" cy="60" r="45" fill="none" stroke="#ffaa00" stroke-width="1" opacity="0.3" stroke-dasharray="5,5"/>
+                        </svg>
+                    </div>
+                    <div class="readout-label" style="margin-top: 8px;">LOCKED</div>
+                </div>
+
+                <div class="hud-panel">
+                    <div class="panel-header">WEAPONS SYS</div>
+                    <div class="hud-row">
+                        <span class="label">CANNON TEMP</span>
+                        <span class="value threat-high">CRITICAL</span>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-fill critical" style="width: 98%;"></div>
+                    </div>
+                    <div class="hud-row">
+                        <span class="label">ROUNDS</span>
+                        <span class="value">847 / 1000</span>
+                    </div>
+                    <div class="hud-row">
+                        <span class="label">MISSILE LOCK</span>
+                        <span class="value threat-high">× 3</span>
+                    </div>
+                    <div class="hud-row">
+                        <span class="label">CHARGE TIME</span>
+                        <span class="value">03:42</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEFT PANEL -->
+            <div class="left-panel hud-panel">
+                <div class="panel-header">TACTICAL SCAN</div>
+                <div class="radar">
+                    <div class="radar-ring" style="width: 120px; height: 120px; opacity: 0.5;"></div>
+                    <div class="radar-ring" style="width: 80px; height: 80px; opacity: 0.4;"></div>
+                    <div class="radar-ring" style="width: 40px; height: 40px; opacity: 0.3;"></div>
+                    <div class="radar-scan"></div>
+                    <div class="radar-blip" style="top: 40%; left: 55%;"></div>
+                    <div class="radar-blip" style="top: 65%; left: 30%; background: #00ff00;"></div>
+                    <div class="radar-blip" style="top: 25%; left: 70%; background: #00ff00;"></div>
+                    <div class="radar-center"></div>
+                </div>
+                <div style="text-align: center; font-size: 10px; margin-top: 8px;">
+                    <div class="readout-label">CONTACTS: 3</div>
+                </div>
+            </div>
+
+            <!-- CENTER PANEL -->
+            <div class="center-panel hud-panel amber">
+                <div class="panel-header">THREAT LEVEL</div>
+                <div style="text-align: center; font-size: 28px; font-weight: bold; margin: 16px 0; font-family: monospace;">
+                    CRITICAL
+                </div>
+                <div style="border: 2px solid #ffaa00; padding: 8px; margin: 12px 0; font-size: 11px; text-align: center;">
+                    INCOMING FIRE
+                </div>
+                <div class="hud-row">
+                    <span class="label">ETA</span>
+                    <span class="value">00:23</span>
+                </div>
+                <div class="hud-row">
+                    <span class="label">RANGE</span>
+                    <span class="value">8.7 KM</span>
+                </div>
+                <div class="hud-row">
+                    <span class="label">BEARING</span>
+                    <span class="value">247°</span>
+                </div>
+                <div class="compass-rose">
+                    <div class="compass-main">
+                        <div class="compass-dir">N</div>
+                        <div class="compass-dir active">W</div>
+                        <div class="compass-dir">S</div>
+                        <div class="compass-dir">E</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <div class="right-panel hud-panel">
+                <div class="panel-header">NAVIGATION</div>
+                <div class="hud-row">
+                    <span class="label">HEADING</span>
+                    <span class="value">247° SSW</span>
+                </div>
+                <div class="hud-row">
+                    <span class="label">VELOCITY</span>
+                    <span class="value">420 m/s</span>
+                </div>
+                <div class="hud-row">
+                    <span class="label">ALTITUDE</span>
+                    <span class="value">2,847 m</span>
+                </div>
+                <div class="hud-row">
+                    <span class="label">VECTOR</span>
+                    <span class="value">-45 / +12</span>
+                </div>
+
+                <div class="panel-header" style="margin-top: 12px;">COMMS</div>
+                <div class="hud-row">
+                    <span class="label">SIGNAL</span>
+                    <span class="value"><span class="status-indicator active"></span>ONLINE</span>
+                </div>
+                <div class="hud-row">
+                    <span class="label">FREQ</span>
+                    <span class="value">145.7 MHZ</span>
+                </div>
+                <div class="hud-row">
+                    <span class="label">CHANNEL</span>
+                    <span class="value">COMBAT.1</span>
+                </div>
+            </div>
+
+            <!-- BOTTOM BAR -->
+            <div class="bottom-bar">
+                <div class="hud-panel">
+                    <div class="panel-header">STARBOARD ENGINES</div>
+                    <div class="hud-row">
+                        <span class="label">ENG 3</span>
+                        <span class="value">78%</span>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-fill" style="width: 78%;"></div>
+                    </div>
+                    <div class="hud-row">
+                        <span class="label">ENG 4</span>
+                        <span class="value threat-medium">64%</span>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-fill" style="width: 64%;"></div>
+                    </div>
+                </div>
+
+                <div class="hud-panel">
+                    <div class="panel-header">PAYLOAD BAY</div>
+                    <div class="hud-row">
+                        <span class="label">CARGO</span>
+                        <span class="value">2,450 KG</span>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-fill" style="width: 61%;"></div>
+                    </div>
+                    <div class="hud-row">
+                        <span class="label">CAP</span>
+                        <span class="value">4,000 KG</span>
+                    </div>
+                    <div class="hud-row">
+                        <span class="label">DOOR</span>
+                        <span class="value"><span class="status-indicator active"></span>SEALED</span>
+                    </div>
+                </div>
+
+                <div class="hud-panel">
+                    <div class="panel-header">PORT ENGINES</div>
+                    <div class="hud-row">
+                        <span class="label">ENG 1</span>
+                        <span class="value">82%</span>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-fill" style="width: 82%;"></div>
+                    </div>
+                    <div class="hud-row">
+                        <span class="label">ENG 2</span>
+                        <span class="value">81%</span>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-fill" style="width: 81%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mockup-label">Mockup 20 • Tactical Military HUD</div>
+
+    <script>
+        // Panel interactivity
+        const panels = document.querySelectorAll('.hud-panel');
+        panels.forEach(panel => {
+            panel.addEventListener('click', function() {
+                this.style.borderColor = this.classList.contains('amber') ? '#ffff00' : '#00ffff';
+                setTimeout(() => {
+                    this.style.borderColor = this.classList.contains('amber') ? '#ffaa00' : '#00ff00';
+                }, 200);
+            });
+        });
+
+        // Target pulse animation randomization
+        const targetBox = document.querySelector('.target-box');
+        setInterval(() => {
+            const duration = 0.8 + Math.random() * 0.6;
+            targetBox.style.animation = `target-pulse ${duration}s ease-in-out infinite`;
+        }, 5000);
+
+        // Radar sweep
+        const radarScan = document.querySelector('.radar-scan');
+        let rotation = 0;
+        setInterval(() => {
+            rotation += 6;
+            radarScan.style.transform = `rotate(${rotation}deg)`;
+        }, 50);
+
+        // Live threat timer
+        let threatTime = 23;
+        const threatLabel = document.querySelector('.hud-panel.amber .hud-row:first-of-type');
+        setInterval(() => {
+            threatTime--;
+            if (threatTime <= 0) {
+                threatTime = 45 + Math.floor(Math.random() * 20);
+            }
+            const eta = threatLabel.parentElement.querySelector('.hud-row:nth-child(2) .value');
+            eta.textContent = String(threatTime).padStart(2, '0') + ':' + String(Math.floor(Math.random() * 60)).padStart(2, '0');
+        }, 1000);
+
+        // Compass direction indicator
+        const directions = ['N', 'W', 'S', 'E'];
+        const compassDirs = document.querySelectorAll('.compass-dir');
+        setInterval(() => {
+            const active = Math.floor(Math.random() * 4);
+            compassDirs.forEach((dir, idx) => {
+                dir.classList.toggle('active', idx === active);
+            });
+        }, 2000);
+
+        // Weapon charge counter
+        let chargeSeconds = 222;
+        const chargeElement = document.querySelector('.hud-panel:nth-of-type(3) .hud-row:nth-child(4) .value');
+        setInterval(() => {
+            chargeSeconds--;
+            if (chargeSeconds <= 0) {
+                chargeSeconds = 300 + Math.floor(Math.random() * 100);
+            }
+            const mins = Math.floor(chargeSeconds / 60);
+            const secs = chargeSeconds % 60;
+            chargeElement.textContent = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        }, 1000);
+
+        // Blink indicators
+        const indicators = document.querySelectorAll('.status-indicator');
+        setInterval(() => {
+            indicators.forEach(ind => {
+                if (Math.random() > 0.85) {
+                    ind.style.opacity = Math.random() > 0.5 ? '0.3' : '1';
+                }
+            });
+        }, 400);
+
+        // Minor status fluctuations
+        const statusFills = document.querySelectorAll('.status-fill');
+        setInterval(() => {
+            statusFills.forEach(fill => {
+                if (fill.classList.contains('critical')) return;
+                const current = parseFloat(fill.style.width);
+                const drift = (Math.random() - 0.5) * 4;
+                const newWidth = Math.max(0, Math.min(100, current + drift));
+                fill.style.width = newWidth + '%';
+            });
+        }, 800);
+    </script>
+</body>
+</html>

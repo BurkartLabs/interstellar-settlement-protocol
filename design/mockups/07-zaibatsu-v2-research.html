@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup 07 v2 — Zaibatsu: R&amp;D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* =========================================================================
+     ZAIBATSU SHELL — copied verbatim from 07-zaibatsu-v2-overview.html
+     (:root tokens, base, topstrip, buttons, tab rail, page-head, panels,
+     stats, table, tags, seal, warning). Page-specific additions are in the
+     second block below, under "R&D PAGE — additions".
+     ========================================================================= */
+  :root{
+    --ink:#0a0a0a;
+    --panel:#161210;
+    --panel-2:#1d1815;
+    --panel-3:#241e19;
+    --hairline:rgba(244,238,227,0.09);
+    --hairline-strong:rgba(244,238,227,0.16);
+    --vermilion:#e0402a;
+    --vermilion-dim:rgba(224,64,42,0.16);
+    --vermilion-glow:rgba(224,64,42,0.35);
+    --white:#f4efe4;
+    --white-dim:rgba(244,239,228,0.58);
+    --white-faint:rgba(244,239,228,0.32);
+    --gold:#c9a35b;
+    --gold-dim:rgba(201,163,91,0.35);
+    --sans:'Zen Kaku Gothic New','IBM Plex Sans Condensed',sans-serif;
+    --jp:'Noto Sans JP',sans-serif;
+    --mono:'IBM Plex Mono',monospace;
+    --content-max:1680px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--ink);}
+  body{
+    font-family:var(--sans);
+    color:var(--white);
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(224,64,42,0.06), transparent 45%),
+      radial-gradient(ellipse at 90% 110%, rgba(201,163,91,0.05), transparent 40%),
+      var(--ink);
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit; text-decoration:none;}
+  .mono{font-family:var(--mono);}
+
+  .frame{ max-width:var(--content-max); margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ---------- top strip ---------- */
+  .topstrip{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 32px;
+    border-bottom:1px solid var(--hairline-strong);
+    background:linear-gradient(180deg, var(--panel-2), var(--panel));
+  }
+  .brand{ display:flex; align-items:baseline; gap:12px; }
+  .brand .jpmark{ font-family:var(--jp); font-weight:900; font-size:15px; color:var(--vermilion); letter-spacing:0.08em; }
+  .brand .title{
+    font-family:var(--sans); font-weight:900; font-size:14px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--white);
+  }
+  .brand .ver{ font-family:var(--mono); font-size:10.5px; color:var(--white-faint); letter-spacing:0.05em; }
+  .player{ display:flex; align-items:center; gap:22px; }
+  .player .id{ text-align:right; }
+  .player .id .name{ font-size:13px; font-weight:700; letter-spacing:0.02em; }
+  .player .id .corp{ font-family:var(--mono); font-size:11px; color:var(--white-dim); }
+  .player .corp b{ color:var(--gold); font-weight:600; }
+  .notice-pill{
+    display:flex; align-items:center; gap:7px;
+    border:1px solid var(--vermilion); background:var(--vermilion-dim);
+    color:var(--white); font-family:var(--mono); font-size:11px; padding:6px 10px;
+    border-radius:2px; cursor:pointer;
+  }
+  .notice-pill .dot{ width:6px; height:6px; border-radius:50%; background:var(--vermilion); box-shadow:0 0 8px var(--vermilion-glow); }
+
+  /* ---------- buttons ---------- */
+  .btn{
+    font-family:var(--sans); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; font-weight:700;
+    padding:8px 14px; border-radius:2px; cursor:pointer; border:1px solid transparent; display:inline-flex;
+    align-items:center; gap:6px; background:transparent; color:var(--white);
+  }
+  .btn-ghost{ color:var(--white-dim); border-color:var(--hairline-strong); }
+  .btn-ghost:hover{ color:var(--white); border-color:var(--white-faint); }
+  .btn-primary{ background:var(--vermilion); color:var(--white); }
+  .btn-primary:hover{ background:#f04d34; }
+  .btn-sm{ font-size:10.5px; padding:5px 10px; }
+  .btn:disabled{ opacity:.4; cursor:default; }
+  .btn:disabled:hover{ background:transparent; color:var(--white-dim); border-color:var(--hairline-strong); }
+
+  /* ---------- tab rail : train signage ---------- */
+  .tabrail{
+    display:flex; align-items:stretch; flex-wrap:wrap; gap:0;
+    background:var(--ink);
+    border-bottom:1px solid var(--hairline-strong);
+  }
+  .rail-group{ display:flex; align-items:stretch; flex:0 1 auto; border-right:1px solid var(--hairline); border-bottom:1px solid var(--hairline); }
+  .rail-group-label{
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; font-weight:600;
+    color:var(--white-dim); padding:0 5px; background:var(--panel);
+    writing-mode:vertical-rl;
+    border-right:1px solid var(--hairline);
+    min-width:19px; flex-shrink:0;
+  }
+  .station{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+    padding:11px 6px 9px; cursor:pointer; width:80px; flex-shrink:0;
+    border-right:1px solid var(--hairline);
+    position:relative;
+    background:var(--ink);
+    transition:background .15s;
+  }
+  .station:hover{ background:var(--panel-2); }
+  .station .code-badge{
+    width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:700; font-size:10.5px;
+    border:2px solid var(--white-faint); color:var(--white-dim);
+  }
+  .station .code-badge b{ font-size:12px; }
+  .station .label{
+    font-size:13px; font-weight:500; color:var(--white-dim); letter-spacing:0.005em;
+    white-space:normal; text-align:center; line-height:1.15;
+  }
+  .station.active{ background:var(--panel-3); }
+  .station.active .code-badge{ border-color:var(--vermilion); background:var(--vermilion); color:var(--white); box-shadow:0 0 10px var(--vermilion-glow); }
+  .station.active .label{ color:var(--white); font-weight:700; }
+  .station.active::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:3px; background:var(--vermilion);
+  }
+  .station.link .label::after{ content:'→'; display:block; font-size:10px; color:var(--gold); margin-top:1px; }
+  .viewing-strip{
+    font-family:var(--mono); font-size:10px; letter-spacing:0.1em; color:var(--white-faint);
+    padding:6px 32px; border-bottom:1px solid var(--hairline); background:var(--panel);
+  }
+  .viewing-strip b{ color:var(--gold); font-weight:600; }
+
+  /* ---------- page header ---------- */
+  .page-head{ padding:28px 32px 8px; }
+  .page-head .eyebrow{ font-family:var(--jp); font-weight:900; font-size:13px; color:var(--vermilion); letter-spacing:0.1em; margin-bottom:2px;}
+  .headline{
+    font-family:var(--sans); font-weight:900; font-size:40px; letter-spacing:0.01em;
+    text-transform:uppercase; color:var(--white); margin:0;
+    transform:scaleY(1.28); transform-origin:left bottom;
+    display:inline-block;
+  }
+  .headline .sub{ font-size:18px; color:var(--white-faint); font-weight:700; margin-left:14px; }
+  .page-head .meta-line{
+    display:flex; gap:18px; margin-top:14px; font-family:var(--mono); font-size:10.5px; color:var(--white-faint);
+    letter-spacing:0.06em; flex-wrap:wrap;
+  }
+  .page-head .meta-line span b{ color:var(--white); font-weight:600;}
+
+  /* ---------- layout grid ---------- */
+  .content{ padding:6px 32px 60px; flex:1; }
+  .train-section{
+    margin:16px 0 24px; border:1px solid var(--hairline-strong); background:var(--panel);
+    padding:20px 26px 16px;
+  }
+  .train-section-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:10px;}
+  .train-section-head h2{
+    font-size:12px; text-transform:uppercase; letter-spacing:0.18em; color:var(--white-dim); margin:0; font-weight:700;
+  }
+  .train-section-head h2 em{ font-family:var(--jp); font-style:normal; color:var(--gold); margin-right:8px; font-weight:900;}
+  .line-key{ font-family:var(--mono); font-size:10px; color:var(--white-faint); }
+  .line-key b{ color:var(--vermilion); }
+
+  /* ---------- tags ---------- */
+  .tag{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em; padding:2px 7px;
+    border:1px solid var(--gold); color:var(--gold); border-radius:2px; vertical-align:middle;
+    text-transform:uppercase; display:inline-block;
+  }
+  .tag-accent{ border-color:var(--vermilion); color:var(--vermilion); }
+  .tag-gold{ border-color:var(--gold); color:var(--gold); }
+  .tag-muted{ border-color:var(--white-faint); color:var(--white-faint); border-style:dashed; }
+
+  .req-list{ list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .req-item{
+    position:relative; display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:12px 14px; border:1px solid var(--hairline-strong); background:var(--panel-2);
+  }
+  .req-item.done{ border-color:var(--gold-dim); padding-right:64px; }
+  .req-item.locked{ opacity:.55; border-style:dashed; }
+  .req-item .rq-text{ font-size:13px; }
+  .req-item .rq-progress{ font-family:var(--mono); font-size:12px; color:var(--white-dim); white-space:nowrap; }
+  .req-item.done .rq-progress{ color:var(--gold); }
+
+  /* ---------- seal ---------- */
+  .seal{ position:absolute; top:50%; right:12px; width:42px; height:42px; pointer-events:none; transform:translateY(-50%) rotate(-8deg); }
+
+  .unlock-box{ border:1px solid var(--hairline-strong); background:var(--panel-2); padding:14px 16px; }
+  .unlock-box h3{ margin:0 0 10px; font-size:10.5px; text-transform:uppercase; letter-spacing:0.14em; color:var(--white-faint); font-weight:700; }
+
+  /* ---------- stats ---------- */
+  .stat{ display:flex; flex-direction:column; gap:2px; padding:12px 14px; border-bottom:1px solid var(--hairline); }
+  .stat:last-child{ border-bottom:none; }
+  .stat .stat-label{ font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--white-faint); }
+  .stat .stat-value{ font-family:var(--mono); font-size:22px; font-weight:600; color:var(--white); }
+  .stat .stat-note{ font-size:10.5px; color:var(--white-faint); }
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .stat-compact{ padding:0; border-bottom:none; }
+  .stat-compact .stat-value{ font-size:15px; }
+  .stat-compact .stat-label{ font-size:11.5px; color:var(--white-dim); text-transform:none; letter-spacing:0.01em; }
+
+  /* ---------- warning ---------- */
+  .warning{
+    margin:0; padding:14px;
+    background:repeating-linear-gradient(135deg, var(--vermilion) 0 10px, #8a2417 10px 20px);
+    border-top:1px solid var(--hairline-strong); border-bottom:1px solid var(--hairline-strong);
+  }
+  .warning-inner{ background:var(--ink); padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .warning-inner .wtxt-col{ display:flex; align-items:baseline; gap:8px; }
+  .warning-inner .wjp{ font-family:var(--jp); font-weight:900; font-size:15px; color:var(--vermilion); }
+  .warning-inner .wtext{ font-size:10.5px; letter-spacing:0.1em; color:var(--white-dim); text-transform:uppercase; white-space:nowrap; }
+  .warning-inner .wval{ font-family:var(--mono); font-size:26px; font-weight:700; color:var(--vermilion); white-space:nowrap; }
+
+  /* ---------- panels ---------- */
+  .dash{ display:grid; grid-template-columns:320px 1fr 340px; gap:22px; align-items:start; }
+  .col{ display:flex; flex-direction:column; gap:16px; }
+  .panel{ border:1px solid var(--hairline-strong); background:var(--panel); }
+  .panel-head{
+    display:flex; align-items:center; justify-content:space-between; padding:10px 14px;
+    border-bottom:1px solid var(--hairline); background:var(--panel-2);
+  }
+  .panel-head h3{ margin:0; font-size:10.5px; text-transform:uppercase; letter-spacing:0.14em; font-weight:700; color:var(--white-dim); }
+  .panel-head h3 em{ font-family:var(--jp); font-style:normal; color:var(--vermilion); font-weight:900; margin-right:7px; }
+  .panel-body{ padding:14px; }
+
+  /* ---------- table ---------- */
+  .table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .table th{ text-align:left; font-weight:500; text-transform:uppercase; letter-spacing:0.06em; font-size:10.5px; color:var(--white-faint); padding:8px 0; border-bottom:1px solid var(--hairline); }
+  .table td{ padding:8px 0; border-bottom:1px solid var(--hairline); color:var(--white); font-family:var(--mono); }
+  .table tr:last-child td{ border-bottom:none; }
+  .table td.num, .table th.num{ text-align:right; }
+
+  .brief-text{ font-size:13px; line-height:1.7; color:var(--white-dim); }
+  .quote-line{ margin-top:12px; padding-left:12px; border-left:2px solid var(--vermilion); font-size:12px; font-style:normal; color:var(--white-faint); }
+
+  .mocklabel{
+    font-family:var(--mono); font-size:9.5px; color:var(--white-faint); letter-spacing:0.08em;
+    border-left:1px solid var(--hairline-strong); padding-left:12px; margin-left:4px; white-space:nowrap;
+  }
+
+  /* ---------- responsive (nav rail breakers) ---------- */
+  .rail-break{ flex-basis:0; width:0; height:0; overflow:hidden; }
+  @media (max-width:1360px){
+    .rail-break.b1{ flex-basis:100%; }
+  }
+  @media (max-width:800px){
+    .rail-break.b2{ flex-basis:100%; }
+  }
+  @media (max-width:1280px){
+    .dash{ grid-template-columns:1fr 1fr; }
+    .dash .col:nth-child(2){ grid-column:1 / -1; order:-1; }
+  }
+  @media (max-width:800px){
+    .dash{ grid-template-columns:1fr; }
+    .dash .col:nth-child(2){ order:0; }
+    .headline{ font-size:26px; }
+    .topstrip{ flex-wrap:wrap; gap:10px; }
+  }
+  @media (max-width:540px){
+    .rail-group{ flex:0 0 100%; flex-wrap:wrap; border-right:none; border-bottom:1px solid var(--hairline-strong); }
+    .rail-group-label{
+      writing-mode:horizontal-tb; transform:none; width:100%; min-width:0;
+      justify-content:flex-start; padding:5px 8px; border-right:none; border-bottom:1px solid var(--hairline);
+    }
+    .station{ width:66px; flex:0 0 auto; padding:9px 6px 7px; }
+    .station .label{ font-size:11px; }
+    .headline{ font-size:21px; transform:scaleY(1.15); }
+    .train-section{ padding:16px 14px; }
+    .content, .page-head{ padding-left:14px; padding-right:14px; }
+    .topstrip{ padding:12px 14px; }
+    .viewing-strip{ padding:6px 14px; }
+    .brand{ flex-wrap:wrap; row-gap:4px; }
+    .brand .mocklabel{ border-left:none; padding-left:0; margin-left:0; }
+  }
+
+  /* =========================================================================
+     R&D PAGE — additions. New line colours for the tech-map rails; layout for
+     active research / queue / tech map / throughput; all built from the
+     component classes above.
+     ========================================================================= */
+  :root{
+    --rail-extraction: var(--vermilion);
+    --rail-extraction-glow: var(--vermilion-glow);
+    --rail-refining: var(--gold);
+    --rail-refining-glow: var(--gold-dim);
+    --rail-logistics: #5b8fc9;
+    --rail-logistics-glow: rgba(91,143,201,0.4);
+    --rail-fleet: #6bbf8f;
+    --rail-fleet-glow: rgba(107,191,143,0.4);
+  }
+
+  /* ---- active research + queue row ---- */
+  .rd-top-grid{ display:grid; grid-template-columns:1fr 360px; gap:22px; align-items:start; min-width:0; }
+  .rd-top-grid > *{ min-width:0; }
+  @media (max-width:1180px){ .rd-top-grid{ grid-template-columns:1fr; } }
+
+  .active-rd-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .active-rd-name{ font-family:var(--sans); font-weight:900; font-size:22px; text-transform:uppercase; letter-spacing:0.02em; }
+  .active-rd-line-tag{ font-family:var(--mono); font-size:10px; letter-spacing:0.08em; color:var(--rail-refining); }
+
+  .progress-lg-wrap{ margin-top:16px; }
+  .progress-lg-top{ display:flex; justify-content:space-between; align-items:baseline; font-family:var(--mono); font-size:11px; color:var(--white-faint); margin-bottom:6px; }
+  .progress-lg-top .pct{ font-size:26px; color:var(--gold); font-weight:600; }
+  .progress-lg{ height:10px; background:var(--panel-2); border:1px solid var(--hairline-strong); position:relative; overflow:hidden; }
+  .progress-lg-fill{ height:100%; background:linear-gradient(90deg, var(--gold-dim), var(--gold)); box-shadow:0 0 12px var(--rail-refining-glow); transition:width .4s; }
+  .progress-lg-countdown{ margin-top:10px; font-family:var(--mono); font-size:13px; color:var(--white-dim); }
+  .progress-lg-countdown b{ color:var(--white); font-size:15px; letter-spacing:0.03em; }
+
+  .rd-meta-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:18px; }
+  .rd-meta-cell{ border:1px solid var(--hairline-strong); background:var(--panel-2); padding:10px 12px; }
+  .rd-meta-cell .k{ font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--white-faint); margin-bottom:3px; }
+  .rd-meta-cell .v{ font-family:var(--mono); font-size:14px; color:var(--white); }
+  @media (max-width:640px){ .rd-meta-row{ grid-template-columns:1fr 1fr; } }
+
+  .rd-unlocks{ margin-top:16px; border:1px solid var(--hairline-strong); background:var(--panel-2); padding:12px 14px; }
+  .rd-unlocks h3{ margin:0 0 8px; font-size:10.5px; text-transform:uppercase; letter-spacing:0.14em; color:var(--white-faint); font-weight:700; }
+  .rd-unlocks ul{ margin:0; padding:0; list-style:none; font-size:12.5px; color:var(--white-dim); display:flex; flex-direction:column; gap:5px; }
+  .rd-unlocks li::before{ content:'→ '; color:var(--gold); }
+
+  .rd-active-controls{ display:flex; gap:8px; margin-top:16px; }
+
+  /* ---- queue list ----
+     Each item is three clean full-width rows: (1) number + name + line tag,
+     (2) cost · duration · start → finish, (3) reorder / remove actions. */
+  .queue-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .queue-item{
+    border:1px solid var(--hairline-strong); background:var(--panel-2); padding:10px 12px;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .queue-row1{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .queue-num{ font-family:var(--mono); font-size:13px; color:var(--white-faint); flex-shrink:0; }
+  .qname{ font-size:12.5px; font-weight:700; }
+  .qmeta{ font-family:var(--mono); font-size:10px; color:var(--white-faint); letter-spacing:.03em; white-space:nowrap; }
+  .queue-actions{ display:flex; align-items:center; justify-content:space-between; margin-top:2px; }
+  .queue-controls{ display:flex; gap:4px; }
+  .qc-btn{
+    width:22px; height:18px; display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--hairline-strong); background:transparent; color:var(--white-dim);
+    font-size:9px; cursor:pointer; border-radius:2px; line-height:1;
+  }
+  .qc-btn:hover{ color:var(--white); border-color:var(--white-faint); }
+  .qc-btn:disabled{ opacity:.3; cursor:default; }
+  .qc-remove button{ font-family:var(--mono); font-size:9.5px; color:var(--white-faint); background:none; border:none; cursor:pointer; letter-spacing:.06em; text-transform:uppercase; padding:0; }
+  .qc-remove button:hover{ color:var(--vermilion); }
+  .queue-empty{ font-size:12px; color:var(--white-faint); font-style:italic; padding:8px 2px; }
+  @media (max-width:420px){ .qmeta{ white-space:normal; } }
+
+  /* ---- tech map ---- */
+  .techmap-grid{ display:grid; grid-template-columns:1fr 320px; gap:20px; align-items:start; min-width:0; }
+  .techmap-grid > *{ min-width:0; }
+  @media (max-width:1180px){ .techmap-grid{ grid-template-columns:1fr; } }
+  .techmap-svgwrap{ border:1px solid var(--hairline-strong); background:var(--panel-2); padding:10px; overflow-x:auto; min-width:0; }
+  .techmap-svgwrap svg{ display:block; width:840px; max-width:none; height:auto; }
+  @media (min-width:1120px){ .techmap-svgwrap svg{ width:100%; } }
+
+  .tm-rail{ fill:none; stroke-width:5; stroke-linecap:round; stroke-linejoin:round; }
+  .tm-rail-conn{ fill:none; stroke-width:3; stroke-dasharray:2 5; stroke-linecap:round; }
+
+  .tm-station{ cursor:pointer; }
+  .tm-station circle.dot{ stroke-width:3; transition:filter .15s; }
+  .tm-station:hover circle.dot{ filter:brightness(1.35); }
+  .tm-station text.tm-label{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; fill:var(--white-dim); }
+  .tm-station text.tm-req{ font-family:'IBM Plex Mono',monospace; font-size:8px; fill:var(--white-faint); }
+  .tm-station.selected circle.dot{ stroke:var(--white) !important; stroke-width:4; }
+
+  .tm-station.completed circle.dot{ fill:var(--gold); stroke:var(--gold); }
+  .tm-station.completed text.tm-label{ fill:var(--white); font-weight:600; }
+
+  .tm-station.progress circle.dot{ fill:var(--panel); }
+  .tm-station.progress circle.pulse{ fill:none; stroke-width:2; opacity:.7; animation:tmPulse 1.8s ease-out infinite; }
+  .tm-station.progress text.tm-label{ fill:var(--white); font-weight:600; }
+  @keyframes tmPulse{ 0%{ r:9; opacity:.8; } 100%{ r:19; opacity:0; } }
+
+  .tm-station.available circle.dot{ fill:var(--panel); stroke-width:3; }
+  .tm-station.available text.tm-label{ fill:var(--white-dim); }
+
+  .tm-station.locked circle.dot{ fill:var(--panel); stroke:var(--white-faint); opacity:.55; }
+  .tm-station.locked text.tm-label{ fill:rgba(244,239,228,0.58); }
+  .tm-station.locked text.tm-req{ fill:var(--vermilion); opacity:1; }
+
+  .tm-legend{ display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-family:var(--mono); font-size:9.5px; color:var(--white-faint); letter-spacing:.05em; }
+  .tm-legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .tm-legend i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+
+  .tm-detail-empty{ font-size:12px; color:var(--white-faint); font-style:italic; padding:6px 2px; }
+  .tm-detail-name{ font-size:16px; font-weight:900; text-transform:uppercase; letter-spacing:.01em; }
+  .tm-detail-tags{ margin-top:6px; display:flex; gap:6px; flex-wrap:wrap; }
+  .tm-detail-desc{ margin-top:12px; font-size:12.5px; line-height:1.6; color:var(--white-dim); }
+  .tm-detail-rows{ margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .tm-detail-row{ display:flex; justify-content:space-between; font-size:11.5px; border-bottom:1px solid var(--hairline); padding-bottom:6px; }
+  .tm-detail-row .k{ color:var(--white-faint); text-transform:uppercase; letter-spacing:.06em; font-size:10px; }
+  .tm-detail-row .v{ font-family:var(--mono); color:var(--white); text-align:right; }
+  .tm-detail-unlocks{ margin-top:4px; font-size:11.5px; color:var(--white-dim); }
+  .tm-detail-btn{ margin-top:14px; width:100%; justify-content:center; }
+  .tm-detail-note{ margin-top:8px; font-size:10.5px; color:var(--white-faint); font-style:italic; }
+
+  /* ---- bottom row: CEO insight + throughput ---- */
+  .rd-bottom-grid{ display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+  @media (max-width:900px){ .rd-bottom-grid{ grid-template-columns:1fr; } }
+  .insight-item{ display:flex; flex-direction:column; gap:6px; padding:10px 0; border-bottom:1px solid var(--hairline); }
+  .insight-item:last-child{ border-bottom:none; }
+  .insight-item .iname{ font-size:12.5px; display:flex; justify-content:space-between; gap:8px; }
+  .insight-item .ibar{ height:5px; background:var(--panel-2); border:1px solid var(--hairline-strong); }
+  .insight-item .ibar-fill{ height:100%; background:var(--rail-logistics); }
+  .insight-note{ font-size:11.5px; color:var(--white-faint); margin-top:10px; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <div class="topstrip">
+    <div class="brand">
+      <span class="jpmark">星际定居协议</span>
+      <span class="title">The Interstellar Settlement Protocol</span>
+      <span class="ver">v0.4 &nbsp;/&nbsp; EST. 2147</span>
+      <span class="mocklabel">MOCKUP 07 v2 — ZAIBATSU — R&amp;D</span>
+    </div>
+    <div class="player">
+      <div class="notice-pill" id="noticePill"><span class="dot"></span> 23 UNREAD</div>
+      <div class="id">
+        <div class="name">R. VANCE <span style="color:var(--white-faint); font-weight:400;">— CEO</span></div>
+        <div class="corp"><b>HELIX MERIDIAN HOLDINGS</b> · HMH</div>
+      </div>
+      <button class="btn btn-ghost" id="logoutBtn">Log Out</button>
+    </div>
+  </div>
+
+  <!-- ===================== NAV RAIL — copied verbatim, active station moved to Corporate R&D (I01) ===================== -->
+  <nav class="tabrail" id="tabrail">
+    <div class="rail-group">
+      <div class="rail-group-label">COMPANY</div>
+      <a class="station link" href="07-zaibatsu-v2-overview.html" data-group="Company" data-name="Overview"><div class="code-badge"><b>C</b>01</div><div class="label">Overview</div></a>
+      <div class="station" data-group="Company" data-name="Inbox"><div class="code-badge"><b>C</b>02</div><div class="label">Inbox</div></div>
+      <div class="station" data-group="Company" data-name="Financial Core"><div class="code-badge"><b>C</b>03</div><div class="label">Financial Core</div></div>
+      <div class="station" data-group="Company" data-name="CEO Insight"><div class="code-badge"><b>C</b>04</div><div class="label">CEO Insight</div></div>
+      <div class="station" data-group="Company" data-name="Assignments"><div class="code-badge"><b>C</b>05</div><div class="label">Assignments</div></div>
+      <div class="station" data-group="Company" data-name="Conglomerate"><div class="code-badge"><b>C</b>06</div><div class="label">Conglomerate</div></div>
+    </div>
+    <div class="rail-break b2"></div>
+    <div class="rail-group">
+      <div class="rail-group-label">STATION</div>
+      <div class="station" data-group="Station" data-name="Station"><div class="code-badge"><b>S</b>01</div><div class="label">Station</div></div>
+      <a class="station link" href="07-zaibatsu-v2-operations.html" data-group="Station" data-name="Operations"><div class="code-badge"><b>S</b>02</div><div class="label">Operations</div></a>
+      <div class="station" data-group="Station" data-name="Fleet"><div class="code-badge"><b>S</b>03</div><div class="label">Fleet</div></div>
+    </div>
+    <div class="rail-break b1"></div>
+    <div class="rail-group">
+      <div class="rail-group-label">INDUSTRY</div>
+      <div class="station active" data-group="Industry" data-name="Corporate R&amp;D"><div class="code-badge"><b>I</b>01</div><div class="label">Corporate R&amp;D</div></div>
+      <div class="station" data-group="Industry" data-name="Refinery Chains"><div class="code-badge"><b>I</b>02</div><div class="label">Refinery Chains</div></div>
+      <div class="station" data-group="Industry" data-name="Logistics"><div class="code-badge"><b>I</b>03</div><div class="label">Logistics</div></div>
+    </div>
+    <div class="rail-group">
+      <div class="rail-group-label">MARKET</div>
+      <a class="station link" href="07-zaibatsu-v2-exchange.html" data-group="Market" data-name="Galactic Exchange"><div class="code-badge"><b>M</b>01</div><div class="label">Galactic Exchange</div></a>
+      <div class="station" data-group="Market" data-name="Assets"><div class="code-badge"><b>M</b>02</div><div class="label">Assets</div></div>
+    </div>
+    <div class="rail-group" style="border-right:none;">
+      <div class="rail-group-label">COMMS</div>
+      <div class="station" data-group="Comms" data-name="Chat"><div class="code-badge"><b>X</b>01</div><div class="label">Chat</div></div>
+      <div class="station" data-group="Comms" data-name="Forum"><div class="code-badge"><b>X</b>02</div><div class="label">Forum</div></div>
+    </div>
+  </nav>
+  <div class="viewing-strip">VIEWING: <b id="viewingName">Industry — Corporate R&amp;D</b> &nbsp;/&nbsp; STATION I-01 &nbsp;/&nbsp; ROUTE NORMAL</div>
+  <!-- ===================== /NAV RAIL ===================== -->
+
+  <div class="page-head">
+    <div class="eyebrow">研究</div>
+    <h1 class="headline">Corporate R&amp;D<span class="sub">Technology &amp; Refinery Chain Development</span></h1>
+    <div class="meta-line">
+      <span>CORP ID: <b>HMH-01</b></span>
+      <span>CORP LEVEL: <b>2 of 30</b></span>
+      <span>LAB CLASS: <b>Independent — Tier 1</b></span>
+      <span>RESEARCHERS: <b id="metaResearchers">3 / 5</b></span>
+      <span>SERVER TIME: <b class="mono" id="clock">—</b></span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ===================== ACTIVE RESEARCH + QUEUE ===================== -->
+    <div class="rd-top-grid">
+      <div class="panel">
+        <div class="panel-head"><h3>Active Research</h3><span class="tag tag-gold">IN PROGRESS</span></div>
+        <div class="panel-body">
+          <div class="active-rd-head">
+            <div>
+              <div class="active-rd-name">Refinery Chain I</div>
+              <div class="active-rd-line-tag">REFINING LINE &nbsp;·&nbsp; Filed against Corp. Level 4, Req. 2</div>
+            </div>
+          </div>
+
+          <div class="progress-lg-wrap">
+            <div class="progress-lg-top"><span>PROJECT COMPLETION</span><span class="pct" id="activePct">64%</span></div>
+            <div class="progress-lg"><div class="progress-lg-fill" id="activeFill" style="width:64%"></div></div>
+            <div class="progress-lg-countdown">Time remaining: <b id="activeCountdown">3d 4h 0m 0s</b></div>
+          </div>
+
+          <div class="rd-meta-row">
+            <div class="rd-meta-cell"><div class="k">Cost Paid</div><div class="v">18,400 cr</div></div>
+            <div class="rd-meta-cell"><div class="k">Total Duration</div><div class="v">8d 19h</div></div>
+            <div class="rd-meta-cell"><div class="k">Min. Corp Level</div><div class="v">2 <span style="color:var(--gold);">(met)</span></div></div>
+          </div>
+
+          <div class="rd-unlocks">
+            <h3>Unlocks on completion</h3>
+            <ul>
+              <li>Refinery Chain II — tech tree, refining line</li>
+              <li>Contributes to Corporation Level 4, Requirement 2</li>
+              <li>Silicate Ingot conversion at Tier 1 refinery slot</li>
+            </ul>
+          </div>
+
+          <div class="rd-active-controls">
+            <button class="btn btn-ghost btn-sm" id="pauseBtn">Pause</button>
+            <button class="btn btn-ghost btn-sm" id="cancelBtn">Cancel Project</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Research Queue</h3><span class="tag tag-muted" id="queueCountTag">2 QUEUED</span></div>
+        <div class="panel-body">
+          <ul class="queue-list" id="queueList"></ul>
+          <div class="queue-empty" id="queueEmptyMsg" style="display:none;">Queue is empty. Add technologies from the tech tree below.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TECH TREE (RAIL MAP) ===================== -->
+    <section class="train-section">
+      <div class="train-section-head">
+        <h2><em>系统图</em>Technology Tree — Rail Network Map</h2>
+        <div class="line-key">Click a station for its dossier &nbsp;·&nbsp; Interchanges require both connecting lines</div>
+      </div>
+
+      <div class="techmap-grid">
+        <div>
+          <div class="techmap-svgwrap">
+            <svg id="techmapSvg" viewBox="0 0 840 420" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+          <div class="tm-legend">
+            <span><i style="background:var(--rail-extraction);"></i>Extraction Line</span>
+            <span><i style="background:var(--rail-refining);"></i>Refining Line</span>
+            <span><i style="background:var(--rail-logistics);"></i>Logistics Line</span>
+            <span><i style="background:var(--rail-fleet);"></i>Fleet Line</span>
+            <span><i style="background:var(--gold); box-shadow:0 0 4px var(--gold);"></i>Completed</span>
+            <span><i style="background:var(--panel); border:2px solid var(--white-dim);"></i>Available</span>
+            <span><i style="background:var(--panel); border:1px dashed var(--white-faint); opacity:.6;"></i>Locked</span>
+          </div>
+        </div>
+
+        <div class="panel" id="techDetailPanel">
+          <div class="panel-head"><h3>Technology Dossier</h3></div>
+          <div class="panel-body" id="techDetailBody">
+            <div class="tm-detail-empty">Select a station on the network map to view its research dossier.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== CEO INSIGHT CROSS-REF + THROUGHPUT ===================== -->
+    <div class="rd-bottom-grid">
+      <div class="panel">
+        <div class="panel-head"><h3>CEO Insight — Cross-Reference</h3><span class="tag tag-muted">C04</span></div>
+        <div class="panel-body">
+          <div class="insight-item">
+            <div class="iname"><span>Market Sentiment Analysis</span><span class="mono" style="color:var(--white-faint);">41%</span></div>
+            <div class="ibar"><div class="ibar-fill" style="width:41%"></div></div>
+          </div>
+          <div class="insight-item">
+            <div class="iname"><span>Competitor Filing Review</span><span class="mono" style="color:var(--white-faint);">QUEUED</span></div>
+            <div class="ibar"><div class="ibar-fill" style="width:0%"></div></div>
+          </div>
+          <div class="insight-note">
+            The leadership queue runs on its own capacity, independent of the R&amp;D lab. Insight projects
+            inform strategy; they do not consume research slots or credits from this page.
+          </div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:12px;" id="ceoInsightBtn">View CEO Insight →</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Research Throughput</h3></div>
+        <div class="panel-body">
+          <div class="stat-grid">
+            <div class="stat stat-compact"><span class="stat-value">3 / 5</span><span class="stat-label">Researchers Assigned</span></div>
+            <div class="stat stat-compact"><span class="stat-value" style="color:var(--gold);">+15%</span><span class="stat-label">Speed Bonus</span></div>
+            <div class="stat stat-compact"><span class="stat-value">1</span><span class="stat-label">Concurrent Project Slots</span></div>
+            <div class="stat stat-compact"><span class="stat-value">Tier 1</span><span class="stat-label">Lab Classification</span></div>
+          </div>
+          <div class="insight-note">
+            Additional researcher billets become available at Corp. Level 3 (Building Slots 4). Idle
+            researchers do not accrue a penalty, but unfilled billets forfeit their share of the speed bonus.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+
+  /* ---------------- clock ---------------- */
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  function tickClock(){
+    var d = new Date();
+    document.getElementById('clock').textContent = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())+' STT';
+  }
+  tickClock(); setInterval(tickClock, 1000);
+
+  /* ---------------- nav tabs (highlight-only items; .link items navigate) ---------------- */
+  var stations = document.querySelectorAll('.tabrail .station:not(.link)');
+  var viewingName = document.getElementById('viewingName');
+  stations.forEach(function(s){
+    s.addEventListener('click', function(){
+      document.querySelectorAll('.tabrail .station').forEach(function(o){ o.classList.remove('active'); });
+      s.classList.add('active');
+      viewingName.textContent = s.dataset.group + ' — ' + s.dataset.name;
+    });
+  });
+
+  /* ---------------- notice / logout / ceo insight (mockup no-ops) ---------------- */
+  document.getElementById('noticePill').addEventListener('click', function(){
+    this.style.opacity = 0.6; this.querySelector('.dot').style.animation = 'none';
+  });
+  document.getElementById('logoutBtn').addEventListener('click', function(){
+    alert('Session end requested. (Mockup — no backend.)');
+  });
+  document.getElementById('ceoInsightBtn').addEventListener('click', function(){
+    alert('Would navigate to CEO Insight (C04). (Mockup — page not built yet.)');
+  });
+  document.getElementById('pauseBtn').addEventListener('click', function(){
+    this.textContent = this.textContent === 'Pause' ? 'Resume' : 'Pause';
+  });
+  document.getElementById('cancelBtn').addEventListener('click', function(){
+    alert('Cancelling Refinery Chain I would forfeit 18,400 cr already committed. (Mockup — no backend.)');
+  });
+
+  function sealSVG(){
+    return '<svg class="seal" viewBox="0 0 100 100">'+
+      '<circle cx="50" cy="50" r="42" fill="none" stroke="#e0402a" stroke-width="5" opacity="0.92"/>'+
+      '<circle cx="50" cy="50" r="34" fill="none" stroke="#e0402a" stroke-width="1.5" opacity="0.7"/>'+
+      '<text x="50" y="40" text-anchor="middle" font-family="Noto Sans JP" font-weight="900" font-size="19" fill="#e0402a" opacity="0.92">批</text>'+
+      '<text x="50" y="68" text-anchor="middle" font-family="Noto Sans JP" font-weight="900" font-size="19" fill="#e0402a" opacity="0.92">准</text>'+
+      '<text x="50" y="94" text-anchor="middle" font-family="IBM Plex Mono" font-size="8" fill="#e0402a" opacity="0.85" letter-spacing="1">APPROVED</text>'+
+    '</svg>';
+  }
+
+  /* =========================================================================
+     ACTIVE RESEARCH COUNTDOWN
+     760,000s total duration, 273,600s (76h / 3d4h) remaining -> 64.0% done.
+     ========================================================================= */
+  var TOTAL_SECONDS = 760000, remaining = 273600;
+  var activeFill = document.getElementById('activeFill');
+  var activePct = document.getElementById('activePct');
+  var activeCountdown = document.getElementById('activeCountdown');
+  var paused = false;
+
+  function formatDuration(sec){
+    sec = Math.max(0, Math.floor(sec));
+    var d = Math.floor(sec/86400); sec -= d*86400;
+    var h = Math.floor(sec/3600); sec -= h*3600;
+    var m = Math.floor(sec/60); sec -= m*60;
+    return d+'d '+h+'h '+m+'m '+sec+'s';
+  }
+  function renderActive(){
+    var pct = ((TOTAL_SECONDS-remaining)/TOTAL_SECONDS*100);
+    activeFill.style.width = pct+'%';
+    activePct.textContent = pct.toFixed(1)+'%';
+    activeCountdown.textContent = remaining>0 ? formatDuration(remaining) : 'Complete — awaiting inspection';
+  }
+  renderActive();
+  setInterval(function(){
+    if(paused || remaining<=0) return;
+    remaining -= 1;
+    renderActive();
+  }, 1000);
+  document.getElementById('pauseBtn').addEventListener('click', function(){ paused = !paused; });
+
+  /* =========================================================================
+     QUEUE — reorderable, removable, times computed relative to active finish.
+     ========================================================================= */
+  var queue = [
+    { name:'Automated Drill Arrays', line:'Extraction', cost:8200, durSec: 1*86400+6*3600 },
+    { name:'Automated Cargo Manifests', line:'Logistics', cost:6000, durSec: 22*3600 }
+  ];
+
+  function fmtOffset(sec){
+    var d = Math.floor(sec/86400); sec -= d*86400;
+    var h = Math.floor(sec/3600);
+    if(d>0) return 'T+'+d+'d '+h+'h';
+    var m = Math.floor((sec%3600)/60);
+    return 'T+'+h+'h '+m+'m';
+  }
+
+  function renderQueue(){
+    var list = document.getElementById('queueList');
+    var emptyMsg = document.getElementById('queueEmptyMsg');
+    var countTag = document.getElementById('queueCountTag');
+    list.innerHTML = '';
+    countTag.textContent = queue.length + ' QUEUED';
+    emptyMsg.style.display = queue.length ? 'none' : 'block';
+
+    var cursor = remaining; // seconds from now until this item could start
+    queue.forEach(function(item, idx){
+      var startAt = cursor;
+      var finishAt = cursor + item.durSec;
+      cursor = finishAt;
+
+      var li = document.createElement('li');
+      li.className = 'queue-item';
+      li.innerHTML =
+        '<div class="queue-row1">'+
+          '<span class="queue-num mono">'+(idx+1)+'</span>'+
+          '<span class="qname">'+item.name+'</span>'+
+          '<span class="tag tag-muted">'+item.line+'</span>'+
+        '</div>'+
+        '<div class="qmeta">'+item.cost.toLocaleString('en-US')+' cr &nbsp;·&nbsp; '+formatDuration(item.durSec).split(' ').slice(0,2).join(' ')+
+        ' &nbsp;·&nbsp; '+fmtOffset(startAt)+' → '+fmtOffset(finishAt)+'</div>'+
+        '<div class="queue-actions">'+
+          '<div class="queue-controls">'+
+            '<button class="qc-btn qc-up" title="Move up">▲</button>'+
+            '<button class="qc-btn qc-down" title="Move down">▼</button>'+
+          '</div>'+
+          '<div class="qc-remove"><button class="qc-remove-btn">Remove</button></div>'+
+        '</div>';
+
+      li.querySelector('.qc-up').disabled = (idx===0);
+      li.querySelector('.qc-down').disabled = (idx===queue.length-1);
+      li.querySelector('.qc-up').addEventListener('click', function(){
+        if(idx===0) return;
+        var tmp = queue[idx-1]; queue[idx-1] = queue[idx]; queue[idx] = tmp;
+        renderQueue();
+      });
+      li.querySelector('.qc-down').addEventListener('click', function(){
+        if(idx===queue.length-1) return;
+        var tmp = queue[idx+1]; queue[idx+1] = queue[idx]; queue[idx] = tmp;
+        renderQueue();
+      });
+      li.querySelector('.qc-remove-btn').addEventListener('click', function(){
+        queue.splice(idx,1);
+        renderQueue();
+      });
+      list.appendChild(li);
+    });
+  }
+  renderQueue();
+
+  /* =========================================================================
+     TECH TREE — rendered as an inline SVG rail-network map.
+     ========================================================================= */
+  var TECHS = {
+    ex1:{ name:'Basic Extraction Analytics', line:'Extraction', color:'var(--rail-extraction)', status:'completed',
+          x:110,y:70, levelReq:null, cost:4000, durSec:0, prereqs:[],
+          desc:'Baseline telemetry model for surface and orbital extraction cycles. Filed and cleared as Corporation Level 3, Requirement 2. No further action required; retained on file for audit.',
+          unlocks:['Extraction cycle readouts on the Operations screen','Satisfied Corp. Level 3, Requirement 2'] },
+    ex2:{ name:'Automated Drill Arrays', line:'Extraction', color:'var(--rail-extraction)', status:'available',
+          x:310,y:70, levelReq:null, cost:8200, durSec:1*86400+6*3600, prereqs:['ex1'],
+          desc:'Servo-assisted drill heads reduce manual extractor supervision per cycle. Approved for filing by corporations of any standing.',
+          unlocks:['+12% extractor cycle throughput (all sites)'] },
+    ex3:{ name:'Deep Core Tapping', line:'Extraction', color:'var(--rail-extraction)', status:'locked',
+          x:510,y:70, levelReq:4, cost:15000, durSec:2*86400+10*3600, prereqs:['ex2'],
+          desc:'Subsurface access below the ISA-regulated overburden line. Filing restricted to corporations holding Level 4 clearance under Subsurface Access Directive 7.',
+          unlocks:['Access to Tier 2 extraction sites'] },
+    ex4:{ name:'Xenostrata Refinement Sensors', line:'Extraction', color:'var(--rail-extraction)', status:'locked', interchange:true,
+          x:710,y:70, levelReq:6, cost:26000, durSec:4*86400, prereqs:['ex3','rf3'],
+          desc:'Joint extraction/refining sensor suite for exotic ore strata. As an interchange filing, this dossier cannot be opened until clearance is held simultaneously on both the Extraction and Refining lines.',
+          unlocks:['Xenostrata ore class becomes tradeable on the Galactic Exchange'] },
+
+    rf1:{ name:'Refinery Chain I', line:'Refining', color:'var(--rail-refining)', status:'progress',
+          x:310,y:165, levelReq:null, cost:18400, durSec:TOTAL_SECONDS, prereqs:['ex1'],
+          desc:'First-stage refinery conversion: raw Silicate to Silicate Ingot. Filed against Corporation Level 4, Requirement 2. Currently in fabrication; see Active Research above.',
+          unlocks:['Refinery Chain II','Contributes to Corp. Level 4, Requirement 2'] },
+    rf2:{ name:'Refinery Chain II', line:'Refining', color:'var(--rail-refining)', status:'locked',
+          x:510,y:165, levelReq:4, cost:24000, durSec:3*86400+14*3600, prereqs:['rf1'],
+          desc:'Second-stage conversion line. This dossier cannot be filed until Refinery Chain I clears final inspection.',
+          unlocks:['Silicate Ingot → Silicate Billet conversion'] },
+    rf3:{ name:'Catalytic Cracking', line:'Refining', color:'var(--rail-refining)', status:'locked',
+          x:710,y:165, levelReq:5, cost:21500, durSec:3*86400, prereqs:['rf2'],
+          desc:'High-temperature catalytic breakdown of refinery byproduct slag. Filed as a co-requisite for Xenostrata Refinement Sensors clearance.',
+          unlocks:['Byproduct reclaim credit','Contributes to Xenostrata Refinement Sensors'] },
+
+    lg1:{ name:'Automated Cargo Manifests', line:'Logistics', color:'var(--rail-logistics)', status:'available',
+          x:110,y:250, levelReq:null, cost:6000, durSec:22*3600, prereqs:[],
+          desc:'Machine-generated manifests for outbound freight, reducing dock clerk overhead at Station Administration checkpoints.',
+          unlocks:['-8% docking fee on outbound freight'] },
+    lg2:{ name:'Hauler Fleet Coordination', line:'Logistics', color:'var(--rail-logistics)', status:'locked', interchange:true,
+          x:310,y:250, levelReq:3, cost:12800, durSec:1*86400+18*3600, prereqs:['lg1','fl1'],
+          desc:'Coordinated routing across manifest and fleet telemetry systems. As an interchange filing, this dossier requires concurrent clearance on both the Logistics and Fleet lines.',
+          unlocks:['2nd hauler vessel commissioning slot','Contributes to Corp. Level 4, Requirement 3'] },
+    lg3:{ name:'Bulk Freight Contracts', line:'Logistics', color:'var(--rail-logistics)', status:'locked',
+          x:510,y:250, levelReq:5, cost:17000, durSec:2*86400+8*3600, prereqs:['lg2'],
+          desc:'Standing freight contracts negotiated with the Station Administration dockmaster\'s office.',
+          unlocks:['Bulk sell-order discount on the Galactic Exchange'] },
+
+    fl1:{ name:'Vessel Telemetry Uplink', line:'Fleet', color:'var(--rail-fleet)', status:'available',
+          x:310,y:330, levelReq:null, cost:5400, durSec:14*3600, prereqs:[],
+          desc:'Realtime telemetry relay from hauler vessels to Station Administration traffic control.',
+          unlocks:['Fleet readiness readout on the Fleet screen'] },
+    fl2:{ name:'2nd Hauler Commissioning Protocols', line:'Fleet', color:'var(--rail-fleet)', status:'locked',
+          x:510,y:330, levelReq:4, cost:19000, durSec:2*86400+2*3600, prereqs:['fl1'],
+          desc:'Regulatory filing to commission a second hauler vessel under the HMH charter.',
+          unlocks:['Fleet cap +1','Contributes to Corp. Level 4, Requirement 3'] },
+    fl3:{ name:'Escort Doctrine', line:'Fleet', color:'var(--rail-fleet)', status:'locked',
+          x:710,y:330, levelReq:8, cost:30000, durSec:4*86400+12*3600, prereqs:['fl2'],
+          desc:'Armed escort protocol for high-value freight lanes, filed jointly with Fleet Command.',
+          unlocks:['Military readiness escort bonus'] }
+  };
+
+  var LINE_PATHS = [
+    { color:'var(--rail-extraction)', ids:['ex1','ex2','ex3','ex4'] },
+    { color:'var(--rail-refining)', ids:['rf1','rf2','rf3'] },
+    { color:'var(--rail-logistics)', ids:['lg1','lg2','lg3'] },
+    { color:'var(--rail-fleet)', ids:['fl1','fl2','fl3'] }
+  ];
+  var CONNECTORS = [ ['rf3','ex4'], ['fl1','lg2'] ]; // dashed cross-line interchange feeds
+
+  var svg = document.getElementById('techmapSvg');
+  var svgNS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs){
+    var e = document.createElementNS(svgNS, tag);
+    Object.keys(attrs).forEach(function(k){ e.setAttribute(k, attrs[k]); });
+    return e;
+  }
+
+  // rail lines
+  LINE_PATHS.forEach(function(line){
+    var d = line.ids.map(function(id,i){ var t=TECHS[id]; return (i===0?'M':'L')+t.x+','+t.y; }).join(' ');
+    svg.appendChild(el('path', { class:'tm-rail', d:d, stroke:line.color }));
+  });
+  // dashed interchange connectors
+  CONNECTORS.forEach(function(pair){
+    var a = TECHS[pair[0]], b = TECHS[pair[1]];
+    svg.appendChild(el('path', { class:'tm-rail-conn', d:'M'+a.x+','+a.y+' L'+b.x+','+b.y, stroke:'var(--white-faint)' }));
+  });
+
+  var selectedId = null;
+  function statusIsQueued(id){
+    return queue.some(function(q){ return q.techId === id; });
+  }
+
+  // Word-wrap a station name into short lines so it never collides with its
+  // neighbours or runs off the edge of the map.
+  function wrapLabel(name, maxChars){
+    var words = name.split(' '), lines = [], cur = '';
+    words.forEach(function(w){
+      var test = cur ? cur+' '+w : w;
+      if(test.length > maxChars && cur){ lines.push(cur); cur = w; }
+      else cur = test;
+    });
+    if(cur) lines.push(cur);
+    return lines;
+  }
+
+  // Each line's labels stack into the empty gap on ONE side of the row only
+  // (see CSS comment above .techmap-svgwrap) so adjacent rows never collide.
+  // The REQ tag (when present) is treated as just another row in the same
+  // stack, at the same pitch as the name lines, so it can never touch them.
+  var LABEL_SIDE = { Extraction:'above', Refining:'above', Logistics:'above', Fleet:'below' };
+  var ROW_H = 13, NODE_GAP = 16;
+
+  function renderStations(){
+    svg.querySelectorAll('.tm-station').forEach(function(n){ n.remove(); });
+    Object.keys(TECHS).forEach(function(id){
+      var t = TECHS[id];
+      var status = t.status === 'available' && statusIsQueued(id) ? 'queued' : t.status;
+      var g = el('g', { class:'tm-station '+t.status+(id===selectedId?' selected':''), 'data-id':id });
+
+      if(t.status === 'progress'){
+        var pulse = el('circle', { class:'pulse', cx:t.x, cy:t.y, r:9, stroke:t.color });
+        g.appendChild(pulse);
+      }
+      var dotAttrs = { class:'dot', cx:t.x, cy:t.y, r: t.interchange ? 10 : 8, stroke:t.color };
+      if(t.status==='available') dotAttrs.stroke = t.color;
+      var dot = el('circle', dotAttrs);
+      if(t.interchange){ dot.setAttribute('stroke-dasharray','3 2'); }
+      g.appendChild(dot);
+
+      if(status === 'queued'){
+        g.appendChild(el('circle', { cx:t.x, cy:t.y, r:13, fill:'none', stroke:'var(--gold)', 'stroke-width':1.5, 'stroke-dasharray':'2 3' }));
+      }
+
+      var side = LABEL_SIDE[t.line];
+      var nameLines = wrapLabel(t.name, 20);
+      var reqLine = t.levelReq ? ('REQ. LV '+t.levelReq) : null;
+      var label = el('text', { class:'tm-label', x:t.x, 'text-anchor':'middle' });
+
+      if(side === 'above'){
+        // Visual top-to-bottom order: [REQ], name line 0 ... name line N
+        // (closest to the node). Every row uses the same ROW_H pitch.
+        var rows = reqLine ? [reqLine].concat(nameLines) : nameLines.slice();
+        var n = rows.length;
+        rows.forEach(function(txt, i){
+          var y = t.y - NODE_GAP - (n-1-i)*ROW_H;
+          if(reqLine && i===0){
+            var req = el('text', { class:'tm-req', x:t.x, y:y, 'text-anchor':'middle' });
+            req.textContent = txt;
+            g.appendChild(req);
+          } else {
+            var tspan = el('tspan', { x:t.x, y:y });
+            tspan.textContent = txt;
+            label.appendChild(tspan);
+          }
+        });
+      } else {
+        // Visual top-to-bottom order: node, name line 0 ... name line N,
+        // [REQ] (outermost). Every row uses the same ROW_H pitch.
+        var rows2 = reqLine ? nameLines.concat([reqLine]) : nameLines.slice();
+        rows2.forEach(function(txt, i){
+          var y = t.y + NODE_GAP + i*ROW_H;
+          if(reqLine && i===rows2.length-1){
+            var req2 = el('text', { class:'tm-req', x:t.x, y:y, 'text-anchor':'middle' });
+            req2.textContent = txt;
+            g.appendChild(req2);
+          } else {
+            var tspan2 = el('tspan', { x:t.x, y:y });
+            tspan2.textContent = txt;
+            label.appendChild(tspan2);
+          }
+        });
+      }
+      g.appendChild(label);
+
+      g.addEventListener('click', function(){ selectTech(id); });
+      svg.appendChild(g);
+    });
+  }
+  renderStations();
+
+  var statusLabel = { completed:'Completed', progress:'In Progress', available:'Available', locked:'Locked' };
+  function selectTech(id){
+    selectedId = id;
+    renderStations();
+    var t = TECHS[id];
+    var body = document.getElementById('techDetailBody');
+
+    var tagClass = t.status==='completed' ? 'tag-gold' : t.status==='progress' ? 'tag-gold' : t.status==='locked' ? 'tag-muted' : 'tag-accent';
+    var html = '<div class="tm-detail-name">'+t.name+'</div>'+
+      '<div class="tm-detail-tags">'+
+        '<span class="tag '+tagClass+'">'+statusLabel[t.status].toUpperCase()+'</span>'+
+        '<span class="tag" style="border-color:'+t.color+'; color:'+t.color+';">'+t.line.toUpperCase()+' LINE</span>'+
+        (t.interchange ? '<span class="tag tag-muted">INTERCHANGE</span>' : '')+
+      '</div>'+
+      '<div class="tm-detail-desc">'+t.desc+'</div>'+
+      '<div class="tm-detail-rows">'+
+        '<div class="tm-detail-row"><span class="k">Cost</span><span class="v">'+t.cost.toLocaleString('en-US')+' cr</span></div>'+
+        '<div class="tm-detail-row"><span class="k">Duration</span><span class="v">'+(t.durSec>0?formatDuration(t.durSec).split(' ').slice(0,2).join(' '):'—')+'</span></div>'+
+        '<div class="tm-detail-row"><span class="k">Min. Corp Level</span><span class="v">'+(t.levelReq||'None')+'</span></div>'+
+        '<div class="tm-detail-row"><span class="k">Prerequisites</span><span class="v">'+(t.prereqs.length?t.prereqs.map(function(p){return TECHS[p].name;}).join(', '):'None')+'</span></div>'+
+      '</div>'+
+      '<div class="tm-detail-unlocks"><b style="color:var(--white-faint); text-transform:uppercase; font-size:10px; letter-spacing:.06em;">Unlocks</b><br>'+t.unlocks.join('; ')+'</div>';
+
+    if(t.status === 'available' && !statusIsQueued(id)){
+      html += '<button class="btn btn-primary btn-sm tm-detail-btn" id="addToQueueBtn">Add to Queue</button>';
+    } else if(t.status === 'available' && statusIsQueued(id)){
+      html += '<div class="tm-detail-note">Already in the research queue.</div>';
+    } else if(t.status === 'locked'){
+      var unmet = t.prereqs.filter(function(p){ return TECHS[p].status !== 'completed' && TECHS[p].status !== 'progress'; });
+      html += '<div class="tm-detail-note">Filing blocked'+(t.levelReq?' — requires Corporation Level '+t.levelReq:'')+(unmet.length?'; outstanding prerequisites unmet':'')+'.</div>';
+    } else if(t.status === 'progress'){
+      html += '<div class="tm-detail-note">Currently in fabrication. See Active Research above to pause or cancel.</div>';
+    } else if(t.status === 'completed'){
+      html += '<div class="tm-detail-note">Cleared and on file. No action available.</div>';
+    }
+
+    body.innerHTML = html;
+    var addBtn = document.getElementById('addToQueueBtn');
+    if(addBtn){
+      addBtn.addEventListener('click', function(){
+        queue.push({ name:t.name, line:t.line, cost:t.cost, durSec:t.durSec, techId:id });
+        renderQueue();
+        renderStations();
+        selectTech(id);
+      });
+    }
+  }
+
+})();
+</script>
+</body>
+</html>
