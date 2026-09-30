@@ -15,7 +15,7 @@ _To be written: the Feature had no acceptance criteria in Azure DevOps._
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 2 open, 5 resolved.
 
-### Mobile layout: top nav, hide the header panel, pin Profile/Milestones/Quick Actions, sections collapsed by default (Requirement AB#2493, Proposed, under Epic AB#388)
+### Mobile layout: top nav, hide the header panel, pin Profile/Milestones/Quick Actions, sections collapsed by default (Requirement AB#2493, Proposed, under Epic AB#388) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. ISP epic AB#388. docs/board-reviews/interstellar-settlement-protocol-review-2026-09-26.md, second pass, items 45, 46, 47. The Board's second pass covers phone width (375px) specifically. / What it is. On mobile: the panel holding the header, notifications, Replay Onboarding and Log out is hidden, with navigation moved to the top instead. Corporation Identity, Milestones and Quick Actions become three pinned buttons at the bottom of the screen: Profile, Milestones, Quick Actions.… (the rest: AB#2493)
 

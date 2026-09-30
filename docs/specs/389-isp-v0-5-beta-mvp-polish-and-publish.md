@@ -796,7 +796,7 @@ Proposed fix: Confidence: high. In createAccount (server/game/store.js:402), bef
 
 - [x] Fixed: Registration accepts non-string fields by coercing them: a password sent as {"x":1} creates an account whose password is literally "[object Object]"
 
-### ISP-301 Yard upkeep for every extractor yard after the first (Requirement AB#2284, Resolved, not verified, under Requirement AB#778)
+### ISP-301 Yard upkeep for every extractor yard after the first (Requirement AB#2284, Resolved, not verified, under Requirement AB#778) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. ISP-88's sink design (AB#778), sink 1 of 3, ECONOMY.md "Sinks that scale with income". / What it is. Add buildings.extractorYardUpkeepPctPerDay = 2 to data/economy.json; operationCostPerHourFor adds 50,000 x 2% / 24 per hour (41.67 credits/hour) after the existing 600 floor, for every yard but the corporation's first; the Station's cycle-cost line shows it. / Why it matters. It is the first of the three sinks meant to make expansion cost something past the first yard, closing the… (the rest: AB#2284)
 
@@ -807,7 +807,7 @@ What: Where it sits. ISP-88's sink design (AB#778), sink 1 of 3, ECONOMY.md "Sin
 - [x] Probe target, a bot number (ops/probes/isp-runway.ts, seeds 7000 and 7001): banked/spent stays below 3x for planner, greedy and reserve at day 3/7/30 - a guard that this sink alone did not break ISP-42's floor. The full four-check pass is ISP-304's; this story only must not regress it.
 - [x] Screenshot: the Station's cycle-cost line for a two-yard corporation, showing the added upkeep, attached to the PR.
 
-### ISP-302 The ISA lease royalty: a tiered sales tax by leases held (Requirement AB#2285, Resolved, not verified, under Requirement AB#778)
+### ISP-302 The ISA lease royalty: a tiered sales tax by leases held (Requirement AB#2285, Resolved, not verified, under Requirement AB#778) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. ISP-88's sink design (AB#778), sink 2 of 3. / What it is. Add leases.royaltyPointsByLeasesHeld = {2: 1, 3: 2, 5: 3} to data/economy.json, applied in getEffectiveExchangeTaxRate (server/game/progression.js) by leases held; the Negotiation Fundamentals discount still applies on top, and the rate never goes below 0. The Exchange's rate breakdown shows the royalty as its own line. / Why it matters. The sink funded purely by sales, so a corporation that sells nothing pays nothing - the… (the rest: AB#2285)
 
@@ -818,7 +818,7 @@ What: Where it sits. ISP-88's sink design (AB#778), sink 2 of 3. / What it is. A
 - [x] Probe target, a bot number: with --supply low (one yard/lease each), each bot's royalty spend is exactly 0 at every checkpoint - the design's "zero for the squeezed" claim. The full four-check pass is ISP-304's.
 - [x] Screenshot: the Exchange page's tax-rate breakdown for a corporation holding 3+ leases, attached to the PR.
 
-### ISP-303 Each extractor yard costs more than the last (Requirement AB#2286, Resolved, not verified, under Requirement AB#778)
+### ISP-303 Each extractor yard costs more than the last (Requirement AB#2286, Resolved, not verified, under Requirement AB#778) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. ISP-88's sink design (AB#778), sink 3 of 3. / What it is. Add buildings.extractorYardPriceGrowth = 1.25 to data/economy.json; the n-th yard's price becomes 50,000 x 1.25^(n-1) rounded to the nearest 1,000 (50,000 / 63,000 / 78,000 / 98,000 / 122,000 / 153,000 for yards 1-6), with Supply Forecast's discount applied after. The build route, its receipt and the Station's next-yard price all read the escalated number. / Why it matters. The sink that gives a corporation at the top of the… (the rest: AB#2286)
 
@@ -828,7 +828,7 @@ What: Where it sits. ISP-88's sink design (AB#778), sink 3 of 3. / What it is. A
 - [x] Probe target, a bot number: the probe (landing with ISP-304) prints the reserve bot's next-yard price at its highest reached level, and it is a real number, not a cap - checkable only once the ladder passes Level 3 (AB#1753). Until then the probe reports the price and names the check as waiting, not skipped silently.
 - [x] Screenshot: the build-yard confirmation/receipt showing the escalated price for a corporation's 3rd+ yard, attached to the PR.
 
-### ISP-304 The runway probe reports and checks the three scaling sinks (Requirement AB#2287, Resolved, not verified, under Requirement AB#778)
+### ISP-304 The runway probe reports and checks the three scaling sinks (Requirement AB#2287, Resolved, not verified, under Requirement AB#778) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. ISP-88's sink design (AB#778), the probe half of ECONOMY.md's "What the probe checks after each lands". Lives in hq's ops/probes/, not the ISP repo, per ISP-299's same split. / What it is. Give ops/probes/isp-runway.ts the three sinks from ISP-301/302/303 as their own ledger categories (from the AB#712 ledger) and the four checks ECONOMY.md names: banked/spent still below 3x; --supply low bots pay 0 in all three categories and their Salvage Assignment counts stay within 10% of 22… (the rest: AB#2287)
 
@@ -859,7 +859,7 @@ What: Where it sits. v0.5 Beta MVP (#389), authentication review; a follow-up na
 - [x] Security answer: what changed (the exposure window for a bare stolen access token, not the refresh token or the reset behavior) and what did not (no new secret, no new storage location).
 - [x] npm test green, with the tests touched named in the PR.
 
-### ISP-307 Book yard upkeep and rising yard price under their own AB#712 ledger categories (Requirement AB#2299, Resolved, not verified, under Requirement AB#778)
+### ISP-307 Book yard upkeep and rising yard price under their own AB#712 ledger categories (Requirement AB#2299, Resolved, not verified, under Requirement AB#778) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. ISP-88's sink design (AB#778), a follow-up found building ISP-304 (AB#2287). / What it is. ISP-301 (AB#2284, yard upkeep, merged) and ISP-303 (AB#2286, yard price growth, merged) book their charges under the existing mining-ops and construction ledger categories, not a category of their own. Give both their own AB#712 ledger category (name them for what they are - upkeep and price-growth, not a generic sink bucket) and update the two applyCredits call sites to use them. / Why it… (the rest: AB#2299)
 
@@ -869,7 +869,7 @@ What: Where it sits. ISP-88's sink design (AB#778), a follow-up found building I
 - [x] ECONOMY.md's ledger-category list names the two new categories.
 - [x] No probe target and no screen of its own: this is plumbing for ISP-304's probe, not a player-visible or bot-measured change. State that plainly rather than inventing either.
 
-### ISP-308 Yard upkeep exempts the first two yards, not just the first (Director ruling, AB#2287) (Requirement AB#2304, Resolved, not verified, under Requirement AB#778)
+### ISP-308 Yard upkeep exempts the first two yards, not just the first (Director ruling, AB#2287) (Requirement AB#2304, Resolved, not verified, under Requirement AB#778) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. ISP-88's sink design (AB#778); reworks ISP-301 (AB#2284, merged) per the Director's ruling on AB#2287 (2026-09-26). / What it is. The Director found the 'zero for the squeezed' line belongs at the corporation's actual starting kit, not a hypothetical one-yard corporation: a new lease grants two building slots (server/routes/corporation.js:365, "Two building slots have been allocated to your lease"), and the starting 250,000 credits pays for both up front. Move… (the rest: AB#2304)
 
@@ -880,7 +880,7 @@ What: Where it sits. ISP-88's sink design (AB#778); reworks ISP-301 (AB#2284, me
 - [x] Probe target, a bot number: the AB#2299 upkeep ledger category reads 0 for a one-lease, two-yard corporation, at both seeds.
 - [x] Screenshot: the Station's cycle-cost line for a three-yard corporation, showing yards 1-2 free and yard 3 paying, replacing AB#2284's original two-yard screenshot.
 
-### ISP-309 Yard price growth starts at the third yard, not the second (Director ruling, AB#2287) (Requirement AB#2305, Resolved, not verified, under Requirement AB#778)
+### ISP-309 Yard price growth starts at the third yard, not the second (Director ruling, AB#2287) (Requirement AB#2305, Resolved, not verified, under Requirement AB#778) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. ISP-88's sink design (AB#778); reworks ISP-303 (AB#2286, merged) per the Director's ruling on AB#2287 (2026-09-26). / What it is. Same rework as ISP-308, applied to the price curve: buildings.extractorYardPriceGrowth's formula changes from 50,000 x 1.25^(n-1) to 50,000 x 1.25^max(0, n-2), rounded to the nearest 1,000. Yards 1 and 2 both cost the flat 50,000; the curve starts climbing at yard 3: 63,000 (62,500 rounded), then 78,000, 98,000, 122,000, 153,000, continuing the same… (the rest: AB#2305)
 
@@ -891,7 +891,7 @@ What: Where it sits. ISP-88's sink design (AB#778); reworks ISP-303 (AB#2286, me
 - [x] ECONOMY.md's key table's buildings.extractorYardPriceGrowth entry describes the max(0, n-2) exemption, and the per-day model table ("What they add up to") is recomputed from yard 3 onward - shared with ISP-308's recompute; whichever of the two PRs lands second reconciles both changes into one table rather than each doing it alone.
 - [x] Screenshot: the build-yard receipt for a corporation's 3rd yard, showing 63,000, replacing AB#2286's original 3rd-yard screenshot (which showed the old, unshifted price).
 
-### ISP-310 Relabel ISP-304 check 3 as WAIT and add a probe scenario that expands (Director ruling, AB#2287) (Requirement AB#2306, Resolved, not verified, under Requirement AB#778)
+### ISP-310 Relabel ISP-304 check 3 as WAIT and add a probe scenario that expands (Director ruling, AB#2287) (Requirement AB#2306, Resolved, not verified, under Requirement AB#778) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. ISP-88's sink design (AB#778), follow-up to AB#2287 (probe checks, merged) per the Director's ruling (2026-09-26). Lives in hq's ops/probes/, not the ISP repo, per ISP-299's and AB#2287's own split. / What it is. Two changes to ops/probes/isp-runway.ts and ECONOMY.md's "What the probe printed" section: (1) check 3 (reserve bot spend in the three sink categories) is relabeled WAIT, not FAIL, matching check 4's own existing pattern - no bot in 30 days holds 3+ yards or 2+ leases, so… (the rest: AB#2306)
 
