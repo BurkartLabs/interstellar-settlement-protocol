@@ -15,7 +15,7 @@ _To be written: the Feature had no acceptance criteria in Azure DevOps._
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 0 open, 3 resolved.
 
-### Inbox and Chat: sized containers (dynamic width/height), Chat fixed height and scrolling (Requirement AB#2465, Resolved, not verified)
+### Inbox and Chat: sized containers (dynamic width/height), Chat fixed height and scrolling (Requirement AB#2465, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Where it sits. Communications (2464). Board review items 19, 36. / What it is. Inbox's container is about 70% width, 600px tall as the reference, both dynamic to screen size; its minimum height rises (it can still grow taller if needed). Chat gets the same width/height treatment except its height is fixed - it never grows to fit more messages, and scrolls instead.
 
@@ -24,7 +24,7 @@ What: Where it sits. Communications (2464). Board review items 19, 36. / What it
 - [x] Chat's height never grows past its fixed value regardless of message count; overflow scrolls.
 - [x] Screenshot at 1280x800 and 375x812.
 
-### Forums: sized container, replies nested under what they answer (Requirement AB#2466, Resolved, not verified)
+### Forums: sized container, replies nested under what they answer (Requirement AB#2466, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Where it sits. Communications (2464). Board review items 37, 38. / What it is. Forums gets the same sized-container treatment as Inbox and Chat, and a reply renders nested under the comment it replies to instead of flat in posting order.
 
@@ -32,7 +32,7 @@ What: Where it sits. Communications (2464). Board review items 37, 38. / What it
 - [x] A reply renders visually nested under its parent comment, to any depth the data supports.
 - [x] Screenshot at 1280x800 and 375x812.
 
-### Inbox messages support Markdown, sanitised before render (Requirement AB#2467, Resolved, not verified)
+### Inbox messages support Markdown, sanitised before render (Requirement AB#2467, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Where it sits. Communications (2464). Board review item 8. / What it is. Inbox messages (including player-to-player, once that exists) render Markdown formatting. Player-authored Markdown is attacker-controlled input (DOCTRINE, security first) and must be sanitised - no raw HTML, no script execution, no javascript: links, matching the escaping discipline already applied elsewhere in this app (AB#1002's own innerHTML fixes are the precedent to follow, not repeat past).
 

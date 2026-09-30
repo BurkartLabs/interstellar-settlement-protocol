@@ -17,7 +17,7 @@ _To be written: the Feature had no acceptance criteria in Azure DevOps._
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 0 open, 36 resolved.
 
-### Three more innerHTML templates in app.js interpolate server data without escapeHtml (trade confirm, research queue, refinery chains) (Bug AB#1002, Resolved, not verified)
+### Three more innerHTML templates in app.js interpolate server data without escapeHtml (trade confirm, research queue, refinery chains) (Bug AB#1002, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Symptom. No visible symptom today. Three innerHTML templates in public/scripts/app.js put server-supplied strings into markup without escapeHtml: the trade-confirm modal rows (about line 591, r.label and r.value), the research queue items (about line 3153, item.name and item.effect) and the refinery chain list (about line 3270, chain outputs and item names). Today every one of these values comes from the game catalog, not from a player, so none is exploitable. Any future change that lets a… (the rest: AB#1002)
 Symptom: No visible symptom today. Three innerHTML templates in public/scripts/app.js put server-supplied strings into markup without escapeHtml: the trade-confirm modal rows (about line 591, r.label and r.value), the research queue items (about line 3153, item.name and item.effect) and the refinery chain list (about line 3270, chain outputs and item names). Today every one of these values comes from the game catalog, not from a player, so none is exploitable. Any future change that lets a… (the rest: AB#1002)
@@ -26,7 +26,7 @@ Proposed fix: Confidence: medium. Wrap every interpolated string field in these 
 
 - [x] Fixed: Three more innerHTML templates in app.js interpolate server data without escapeHtml (trade confirm, research queue, refinery chains)
 
-### Financial Core's cost side still restates the economy: Net Daily Flow subtracts only the salary rate, and inventory is valued at a flat 2 credits a unit (Bug AB#1022, Resolved, not verified)
+### Financial Core's cost side still restates the economy: Net Daily Flow subtracts only the salary rate, and inventory is valued at a flat 2 credits a unit (Bug AB#1022, Resolved, not verified) (lane: interstellar-settlement-protocol/finance-politics)
 
 What: Symptom. After Bug #984, dailyRevenue is the income booked in the last 24 hours. The cost side of Net Daily Flow is finances.dailyCosts, which only hire changes (150 a day per employee, server/index.js about line 1070). Mining operating costs and exchange tax are paid and booked with recordExpense (mining-ops, exchange-tax) but never reach dailyCosts, so a corporation mining around the clock shows a Net Daily Flow that ignores its biggest cost. Separately, computeAssetBreakdown… (the rest: AB#1022)
 Symptom: After Bug #984, dailyRevenue is the income booked in the last 24 hours. The cost side of Net Daily Flow is finances.dailyCosts, which only hire changes (150 a day per employee, server/index.js about line 1070). Mining operating costs and exchange tax are paid and booked with recordExpense (mining-ops, exchange-tax) but never reach dailyCosts, so a corporation mining around the clock shows a Net Daily Flow that ignores its biggest cost. Separately, computeAssetBreakdown (server/finances.js)… (the rest: AB#1022)
@@ -35,7 +35,7 @@ Proposed fix: Confidence: medium. Mirror the revenue fix on the cost side: recor
 
 - [x] Fixed: Financial Core's cost side still restates the economy: Net Daily Flow subtracts only the salary rate, and inventory is valued at a flat 2 credits a unit
 
-### Completing a mission throws in renderInventoryPanel before the views refresh, so the balance and inventory on screen stay stale until a reload (Bug AB#1043, Resolved, not verified)
+### Completing a mission throws in renderInventoryPanel before the views refresh, so the balance and inventory on screen stay stale until a reload (Bug AB#1043, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Symptom. The mission Complete button's handler (public/scripts/app.js about line 5725) calls renderMissions, then renderInventoryPanel, then updateAllViews. renderInventoryPanel (about line 948) writes to #listing-item and #listing-quantity, which no longer exist in public/index.html (the old single listing form was replaced by the Create Listing grid), so it throws TypeError: Cannot set properties of null (setting 'innerHTML') and updateAllViews never runs. After completing a mission the… (the rest: AB#1043)
 Symptom: The mission Complete button's handler (public/scripts/app.js about line 5725) calls renderMissions, then renderInventoryPanel, then updateAllViews. renderInventoryPanel (about line 948) writes to #listing-item and #listing-quantity, which no longer exist in public/index.html (the old single listing form was replaced by the Create Listing grid), so it throws TypeError: Cannot set properties of null (setting 'innerHTML') and updateAllViews never runs. After completing a mission the Overview's… (the rest: AB#1043)
@@ -44,7 +44,7 @@ Proposed fix: Confidence: high. Remove the renderInventoryPanel call from the mi
 
 - [x] Fixed: Completing a mission throws in renderInventoryPanel before the views refresh, so the balance and inventory on screen stay stale until a reload
 
-### A request body that is not valid JSON gets 500 Internal server error instead of 400 (Bug AB#1123, Resolved, not verified)
+### A request body that is not valid JSON gets 500 Internal server error instead of 400 (Bug AB#1123, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Symptom. POST /api/accounts/:id/gameplay/hire with content-type application/json and the body 'count=5' returns 500 {error: 'Internal server error.'}. A malformed request is the client's error. A 500 says the server failed, and it lands in any error monitoring as a server fault. / Repro. Local production-mode build of main b45dbf3. With a fresh account's access token, POST to http://127.0.0.1:3207/api/accounts/<id>/gameplay/hire with header content-type: application/json and the raw body count=5:… (the rest: AB#1123)
 Symptom: POST /api/accounts/:id/gameplay/hire with content-type application/json and the body 'count=5' returns 500 {error: 'Internal server error.'}. A malformed request is the client's error. A 500 says the server failed, and it lands in any error monitoring as a server fault.
@@ -53,7 +53,7 @@ Proposed fix: Confidence: high. In the final error handler, answer error.status 
 
 - [x] Fixed: A request body that is not valid JSON gets 500 Internal server error instead of 400
 
-### Every market listing publishes the seller's account id to anyone, including sockets with no login (Bug AB#1145, Resolved, not verified)
+### Every market listing publishes the seller's account id to anyone, including sockets with no login (Bug AB#1145, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Symptom. Each sell order in the market's order book carries sellerAccountId, the seller's internal account id. The order book goes to every socket in state:init and market:updated, including sockets with no login, and to anyone through GET /api/bootstrap. So anyone can read the account id of every player with a listing. This is the same exposure as the forums (AB#1134), on another surface. Mail stopped sending account ids in Bug #711; the market never did. Filed as severity 1 under the rule… (the rest: AB#1145)
 Symptom: Each sell order in the market's order book carries sellerAccountId, the seller's internal account id. The order book goes to every socket in state:init and market:updated, including sockets with no login, and to anyone through GET /api/bootstrap. So anyone can read the account id of every player with a listing. This is the same exposure as the forums (AB#1134), on another surface. Mail stopped sending account ids in Bug #711; the market never did. Filed as severity 1 under the rule AB#725 set… (the rest: AB#1145)
@@ -62,7 +62,7 @@ Proposed fix: Confidence: high. In marketView(market, viewer), send each order w
 
 - [x] Fixed: Every market listing publishes the seller's account id to anyone, including sockets with no login
 
-### main is red: the AB#575 start-mining test sends only hours, and the input validator merged in !169 now refuses it with 400 (Bug AB#1146, Resolved, not verified)
+### main is red: the AB#575 start-mining test sends only hours, and the input validator merged in !169 now refuses it with 400 (Bug AB#1146, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. On origin/main 8feae88, npm test reports Test Files 1 failed | 71 passed (72), Tests 1 failed | 1085 passed (1086). The failing test is tests/integration/mining-cycle-start.test.js > starting a second mining cycle (AB#575) > POST /gameplay/lease/:leaseId/start-mining zeroes minedThisCycle and keeps totalMined: expected 400 to be 200. It failed on all three consecutive runs, so it is deterministic, not flaky. / Repro. 1. git worktree add --detach <dir> origin/main (8feae88), npm ci. / 2.… (the rest: AB#1146)
 Symptom: On origin/main 8feae88, npm test reports Test Files 1 failed | 71 passed (72), Tests 1 failed | 1085 passed (1086). The failing test is tests/integration/mining-cycle-start.test.js > starting a second mining cycle (AB#575) > POST /gameplay/lease/:leaseId/start-mining zeroes minedThisCycle and keeps totalMined: expected 400 to be 200. It failed on all three consecutive runs, so it is deterministic, not flaky.
@@ -71,7 +71,7 @@ Proposed fix: Confidence: high. Change the test, not the validator: in tests/int
 
 - [x] Fixed: main is red: the AB#575 start-mining test sends only hours, and the input validator merged in !169 now refuses it with 400
 
-### Main is red: the AB#575 mining test starts a cycle with only { hours: 1 }, which the start-mining route has refused since !169 (Bug AB#1148, Resolved, not verified)
+### Main is red: the AB#575 mining test starts a cycle with only { hours: 1 }, which the start-mining route has refused since !169 (Bug AB#1148, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. npm test on main 8feae88: Test Files 72 (1 failed), Tests 1086 (1 failed). tests/integration/mining-cycle-start.test.js, 'POST /gameplay/lease/:leaseId/start-mining zeroes minedThisCycle and keeps totalMined', expects 200 and gets 400. Every branch cut from main inherits the failure, so a real regression cannot be told from this one. / Repro. Fresh clone of main 8feae88, npm ci, npx vitest run tests/integration/mining-cycle-start.test.js: 1 failed, 1 passed. The failing test posts… (the rest: AB#1148)
 Symptom: npm test on main 8feae88: Test Files 72 (1 failed), Tests 1086 (1 failed). tests/integration/mining-cycle-start.test.js, 'POST /gameplay/lease/:leaseId/start-mining zeroes minedThisCycle and keeps totalMined', expects 200 and gets 400. Every branch cut from main inherits the failure, so a real regression cannot be told from this one.
@@ -80,7 +80,7 @@ Proposed fix: Confidence: high. Send the values the route now requires: { hours:
 
 - [x] Fixed: Main is red: the AB#575 mining test starts a cycle with only { hours: 1 }, which the start-mining route has refused since !169
 
-### A graceful shutdown loses the last changes: it starts the debounced saves and exits before they run (Bug AB#1153, Resolved, not verified)
+### A graceful shutdown loses the last changes: it starts the debounced saves and exits before they run (Bug AB#1153, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. On SIGTERM or SIGINT the server calls saveAccountsNow() and then process.exit(0) at once. Without Supabase, which is the only mode after AB#578, saveAccountsNow() only starts the 500 ms debounced accounts-snapshot write, on an unref'd timer, so the process exits before it runs. The global state's 300 ms debounced save (market, forums, chat) is not flushed at all. Every change made in the last half second before a stop is lost. In Azure Container Apps, where each new revision and each… (the rest: AB#1153)
 Symptom: On SIGTERM or SIGINT the server calls saveAccountsNow() and then process.exit(0) at once. Without Supabase, which is the only mode after AB#578, saveAccountsNow() only starts the 500 ms debounced accounts-snapshot write, on an unref'd timer, so the process exits before it runs. The global state's 300 ms debounced save (market, forums, chat) is not flushed at all. Every change made in the last half second before a stop is lost. In Azure Container Apps, where each new revision and each restart… (the rest: AB#1153)
@@ -89,7 +89,7 @@ Proposed fix: Confidence: high. Make saveAccountsNow() write accounts-snapshot.j
 
 - [x] Fixed: A graceful shutdown loses the last changes: it starts the debounced saves and exits before they run
 
-### A blank, zero, negative or non-numeric price on Create Listing lists the goods at $1, with no confirmation (Bug AB#1164, Resolved, not verified)
+### A blank, zero, negative or non-numeric price on Create Listing lists the goods at $1, with no confirmation (Bug AB#1164, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. On the Galactic Exchange, Create Listing turns a price or quantity it cannot read into 1 and lists immediately. Clearing the Unit Price field, or typing 0, -100 or letters, and pressing Create Listing lists the goods at $1 a unit: the status reads 'Listing created: 1 Silicates @ $1.' and the listing is on the public book for anyone to buy. There is no confirmation step on this form, unlike Buy and Sell to a standing order. Quantity does the same: blank, 0, -5 or letters list 1 unit.… (the rest: AB#1164)
 Symptom: On the Galactic Exchange, Create Listing turns a price or quantity it cannot read into 1 and lists immediately. Clearing the Unit Price field, or typing 0, -100 or letters, and pressing Create Listing lists the goods at $1 a unit: the status reads 'Listing created: 1 Silicates @ $1.' and the listing is on the public book for anyone to buy. There is no confirmation step on this form, unlike Buy and Sell to a standing order. Quantity does the same: blank, 0, -5 or letters list 1 unit. The… (the rest: AB#1164)
@@ -98,7 +98,7 @@ Proposed fix: Confidence: high. Send what was typed, as Logistics does (renderLo
 
 - [x] Fixed: A blank, zero, negative or non-numeric price on Create Listing lists the goods at $1, with no confirmation
 
-### A seller is not told when another player buys their listing: no notification, and their open page keeps the old credits and trade history until a reload (Bug AB#1167, Resolved, not verified)
+### A seller is not told when another player buys their listing: no notification, and their open page keeps the old credits and trade history until a reload (Bug AB#1167, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Symptom. Player B bought 2 of player A's 4 Silicates at $30. A's credits rose by $55 and the sale is in A's trade history on the server. On A's open Exchange page, not reloaded, six seconds later: My Active Listings did update to 2 remaining (market:updated), but Trade History still showed 'Listed 4' as its newest row and the credits were the old figure. The Sold row appeared only after a reload. A received no notification of the sale: its 14 notifications were all setup and log-ins. The first… (the rest: AB#1167)
 Symptom: Player B bought 2 of player A's 4 Silicates at $30. A's credits rose by $55 and the sale is in A's trade history on the server. On A's open Exchange page, not reloaded, six seconds later: My Active Listings did update to 2 remaining (market:updated), but Trade History still showed 'Listed 4' as its newest row and the credits were the old figure. The Sold row appeared only after a reload. A received no notification of the sale: its 14 notifications were all setup and log-ins. The first… (the rest: AB#1167)
@@ -107,7 +107,7 @@ Proposed fix: Confidence: medium. In the buy route, after crediting the seller: 
 
 - [x] Fixed: A seller is not told when another player buys their listing: no notification, and their open page keeps the old credits and trade history until a reload
 
-### The order book still tells anyone which station each seller listed from (Bug AB#1171, Resolved, not verified)
+### The order book still tells anyone which station each seller listed from (Bug AB#1171, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Symptom. Every order on the public book carries stationId, the station the seller was docked at when listing. It reaches GET /api/bootstrap and every socket, including ones with no login. The game never shows it: a buyer receives goods at their own station whatever the listing's station. AB#1145 (fix in !173) removes sellerAccountId from the same objects and keeps stationId. / Repro. 1. A, docked at Luna Gateway, lists 2 Silicates. / 2. With no login: GET /api/bootstrap,… (the rest: AB#1171)
 Symptom: Every order on the public book carries stationId, the station the seller was docked at when listing. It reaches GET /api/bootstrap and every socket, including ones with no login. The game never shows it: a buyer receives goods at their own station whatever the listing's station. AB#1145 (fix in !173) removes sellerAccountId from the same objects and keeps stationId.
@@ -116,7 +116,7 @@ Proposed fix: Confidence: high. Drop stationId from the public order view (order
 
 - [x] Fixed: The order book still tells anyone which station each seller listed from
 
-### Main is red: tests/integration/public-views.test.js calls server.listen(0) on a server that now always listens (Bug AB#1172, Resolved, not verified)
+### Main is red: tests/integration/public-views.test.js calls server.listen(0) on a server that now always listens (Bug AB#1172, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. On main b2c0310 the suite reports tests/integration/public-views.test.js as a failed file with no tests run: 'Error: Listen method has been called more than once without closing.' Its 7 tests, the regression guard for the forum and market account-id leaks (Bugs #1134 and #1145, severity 1), do not run at all. / Repro. On main b2c0310: npx vitest run tests/integration/public-views.test.js. The file fails to load at line 19, await new Promise((resolve) => server.listen(0, resolve)). / System… (the rest: AB#1172)
 Symptom: On main b2c0310 the suite reports tests/integration/public-views.test.js as a failed file with no tests run: 'Error: Listen method has been called more than once without closing.' Its 7 tests, the regression guard for the forum and market account-id leaks (Bugs #1134 and #1145, severity 1), do not run at all.
@@ -125,7 +125,7 @@ Proposed fix: Confidence: high. In public-views.test.js, replace the server.list
 
 - [x] Fixed: Main is red: tests/integration/public-views.test.js calls server.listen(0) on a server that now always listens
 
-### Registering with the corporation name left empty uses a stand-in name, so the second such player is told a name they never typed is taken (Bug AB#1187, Resolved, not verified)
+### Registering with the corporation name left empty uses a stand-in name, so the second such player is told a name they never typed is taken (Bug AB#1187, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Symptom. register.html sends 'Frontier Protocol Ventures' when the Corporation Name field is empty. The form is novalidate, so the field's required attribute never stops it. The first player who leaves the field empty gets a corporation called Frontier Protocol Ventures without choosing it. Since names became unique (Bug #433, !155), every later player who leaves it empty is refused with 'A corporation with this name already exists.', naming a corporation they never typed and never saw. / Repro.… (the rest: AB#1187)
 Symptom: register.html sends 'Frontier Protocol Ventures' when the Corporation Name field is empty. The form is novalidate, so the field's required attribute never stops it. The first player who leaves the field empty gets a corporation called Frontier Protocol Ventures without choosing it. Since names became unique (Bug #433, !155), every later player who leaves it empty is refused with 'A corporation with this name already exists.', naming a corporation they never typed and never saw.
@@ -134,7 +134,7 @@ Proposed fix: Confidence: high. Send the field as typed, and before sending, say
 
 - [x] Fixed: Registering with the corporation name left empty uses a stand-in name, so the second such player is told a name they never typed is taken
 
-### The extractor cap error promises 'future corporation perks' that do not exist, instead of sending the player to their leases (Bug AB#1195, Resolved, not verified)
+### The extractor cap error promises 'future corporation perks' that do not exist, instead of sending the player to their leases (Bug AB#1195, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. The station panel's Build Extractor button (POST /gameplay/build-extractor) refuses a second yard with 'Basic Extractor Yard cap reached (1/1). Additional capacity requires future corporation perks.' No perk, research or level raises corp.unlocks.maxBasicExtractorYards; only the seeded demo account has 3. The way to build more extractors that does exist, a yard on a mining lease at the ISA Claims & Leases Division, is not mentioned. / Repro. On main b2c0310: a corporation with one Basic… (the rest: AB#1195)
 Symptom: The station panel's Build Extractor button (POST /gameplay/build-extractor) refuses a second yard with 'Basic Extractor Yard cap reached (1/1). Additional capacity requires future corporation perks.' No perk, research or level raises corp.unlocks.maxBasicExtractorYards; only the seeded demo account has 3. The way to build more extractors that does exist, a yard on a mining lease at the ISA Claims & Leases Division, is not mentioned.
@@ -143,7 +143,7 @@ Proposed fix: Confidence: high. Say what the player can do: 'The station panel b
 
 - [x] Fixed: The extractor cap error promises 'future corporation perks' that do not exist, instead of sending the player to their leases
 
-### Every 'requires N credits' message says 'Current reserves: 1,234 credits credits.' (Bug AB#1201, Resolved, not verified)
+### Every 'requires N credits' message says 'Current reserves: 1,234 credits credits.' (Bug AB#1201, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Symptom. fundingRequirementMessage, used by every route that refuses for lack of credits (hiring, office rent and renewal, extractors, refineries, the assembly facility, probes, expeditions and more), ends with the word 'credits' twice: 'Hiring requires 10,000 credits. Current reserves: 1,234 credits credits.' / Repro. On main b2c0310, hire more employees than the corporation can pay for (POST /gameplay/hire with count 50 on a fresh account): the error ends 'credits credits.' / System info.… (the rest: AB#1201)
 Symptom: fundingRequirementMessage, used by every route that refuses for lack of credits (hiring, office rent and renewal, extractors, refineries, the assembly facility, probes, expeditions and more), ends with the word 'credits' twice: 'Hiring requires 10,000 credits. Current reserves: 1,234 credits credits.'
@@ -152,7 +152,7 @@ Proposed fix: Confidence: high. Drop the second 'credits' in fundingRequirementM
 
 - [x] Fixed: Every 'requires N credits' message says 'Current reserves: 1,234 credits credits.'
 
-### Under load, three more tests pass vitest's 5 s timeout: a whole-repo file scan and two first tests that pay the server import (Bug AB#1221, Resolved, not verified)
+### Under load, three more tests pass vitest's 5 s timeout: a whole-repo file scan and two first tests that pay the server import (Bug AB#1221, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. With the order-book tests fixed (AB#1092), three other tests time out ('Test timed out in 5000ms') in a heavily loaded full run, and never in an idle one: social-playtest.test.js 'no file in the product names one', dev-surface-production.test.js and dev-surface-off.test.js 'POST /api/auth/dummy-login answers 404'. In 20 loaded runs they failed 4 times, one test each. / Repro. On fix/1092-order-book-time (main b2c0310 plus the AB#1092 test change), run the full suite while 8 CPU-burning… (the rest: AB#1221)
 Symptom: With the order-book tests fixed (AB#1092), three other tests time out ('Test timed out in 5000ms') in a heavily loaded full run, and never in an idle one: social-playtest.test.js 'no file in the product names one', dev-surface-production.test.js and dev-surface-off.test.js 'POST /api/auth/dummy-login answers 404'. In 20 loaded runs they failed 4 times, one test each.
@@ -161,7 +161,7 @@ Proposed fix: Confidence: high. Scan only the product: server/, public/, package
 
 - [x] Fixed: Under load, three more tests pass vitest's 5 s timeout: a whole-repo file scan and two first tests that pay the server import
 
-### Construct Assembly Facility does nothing when clicked, so no player can fabricate a probe or launch an expedition from the game (Bug AB#1253, Resolved, not verified)
+### Construct Assembly Facility does nothing when clicked, so no player can fabricate a probe or launch an expedition from the game (Bug AB#1253, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. With Assembly & Fabrication researched, a free building slot and 60,000 credits, Station shows the Assembly Facility card with 'Construct (¤60,000)'. Clicking it does nothing: no request, no feedback line, no error, credits unchanged. Two clicks sent zero gameplay POSTs (request capture). The server route works: POST .../gameplay/build-assembly-facility returns 200 and the facility appears. The Assembly Facility is where Mining Probes are fabricated, and an expedition needs a probe, so… (the rest: AB#1253)
 Symptom: With Assembly & Fabrication researched, a free building slot and 60,000 credits, Station shows the Assembly Facility card with 'Construct (¤60,000)'. Clicking it does nothing: no request, no feedback line, no error, credits unchanged. Two clicks sent zero gameplay POSTs (request capture). The server route works: POST .../gameplay/build-assembly-facility returns 200 and the facility appears. The Assembly Facility is where Mining Probes are fabricated, and an expedition needs a probe, so the… (the rest: AB#1253)
@@ -170,7 +170,7 @@ Proposed fix: Confidence: high. Bind the handler where the button is: facilityGr
 
 - [x] Fixed: Construct Assembly Facility does nothing when clicked, so no player can fabricate a probe or launch an expedition from the game
 
-### With no free building slot, the Build Refinery button loses its label and page markup appears on screen and in the error line (Bug AB#1254, Resolved, not verified)
+### With no free building slot, the Build Refinery button loses its label and page markup appears on screen and in the error line (Bug AB#1254, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. With refinery research done and every building slot used, the first card on Refinery Chains shows, in amber, the text 'Refinery requires 1 open building slot. Current usage: 2/2.>Build Refinery</button><p class=' instead of a Build Refinery button with a warning under it. Clicking it logs 'Build error: Refinery requires 1 open building slot. Current usage: 2/2.>Build Refinery' in the feedback line. Raw HTML is shown to the player and the button's own label is gone. Reproduces on the… (the rest: AB#1254)
 Symptom: With refinery research done and every building slot used, the first card on Refinery Chains shows, in amber, the text 'Refinery requires 1 open building slot. Current usage: 2/2.>Build Refinery</button><p class=' instead of a Build Refinery button with a warning under it. Clicking it logs 'Build error: Refinery requires 1 open building slot. Current usage: 2/2.>Build Refinery' in the feedback line. Raw HTML is shown to the player and the button's own label is gone. Reproduces on the combined… (the rest: AB#1254)
@@ -179,7 +179,7 @@ Proposed fix: Confidence: high. Close the attribute quote. Better, build the att
 
 - [x] Fixed: With no free building slot, the Build Refinery button loses its label and page markup appears on screen and in the error line
 
-### A cleared refinery quantity is refilled with the minimum by the next refresh, and Start Run consumes that without asking (Bug AB#1255, Resolved, not verified)
+### A cleared refinery quantity is refilled with the minimum by the next refresh, and Start Run consumes that without asking (Bug AB#1255, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. On Refinery Chains, clearing the Quantity field and pressing Start Run starts a run on one full batch: the player typed nothing, the field showed '100' again by the time they clicked, and 100 Silicates were consumed (request captured: inputQuantity 100). The same happened on Carbon (200 consumed). No feedback line says a run started. Typing 5, -5 or 2.5 is also replaced with the minimum on the next refresh. The server itself refuses 0, '', -5, 'abc', 2.5 and 1e8 with 400 (checked by… (the rest: AB#1255)
 Symptom: On Refinery Chains, clearing the Quantity field and pressing Start Run starts a run on one full batch: the player typed nothing, the field showed '100' again by the time they clicked, and 100 Silicates were consumed (request captured: inputQuantity 100). The same happened on Carbon (200 consumed). No feedback line says a run started. Typing 5, -5 or 2.5 is also replaced with the minimum on the next refresh. The server itself refuses 0, '', -5, 'abc', 2.5 and 1e8 with 400 (checked by API), so… (the rest: AB#1255)
@@ -188,7 +188,7 @@ Proposed fix: Confidence: high. Keep what the player typed: store and restore th
 
 - [x] Fixed: A cleared refinery quantity is refilled with the minimum by the next refresh, and Start Run consumes that without asking
 
-### Asteroid mining feedback says a probe is fabricated when fabrication has only started, and names a belt by its internal key (Bug AB#1257, Resolved, not verified)
+### Asteroid mining feedback says a probe is fabricated when fabrication has only started, and names a belt by its internal key (Bug AB#1257, Resolved, not verified) (lane: interstellar-settlement-protocol/combat)
 
 What: Symptom. Pressing Fabricate Mining Probe logs 'Mining Probe fabricated.' while the facility shows 'Fabricating Mining Probe, 29m 59s remaining' and the hangar holds 0 probes. Scouting the Sol belt logs 'Asteroid belt scouted: sol:belt', an internal key, not 'the Sol asteroid belt'. Reproduces on the combined build; main has the same strings (read, not run). / Repro. 1. Production-mode server (combined build 4870146, 127.0.0.2), 1280x800. / 2. Account with an Assembly Facility and 8,000+ credits:… (the rest: AB#1257)
 Symptom: Pressing Fabricate Mining Probe logs 'Mining Probe fabricated.' while the facility shows 'Fabricating Mining Probe, 29m 59s remaining' and the hangar holds 0 probes. Scouting the Sol belt logs 'Asteroid belt scouted: sol:belt', an internal key, not 'the Sol asteroid belt'. Reproduces on the combined build; main has the same strings (read, not run).
@@ -197,7 +197,7 @@ Proposed fix: Confidence: high. 'Mining Probe fabrication started: ready in 30 m
 
 - [x] Fixed: Asteroid mining feedback says a probe is fabricated when fabrication has only started, and names a belt by its internal key
 
-### Corporate R&D runs every queued project at once, though the page says one technology researches at a time (Bug AB#1258, Resolved, not verified)
+### Corporate R&D runs every queued project at once, though the page says one technology researches at a time (Bug AB#1258, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. The Corporate R&D page says 'One technology researches at a time. Queue additional nodes - they activate automatically when the active slot clears.' In play, every queued project researches at the same time: Industrial Safety (3 h) and Supply Forecast (4 h), queued together, both show 'In progress' with their own countdowns, and both complete within 4 hours instead of 7. A player can queue the whole affordable tree and finish it in the time of its longest node. / Repro. Reproduces on the… (the rest: AB#1258)
 Symptom: The Corporate R&D page says 'One technology researches at a time. Queue additional nodes - they activate automatically when the active slot clears.' In play, every queued project researches at the same time: Industrial Safety (3 h) and Supply Forecast (4 h), queued together, both show 'In progress' with their own countdowns, and both complete within 4 hours instead of 7. A player can queue the whole affordable tree and finish it in the time of its longest node.
@@ -206,7 +206,7 @@ Proposed fix: Confidence: high. Make the queue sequential: queue-rnd sets starte
 
 - [x] Fixed: Corporate R&D runs every queued project at once, though the page says one technology researches at a time
 
-### Reaching a corporation level tells the player nothing: no notification, no message, and the new caps change silently (Bug AB#1260, Resolved, not verified)
+### Reaching a corporation level tells the player nothing: no notification, no message, and the new caps change silently (Bug AB#1260, Resolved, not verified) (lane: interstellar-settlement-protocol/combat)
 
 What: Symptom. When a corporation reaches a level, its employee cap, building slots, fleet cap and market sectors rise, and the only sign is the Level figure in the sidebar changing. There is no notification, inbox message or on-screen notice of the level or what it unlocked. Everything else a player achieves (research, programs, hires, leases) posts a notification. The milestone ladder is the game's main progression, and its rewards go unannounced. / Repro. Reproduces on the combined build and on main… (the rest: AB#1260)
 Symptom: When a corporation reaches a level, its employee cap, building slots, fleet cap and market sectors rise, and the only sign is the Level figure in the sidebar changing. There is no notification, inbox message or on-screen notice of the level or what it unlocked. Everything else a player achieves (research, programs, hires, leases) posts a notification. The milestone ladder is the game's main progression, and its rewards go unannounced.
@@ -215,7 +215,7 @@ Proposed fix: Confidence: high. In mutateAccountState, compare corp.level before
 
 - [x] Fixed: Reaching a corporation level tells the player nothing: no notification, no message, and the new caps change silently
 
-### Every asteroid expedition in production returns nothing: each 10-second tick's yield floors to zero and the remainder is thrown away (Bug AB#1274, Resolved, not verified)
+### Every asteroid expedition in production returns nothing: each 10-second tick's yield floors to zero and the remainder is thrown away (Bug AB#1274, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. A Short Sweep to the Sol belt, launched from the UI for ¤3,000 with a ¤8,000 probe, ran its 30 minutes and completed with yields {} (completedExpeditions record). The station inventory was unchanged (Silicates 100, Carbon 250 before and after), and the probe came back. By the arithmetic every expedition in production, in every system and at every duration, yields nothing, because no tick can reach one whole unit. Dev mode hides it (10-second expeditions with tickYieldMultiplier 126 to… (the rest: AB#1274)
 Symptom: A Short Sweep to the Sol belt, launched from the UI for ¤3,000 with a ¤8,000 probe, ran its 30 minutes and completed with yields {} (completedExpeditions record). The station inventory was unchanged (Silicates 100, Carbon 250 before and after), and the probe came back. By the arithmetic every expedition in production, in every system and at every duration, yields nothing, because no tick can reach one whole unit. Dev mode hides it (10-second expeditions with tickYieldMultiplier 126 to 1008).… (the rest: AB#1274)
@@ -224,7 +224,7 @@ Proposed fix: Confidence: high. Make the yield independent of how the time is sl
 
 - [x] Fixed: Every asteroid expedition in production returns nothing: each 10-second tick's yield floors to zero and the remainder is thrown away
 
-### On a phone the Station's facility cards are 31px wider than their panel and run past its edge (Bug AB#1283, Resolved, not verified)
+### On a phone the Station's facility cards are 31px wider than their panel and run past its edge (Bug AB#1283, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. At 375x812 the Operational Facilities cards on the Station (Construct Assembly Facility, and the Assembly Facility and Refinery cards once built) are 340px wide in a 309px grid: the card spans x 33 to 373 while its grid and panel end at 342, so the right border and corner mark sit outside the panel, against the screen edge. Measured on the AB#1253 fix branch; the CSS is the same on main b2c0310. / Repro. 1. Production-mode server, 127.0.0.2, a phone viewport 375x812. / 2. Account with… (the rest: AB#1283)
 Symptom: At 375x812 the Operational Facilities cards on the Station (Construct Assembly Facility, and the Assembly Facility and Refinery cards once built) are 340px wide in a 309px grid: the card spans x 33 to 373 while its grid and panel end at 342, so the right border and corner mark sit outside the panel, against the screen edge. Measured on the AB#1253 fix branch; the CSS is the same on main b2c0310.
@@ -233,7 +233,7 @@ Proposed fix: Confidence: high. minmax(min(340px, 100%), 1fr), as !191 did for t
 
 - [x] Fixed: On a phone the Station's facility cards are 31px wider than their panel and run past its edge
 
-### A player-to-player sale can write the buyer's email address into the seller's Trade History (and a legacy seller's email into the buyer's) (Bug AB#1325, Resolved, not verified)
+### A player-to-player sale can write the buyer's email address into the seller's Trade History (and a legacy seller's email into the buyer's) (Bug AB#1325, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. When a player buys a listing, the seller's Trade History gets a Sold row whose counterparty is the buyer's corporation name, or, if the buyer has none, the buyer's email address. The seller's page shows it in the Counterparty column. The buyer's Bought row stores the listing's seller name as stored; a listing made before names were required can hold an email there. The order book already hides such names (publicName, Bug #1145), so the email reaches the other player only through Trade… (the rest: AB#1325)
 Symptom: When a player buys a listing, the seller's Trade History gets a Sold row whose counterparty is the buyer's corporation name, or, if the buyer has none, the buyer's email address. The seller's page shows it in the Counterparty column. The buyer's Bought row stores the listing's seller name as stored; a listing made before names were required can hold an email there. The order book already hides such names (publicName, Bug #1145), so the email reaches the other player only through Trade History.
@@ -242,7 +242,7 @@ Proposed fix: Confidence: high. Build both counterparties with publicName (serve
 
 - [x] Fixed: A player-to-player sale can write the buyer's email address into the seller's Trade History (and a legacy seller's email into the buyer's)
 
-### public-views.test.js runs nothing on main: it calls server.listen after the server already listens (AB#578) (Bug AB#1386, Resolved, not verified)
+### public-views.test.js runs nothing on main: it calls server.listen after the server already listens (AB#578) (Bug AB#1386, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. On main (b2c0310), npx vitest run reports 'Test Files 1 failed | 72 passed' with 'Error: Listen method has been called more than once without closing' from tests/integration/public-views.test.js:19. The file's beforeAll throws, so none of its 8 tests runs: the checks that forum, order-book and socket traffic carry no account id or email (Bugs #1134, #1145) are not being executed at all. The run's Tests line (1074 passed) does not show the loss, because tests that never start are not… (the rest: AB#1386)
 Symptom: On main (b2c0310), npx vitest run reports 'Test Files 1 failed | 72 passed' with 'Error: Listen method has been called more than once without closing' from tests/integration/public-views.test.js:19. The file's beforeAll throws, so none of its 8 tests runs: the checks that forum, order-book and socket traffic carry no account id or email (Bugs #1134, #1145) are not being executed at all. The run's Tests line (1074 passed) does not show the loss, because tests that never start are not counted as… (the rest: AB#1386)
@@ -251,7 +251,7 @@ Proposed fix: Confidence: high. In public-views.test.js beforeAll, replace the s
 
 - [x] Fixed: public-views.test.js runs nothing on main: it calls server.listen after the server already listens (AB#578)
 
-### The world state is never written while it keeps changing: state.json's 300 ms debounce restarts on every change (Bug AB#1447, Resolved, not verified)
+### The world state is never written while it keeps changing: state.json's 300 ms debounce restarts on every change (Bug AB#1447, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. server/gameState.js scheduleSave() clears and restarts a 300 ms timer on every mutateState call (chat messages, market orders, forum posts). While changes arrive more often than every 300 ms, state.json is not written at all. A repro that changed the world every 100 ms for 3 s found none of the 27 changes on disk after 3 s; all appeared only 600 ms after the changes stopped. A crash or kill during steady activity loses every world change since the last quiet moment, however long ago… (the rest: AB#1447)
 Symptom: server/gameState.js scheduleSave() clears and restarts a 300 ms timer on every mutateState call (chat messages, market orders, forum posts). While changes arrive more often than every 300 ms, state.json is not written at all. A repro that changed the world every 100 ms for 3 s found none of the 27 changes on disk after 3 s; all appeared only 600 ms after the changes stopped. A crash or kill during steady activity loses every world change since the last quiet moment, however long ago that was.… (the rest: AB#1447)
@@ -260,7 +260,7 @@ Proposed fix: Confidence: high. Give scheduleSave the accounts snapshot's shape:
 
 - [x] Fixed: The world state is never written while it keeps changing: state.json's 300 ms debounce restarts on every change
 
-### Daily statements live in the accounts snapshot: at 1,000 corporations after 90 days they add 63 MB to a file rewritten every few seconds (Bug AB#1480, Resolved, not verified)
+### Daily statements live in the accounts snapshot: at 1,000 corporations after 90 days they add 63 MB to a file rewritten every few seconds (Bug AB#1480, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. AB#713 stores each corporation's 90 daily statements in account.state.statements, which is saved in accounts-snapshot.json. That whole file is rewritten after every ticker burst (every 5 s under play). Measured: 90 statements are 65 KB per account as saved (pretty-printed; 41 KB compact). At 1,000 corporations that adds 63 MB to a file already 64 MB (npm run bench:ticks, current main), and the write, measured at 646-883 ms before any statements exist, would pass the 1 s budget AB#729… (the rest: AB#1480)
 Symptom: AB#713 stores each corporation's 90 daily statements in account.state.statements, which is saved in accounts-snapshot.json. That whole file is rewritten after every ticker burst (every 5 s under play). Measured: 90 statements are 65 KB per account as saved (pretty-printed; 41 KB compact). At 1,000 corporations that adds 63 MB to a file already 64 MB (npm run bench:ticks, current main), and the write, measured at 646-883 ms before any statements exist, would pass the 1 s budget AB#729 set,… (the rest: AB#1480)
@@ -269,7 +269,7 @@ Proposed fix: Confidence: high. Store statements out of the accounts snapshot: o
 
 - [x] Fixed: Daily statements live in the accounts snapshot: at 1,000 corporations after 90 days they add 63 MB to a file rewritten every few seconds
 
-### npm test is red on main: ECONOMY.md's "the model reads the game" test reads rules out of server/gameState.js, which no longer holds them (Bug AB#1719, Resolved, not verified)
+### npm test is red on main: ECONOMY.md's "the model reads the game" test reads rules out of server/gameState.js, which no longer holds them (Bug AB#1719, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. tests/unit/economyModel.test.js > "each rule taken from the code still says what the model assumes" fails on a clean checkout of origin/main: expected server/gameState.js to match /credits: 250000/. AB#737 split gameState.js into server/game/*.js and left it as a re-export shim, so the file the test reads as text no longer contains the starting credits, the starting station or the downtime constants. The test exists to stop ECONOMY.md drifting away from the code (AB#727); it is now… (the rest: AB#1719)
 Symptom: tests/unit/economyModel.test.js > "each rule taken from the code still says what the model assumes" fails on a clean checkout of origin/main: expected server/gameState.js to match /credits: 250000/. AB#737 split gameState.js into server/game/*.js and left it as a re-export shim, so the file the test reads as text no longer contains the starting credits, the starting station or the downtime constants. The test exists to stop ECONOMY.md drifting away from the code (AB#727); it is now failing for… (the rest: AB#1719)
@@ -278,7 +278,7 @@ Proposed fix: Confidence: high. Read the rules from where they are now: have the
 
 - [x] Fixed: npm test is red on main: ECONOMY.md's "the model reads the game" test reads rules out of server/gameState.js, which no longer holds them
 
-### tests/integration/construct-assembly.test.js is flaky: a fixed 50ms settle() misses the build event under load (Bug AB#1744, Resolved, not verified)
+### tests/integration/construct-assembly.test.js is flaky: a fixed 50ms settle() misses the build event under load (Bug AB#1744, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. npm test intermittently fails 'a click sends one POST to build-assembly-facility, and the facility is built' with events.built having length 0 instead of 1 (and downstream assertions on corp state failing too). Reproduces about 1 run in 3 in a full npm test run; passes every time when run in isolation (npx vitest run tests/integration/construct-assembly.test.js). / Repro. Run npm test repeatedly (the full suite, not the file alone) until it fails; most reliably reproduces under system… (the rest: AB#1744)
 Symptom: npm test intermittently fails 'a click sends one POST to build-assembly-facility, and the facility is built' with events.built having length 0 instead of 1 (and downstream assertions on corp state failing too). Reproduces about 1 run in 3 in a full npm test run; passes every time when run in isolation (npx vitest run tests/integration/construct-assembly.test.js).
@@ -287,7 +287,7 @@ Proposed fix: Confidence: medium. Replace the fixed setTimeout with a poll that 
 
 - [x] Fixed: tests/integration/construct-assembly.test.js is flaky: a fixed 50ms settle() misses the build event under load
 
-### The milestone roadmap is rendered into #milestone-list, which no page contains, so players never see their milestones (Bug AB#1752, Resolved, not verified)
+### The milestone roadmap is rendered into #milestone-list, which no page contains, so players never see their milestones (Bug AB#1752, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Symptom. public/scripts/app.js (the corporation panel render, around line 1109) builds the MILESTONE_ROADMAP list with done/undone state and writes it into document.getElementById('milestone-list'). No HTML file in public/ has that element and git log -S shows it was never in index.html, so the guard `if (milestones)` is always false and the roadmap, and every milestone's done state, is invisible to players. / Repro. On main a271151: git grep milestone-list -- public/*.html returns nothing; open… (the rest: AB#1752)
 Symptom: public/scripts/app.js (the corporation panel render, around line 1109) builds the MILESTONE_ROADMAP list with done/undone state and writes it into document.getElementById('milestone-list'). No HTML file in public/ has that element and git log -S shows it was never in index.html, so the guard `if (milestones)` is always false and the roadmap, and every milestone's done state, is invisible to players.
@@ -296,7 +296,7 @@ Proposed fix: Confidence: medium. Add <ul id="milestone-list" class="text-list">
 
 - [x] Fixed: The milestone roadmap is rendered into #milestone-list, which no page contains, so players never see their milestones
 
-### ECONOMY.md's own model script reimplements the extractor cost formula and was never updated for AB#775's curve, so it still tells the reader 'the maximum always wins' (Bug AB#1754, Resolved, not verified)
+### ECONOMY.md's own model script reimplements the extractor cost formula and was never updated for AB#775's curve, so it still tells the reader 'the maximum always wins' (Bug AB#1754, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. scripts/economy-model.mjs:56 computes an extractor's hourly operating cost as `t * economy.operations.costPerThroughputUnit` (linear), the formula from before AB#775. server/economy.js's operationCostPerHourFor, which the server and tests actually use, is `t * costPerThroughputUnit * (1 + (t / throughputReferencePerHour) ** 2)` since AB#775 (tests/unit/economy.test.js expects operationCostPerHourFor(250) === 5417). Running `npm run economy:model` on origin/main prints cost/h at 250 t/h… (the rest: AB#1754)
 Symptom: scripts/economy-model.mjs:56 computes an extractor's hourly operating cost as `t * economy.operations.costPerThroughputUnit` (linear), the formula from before AB#775. server/economy.js's operationCostPerHourFor, which the server and tests actually use, is `t * costPerThroughputUnit * (1 + (t / throughputReferencePerHour) ** 2)` since AB#775 (tests/unit/economy.test.js expects operationCostPerHourFor(250) === 5417). Running `npm run economy:model` on origin/main prints cost/h at 250 t/h as 4,000… (the rest: AB#1754)
@@ -305,7 +305,7 @@ Proposed fix: Confidence: high. Import operationCostPerHourFor (and miningProfit
 
 - [x] Fixed: ECONOMY.md's own model script reimplements the extractor cost formula and was never updated for AB#775's curve, so it still tells the reader 'the maximum always wins'
 
-### Assets summary tiles show a checkbox-like glyph where the number 0 should be (Bug AB#1755, Resolved, not verified)
+### Assets summary tiles show a checkbox-like glyph where the number 0 should be (Bug AB#1755, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Symptom. On the Assets tab the five summary tiles (Units Stored, Resource Types, Offices, Leases, Extractors) show a small cyan box with a diagonal stroke instead of a readable 0. It reads as a ticked checkbox or a missing glyph. At 2x it is Orbitron's slashed zero, which at 1.1 rem in cyan on navy is indistinguishable from a checkbox. The DOM holds the digit 0 (checked with querySelector on .assets-stat-value). / Repro. 1. Log in to any account with no assets (the developer demo account on… (the rest: AB#1755)
 Symptom: On the Assets tab the five summary tiles (Units Stored, Resource Types, Offices, Leases, Extractors) show a small cyan box with a diagonal stroke instead of a readable 0. It reads as a ticked checkbox or a missing glyph. At 2x it is Orbitron's slashed zero, which at 1.1 rem in cyan on navy is indistinguishable from a checkbox. The DOM holds the digit 0 (checked with querySelector on .assets-stat-value).
@@ -314,7 +314,7 @@ Proposed fix: Confidence: high. In public/styles.css set .assets-stat-value to t
 
 - [x] Fixed: Assets summary tiles show a checkbox-like glyph where the number 0 should be
 
-### tests/integration/ticker-mining-settle.test.js is flaky under a full npm test run (Bug AB#1767, Resolved, not verified)
+### tests/integration/ticker-mining-settle.test.js is flaky under a full npm test run (Bug AB#1767, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. npm test intermittently fails 'miningTick settles mining exactly once per call, matching one direct applyMiningOperations call' with totalMined 0 instead of 60. Reproduces in a full npm test run; passed in every isolated rerun of the file alone (npx vitest run tests/integration/ticker-mining-settle.test.js) and in a second full-suite rerun immediately after. / Repro. Run npm test repeatedly (the full suite, not the file alone). Not reliably reproducible on demand in this session - seen… (the rest: AB#1767)
 Symptom: npm test intermittently fails 'miningTick settles mining exactly once per call, matching one direct applyMiningOperations call' with totalMined 0 instead of 60. Reproduces in a full npm test run; passed in every isolated rerun of the file alone (npx vitest run tests/integration/ticker-mining-settle.test.js) and in a second full-suite rerun immediately after.
@@ -323,7 +323,7 @@ Proposed fix: Confidence: low. Reproduce reliably first (loop npm test under sys
 
 - [x] Fixed: tests/integration/ticker-mining-settle.test.js is flaky under a full npm test run
 
-### A brief, sub-visual horizontal-overflow blip right after opening an agent's contract list at 375px (Bug AB#1781, Resolved, not verified)
+### A brief, sub-visual horizontal-overflow blip right after opening an agent's contract list at 375px (Bug AB#1781, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. At a 375px viewport, immediately after opening an Assignments Bureau agent's detail panel (the one showing bio, dialogue and Available Contracts), document.scrollingElement.scrollWidth briefly reads 380 instead of 375 -- 5px of horizontal overflow. It is gone within roughly 500ms: a settle wait before checking, or a fresh DOM scan for the offending element a moment later, finds nothing over width and no overflow at all. / Repro. 1. Start the server (npm start). 2. In Playwright, set… (the rest: AB#1781)
 Symptom: At a 375px viewport, immediately after opening an Assignments Bureau agent's detail panel (the one showing bio, dialogue and Available Contracts), document.scrollingElement.scrollWidth briefly reads 380 instead of 375 -- 5px of horizontal overflow. It is gone within roughly 500ms: a settle wait before checking, or a fresh DOM scan for the offending element a moment later, finds nothing over width and no overflow at all.
@@ -332,7 +332,7 @@ Proposed fix: Confidence: low. No confident fix without a reliable repro outside
 
 - [x] Fixed: A brief, sub-visual horizontal-overflow blip right after opening an agent's contract list at 375px
 
-### Create Listing's refusal is written below the visible screen, so a bad price or quantity looks like a dead click (Bug AB#2057, Resolved, not verified)
+### Create Listing's refusal is written below the visible screen, so a bad price or quantity looks like a dead click (Bug AB#2057, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. On the Galactic Exchange, pressing Create Listing with a blank, 0 or negative price, or a blank or 0 quantity, is now correctly refused (AB#1164). But the refusal text goes into #listing-status, below the whole Create Listing table. When the player has scrolled far enough to reach the row's button, that element is off-screen: measured after the click, its top was at 936px and 824px in an 800px viewport at 1280x800, and at 823px in an 812px viewport at 375x812, for Silicates and Carbon.… (the rest: AB#2057)
 Symptom: On the Galactic Exchange, pressing Create Listing with a blank, 0 or negative price, or a blank or 0 quantity, is now correctly refused (AB#1164). But the refusal text goes into #listing-status, below the whole Create Listing table. When the player has scrolled far enough to reach the row's button, that element is off-screen: measured after the click, its top was at 936px and 824px in an 800px viewport at 1280x800, and at 823px in an 812px viewport at 375x812, for Silicates and Carbon. No toast… (the rest: AB#2057)

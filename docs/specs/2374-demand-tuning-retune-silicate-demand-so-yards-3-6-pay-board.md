@@ -18,7 +18,7 @@ _To be written: the Feature had no acceptance criteria in Azure DevOps._
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 7 open, 1 resolved.
 
-### The standing bid prices a whole sale at the bid before it: 7,000 t sold in one lot are all paid the opening 24 (Bug AB#2356, Active)
+### The standing bid prices a whole sale at the bid before it: 7,000 t sold in one lot are all paid the opening 24 (Bug AB#2356, Active) (lane: interstellar-settlement-protocol/economy)
 
 What: Where: POST /api/market/npc-orders/:id/sell (server/routes/market.js). What: the route computes one unitPrice, npcBidFor(basePrice, soldToday) before the sale, and pays it for every unit of the lot; soldToday then jumps by the lot. Why it matters: ECONOMY.md (ISP-87) says a corporation that dumps volume 'pays for it twice - in the price it gets and in the price it gets tomorrow'. A seller who sells a day's output in one lot pays neither: the drift only ever hits the next seller. The economy… (the rest: AB#2356)
 Symptom: One sale of 7,000 Silicates into a fresh order: traded.unitPrice 24, total 168,000. The order then shows 13 (the floor). Along the published curve, unit by unit, the same 7,000 t pay 126,299 (18.04 a tonne).
@@ -27,7 +27,7 @@ Proposed fix: Root cause: market.js prices the lot at the bid before it (unitPri
 
 - [ ] Fixed: The standing bid prices a whole sale at the bid before it: 7,000 t sold in one lot are all paid the opening 24
 
-### The standing bid opens every day at base: the overnight 60% recovery is shown in the table but never paid (Bug AB#2357, Active)
+### The standing bid opens every day at base: the overnight 60% recovery is shown in the table but never paid (Bug AB#2357, Active) (lane: interstellar-settlement-protocol/economy)
 
 What: Where: checkAndResetNpcBuyOrders (server/ticks.js) and the sell route (server/routes/market.js). What: the daily reset sets soldToday = 0 and writes unitPrice = npcBidAfterRecovery(base, close). The sell route prices from basePrice and soldToday only, so the first sale of every day is paid the full base, while the table (and the mining rate advisor, which reads unitPrice since AB#1736) shows the recovered, lower bid. Why it matters: ECONOMY.md says 'a bid driven to the floor opens the next day… (the rest: AB#2357)
 Symptom: After 7,000 t sold (order at 13) and the daily reset: the order shows unitPrice 20 with soldToday 0; the next seller of 100 is paid 24.
@@ -36,7 +36,7 @@ Proposed fix: Root cause: the recovered bid is stored only as a display field; t
 
 - [ ] Fixed: The standing bid opens every day at base: the overnight 60% recovery is shown in the table but never paid
 
-### Once the overnight recovery is paid (AB#2357), the ladder bot goes broke at Level 3: the climb relied on every day opening at base (Bug AB#2361, Active)
+### Once the overnight recovery is paid (AB#2357), the ladder bot goes broke at Level 3: the climb relied on every day opening at base (Bug AB#2361, Active) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. With AB#2357's fix (a day's first sale paid the recovered bid, not the base), tests/probes/ladder-bot.test.js stops at Level 3 after 240 simulated days with 0 credits: it cannot rent the office (7,000) or start a cycle. Without the fix it climbs to Level 20. The bot sells roughly the whole world's 7,000 quota every day, so each day now opens at 20 instead of 24; its morning lot is paid 20 and its evening lot 13 to 16, about 17% less gross, and its two tier-1 yards' running cost (about… (the rest: AB#2361)
 Symptom: With AB#2357's fix (a day's first sale paid the recovered bid, not the base), tests/probes/ladder-bot.test.js stops at Level 3 after 240 simulated days with 0 credits: it cannot rent the office (7,000) or start a cycle. Without the fix it climbs to Level 20. The bot sells roughly the whole world's 7,000 quota every day, so each day now opens at 20 instead of 24; its morning lot is paid 20 and its evening lot 13 to 16, about 17% less gross, and its two tier-1 yards' running cost (about 62,800 a… (the rest: AB#2361)
@@ -45,7 +45,7 @@ Proposed fix: Confidence: medium. An Economist or Director call, one of: (a) kee
 
 - [ ] Fixed: Once the overnight recovery is paid (AB#2357), the ladder bot goes broke at Level 3: the climb relied on every day opening at base
 
-### Design the NPC buy-order model: discrete refilling orders, a stable price per order, and an edge over P2P (Board direction) (Requirement AB#2376, Proposed)
+### Design the NPC buy-order model: discrete refilling orders, a stable price per order, and an edge over P2P (Board direction) (Requirement AB#2376, Proposed) (lane: interstellar-settlement-protocol/client-views)
 
 What: Where it sits. Feature AB#2374 (Demand tuning), ISP epic AB#388. The Board gave this design's mechanism directly (Advisor relay, 2026-09-26), not chosen by a Builder or Director. / The Board's words, verbatim (Advisor tab, 2026-09-26): "So, eventually we are going to be overhauling that portion of it. For now, it's fine as is. We are going to make it so there is constant NPC trade volume. Buy orders get refilled over time. When this game is released, the intention is that the NPC buy orders will… (the rest: AB#2376)
 
@@ -57,7 +57,7 @@ What: Where it sits. Feature AB#2374 (Demand tuning), ISP epic AB#388. The Board
 - [ ] It names the follow-up implementation stories this design implies (filed once this lands, not guessed now) and which existing items (AB#2356, AB#2357, AB#2323, AB#801, AB#802) each one unblocks or supersedes.
 - [ ] No code or data changes; this story is docs only.
 
-### ISP pacing: Level 30 takes 236 to 242 simulated days by seed; decide whether it must fit in 240 (Requirement AB#4774, Proposed)
+### ISP pacing: Level 30 takes 236 to 242 simulated days by seed; decide whether it must fit in 240 (Requirement AB#4774, Proposed) (lane: interstellar-settlement-protocol/platform)
 
 What: ISP economy pacing. Found fixing Bug AB#2360. The ladder bot test (tests/probes/ladder-bot.test.js) caps the climb to Level 30 at 240 simulated days, as a pacing check (Bug #4657). With the server's random draws now seeded, the climb takes 238.4 days at seed 1, 236.2 at seed 2 and 241.8 at seed 3: Level 30 is mission-bound (570 missions), and luck decides which side of 240 it lands. Seed 1 passes, so the test is green and a failure now means the pacing changed. But whether Level 30 is meant to… (the rest: AB#4774)
 
@@ -65,7 +65,7 @@ What: ISP economy pacing. Found fixing Bug AB#2360. The ladder bot test (tests/p
 - [ ] If yes, the mission requirement or its supply is retuned so seeds 1 to 10 all reach Level 30 inside 240 days (LADDER_SEED=n LADDER_OUT=file npx vitest run tests/probes/ladder-bot.test.js).
 - [ ] If no, the test's cap and its comment say what it does check.
 
-### A broke corporation whose office has lapsed can never rent one again: the Salvage Assignment stops paying at 3,000 and an office costs 7,000 (Bug AB#4868, Proposed)
+### A broke corporation whose office has lapsed can never rent one again: the Salvage Assignment stops paying at 3,000 and an office costs 7,000 (Bug AB#4868, Proposed) (lane: interstellar-settlement-protocol/economy)
 
 What: ISP economy, the way back from broke (ECONOMY.md, ISP-289; the Salvage Assignment, ISP-297). A corporation with no credits, no goods and no office has one income: the Salvage Assignment, offered only while credits are under salvage.creditsThreshold (3,000) and paying salvage.payoutCredits (3,000). The cheapest office is a 7-day lease at 1,000 a day, 7,000. Without an office it cannot mine, hire or lease, and contracts need goods it has none of. So its credits cycle between under 3,000 and under… (the rest: AB#4868)
 Repro: Symptom: rent-office refused "requires 7,000 credits. Current reserves: 2,9xx" (and 3,xxx to 5,xxx) indefinitely. Repro: node ops/probes/isp-progression.ts --repo <isp> --broke-staffed prints FAIL. By hand: a corporation with staff, let its office run out at under 3,000 credits with no goods; take the Salvage Assignment each time it is offered; the office is never affordable.
@@ -73,7 +73,7 @@ Proposed fix: Data change: raise salvage.creditsThreshold in data/economy.json f
 
 - [ ] Fixed: A broke corporation whose office has lapsed can never rent one again: the Salvage Assignment stops paying at 3,000 and an office costs 7,000
 
-### Balance: no bot climbs past level 14 of 30; mining a corporation's own ore is at or below break-even at the bid it drives down (Bug AB#4871, Proposed)
+### Balance: no bot climbs past level 14 of 30; mining a corporation's own ore is at or below break-even at the bid it drives down (Bug AB#4871, Proposed) (lane: interstellar-settlement-protocol/client-views)
 
 What: ISP economy and level ladder, the v1.0 final balance pass (AB#965 measured it, AB#968 applies changes). The full-progression probe (ops/probes/isp-progression.ts) drives a new corporation up the ladder through the real routes. The target is the top level: 40 in the item's text, but the ladder defines 30 (Bug #424 corrected the cap). Neither bot gets near it. Every number below is a bot number (P-PROXY): 48 looks a bot day, up to 4 moves a look, seed 7000, one corporation alone in its world, ISP… (the rest: AB#4871)
 Repro: Symptom: the highest level reached in 120 bot days is 11 (planner) and 4 (greedy) of 30. Repro, from hq: node ops/probes/isp-progression.ts --repo <interstellar-settlement-protocol> --days 120 --bots planner, and again with --bots greedy; about five minutes each. The raw output of both runs is attached to AB#965.
@@ -81,7 +81,7 @@ Proposed fix: Data changes, proposed for AB#968 (not applied; the Board and PM d
 
 - [ ] Fixed: Balance: no bot climbs past level 14 of 30; mining a corporation's own ore is at or below break-even at the bid it drives down
 
-### isp-runway probe: the expander bot's bargain-buying rule spends nearly everything on other bots' listings, so check 3 measures starvation, not the sinks (Bug AB#2323, Resolved, not verified)
+### isp-runway probe: the expander bot's bargain-buying rule spends nearly everything on other bots' listings, so check 3 measures starvation, not the sinks (Bug AB#2323, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Symptom. The expander bot (ISP-310, AB#2306) reaches 3 yards and a Mars lease inside 30 days, then ends the run broke: 1,487 credits, its Mars yard never having run a mining cycle because it never had the startup cost at hand. Over the run it paid only 13,414 total across the three ISP-88 sinks (13,000 yard-price-growth, 414 lease-royalty, 0 yard-upkeep) - most of its money, 365,525, instead went to buying other bots' market listings through ops/probes/isp-runway.ts's bargain rule (~line 577:… (the rest: AB#2323)
 

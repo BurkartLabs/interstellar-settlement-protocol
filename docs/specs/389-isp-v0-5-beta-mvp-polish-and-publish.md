@@ -19,7 +19,7 @@ _To be written: the Feature had no acceptance criteria in Azure DevOps._
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 2 open, 92 resolved.
 
-### ISP-63 Run the playtest release gate on the deployed build (Requirement AB#750, Proposed)
+### ISP-63 Run the playtest release gate on the deployed build (Requirement AB#750, Proposed) (lane: interstellar-settlement-protocol/platform)
 
 What: Where it sits. v0.5 Beta MVP (#389), release gate, third of three replacing ISP-23 (#587): the item that says whether v0.5 is done. What it is. On the public URL: the Playwright run from v0.5-s35 at both viewports; a second account on a second device lists an item and the first account buys it; a return after the first cycle completes shows output, credits and something new to do; every dead end or unhelpful error is filed and fixed or deferred by the Board; then the Board plays it. Why it… (the rest: AB#750)
 
@@ -31,7 +31,7 @@ What: Where it sits. v0.5 Beta MVP (#389), release gate, third of three replacin
 - [ ] The suite is green on a fresh clone, count stated.
 - [ ] The Board has played it and says so on this item.
 
-### ISP-282 Wire the email sender the Board approved into the beta (Requirement AB#989, Active)
+### ISP-282 Wire the email sender the Board approved into the beta (Requirement AB#989, Active) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. v0.5 Beta MVP (#389), authentication review; the only part of D-0.5-2 (AB#694) that needs a new paid service, so it is blocked on Decision D-email. What it is. Provision the sender the Board chose in the infrastructure code, add its transport to the mail module, and configure the beta to use it. The connection secret (if any) is a Key Vault reference, set by a command the PR prints for the Board to run. Why it matters. Until this lands, verification and reset work only in tests,… (the rest: AB#989)
 
@@ -40,7 +40,7 @@ What: Where it sits. v0.5 Beta MVP (#389), authentication review; the only part 
 - [ ] A transport failure makes registration and reset return 503 with nothing half-created, and is logged without the recipient address (test with a failing transport).
 - [ ] The PR states the expected monthly cost at playtest volume against what the Board approved on D-email.
 
-### ISP-21 Design the quest spine: why you are a CEO, and what the journey is (Requirement AB#584, Resolved, not verified)
+### ISP-21 Design the quest spine: why you are a CEO, and what the journey is (Requirement AB#584, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Where it sits. v0.5 Beta MVP (#389), Onboarding and Tutorial, alongside ISP-5 (#404, tutorial drift) and ISP-6 (#405, first-session UX). Board direction, 2026-09-20, after walking the first session. / What it is. The Board: "I think I'd like the whole game to be quest driven... Friendly popups that guide you along the way with like a story as to WHY you're becoming a CEO and like the journey." / This item is the design, not the build. It is scoped that way deliberately: it reshapes how progression… (the rest: AB#584)
 
@@ -52,7 +52,7 @@ What: Where it sits. v0.5 Beta MVP (#389), Onboarding and Tutorial, alongside IS
 - [x] Prior art is cited: CCP's new-player experience work on the "what now?" moment when a guided sequence ends (cited in #426).
 - [x] The Board signs off the design on this item before any implementation story is written against it.
 
-### The schema test suite reads gitignored runtime state, so it is red on main and cannot load on a fresh clone (Bug AB#588, Resolved, not verified)
+### The schema test suite reads gitignored runtime state, so it is red on main and cannot load on a fresh clone (Bug AB#588, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Where this sits. tests/schema/data-files.test.js validates every catalog under data/. Its last describe block, data/state.json (line 219), is different from the others: state.json is not a catalog, it is the server's runtime global state, and it is gitignored (.gitignore: data/state.json). / Symptom. npm test on main is red: contains market and chatLog sections fails because data.chatLog is undefined. On a fresh clone the file does not exist at all, so load() throws inside the describe callback… (the rest: AB#588)
 Symptom: npm test on main is red: the test "contains market and chatLog sections" in tests/schema/data-files.test.js fails because data.chatLog is undefined. On a fresh clone data/state.json does not exist, so load() throws inside the describe callback and the whole file errors before any of its tests run, including the catalog checks that matter. The result depends on what the local server last wrote. / Larger than first reported (Builder, 2026-09-21, while fixing AB#692): without data/state.json,… (the rest: AB#588)
@@ -61,7 +61,7 @@ Proposed fix: Confidence: high. Delete the data/state.json describe block (tests
 
 - [x] Fixed: The schema test suite reads gitignored runtime state, so it is red on main and cannot load on a fresh clone
 
-### ISP-34 Bug sweep: office, hiring, extraction leases, extractors and mining cycles (Requirement AB#720, Resolved, not verified)
+### ISP-34 Bug sweep: office, hiring, extraction leases, extractors and mining cycles (Requirement AB#720, Resolved, not verified) (lane: interstellar-settlement-protocol/finance-politics)
 
 What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweeps replacing ISP-7 (#406). What it is. A structured pass over the core loop (office rent and renewal, hiring and payroll, extraction leases, extractor yards, starting and stopping cycles) on a local production-mode build of main (NODE_ENV=production, a fresh ISP_DATA_DIR), or on the deployed URL once v0.5-s24 exists, filing what it finds. Why it matters. Four versions of systems have accumulated without a sweep; each bug… (the rest: AB#720)
 
@@ -71,7 +71,7 @@ What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweep
 - [x] The sweep reports the number of findings per system and the actions that could not be exercised and why, so a quiet area is distinguishable from an untested one.
 - [x] One screenshot per screen exercised, at 1280x800, attached to the item.
 
-### ISP-35 Bug sweep: Galactic Exchange, standing orders, trade history and transfers (Requirement AB#721, Resolved, not verified)
+### ISP-35 Bug sweep: Galactic Exchange, standing orders, trade history and transfers (Requirement AB#721, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweeps replacing ISP-7 (#406). What it is. A structured pass over the Galactic Exchange (listing, buying, selling to standing orders, trade history, the suggested-price helper) and resource transfers on a local production-mode build of main (NODE_ENV=production, a fresh ISP_DATA_DIR), or on the deployed URL once v0.5-s24 exists, filing what it finds. Why it matters. Four versions of systems have accumulated without a sweep;… (the rest: AB#721)
 
@@ -82,7 +82,7 @@ What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweep
 - [x] Two accounts are used, so a player-to-player trade is completed at least once.
 - [x] One screenshot per screen exercised, at 1280x800, attached to the item.
 
-### ISP-36 Bug sweep: Corporate R&D, CEO Insight and corporation levels (Requirement AB#722, Resolved, not verified)
+### ISP-36 Bug sweep: Corporate R&D, CEO Insight and corporation levels (Requirement AB#722, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweeps replacing ISP-7 (#406). What it is. A structured pass over Corporate R&D, CEO Insight and the milestone ladder (queueing, completion, effects, level-up rewards) on a local production-mode build of main (NODE_ENV=production, a fresh ISP_DATA_DIR), or on the deployed URL once v0.5-s24 exists, filing what it finds. Why it matters. Four versions of systems have accumulated without a sweep; each bug filed before it is fixed… (the rest: AB#722)
 
@@ -93,7 +93,7 @@ What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweep
 - [x] A fake clock or a shortened duration in a dev build is used for queues, and the PR says which.
 - [x] One screenshot per screen exercised, at 1280x800, attached to the item.
 
-### ISP-37 Bug sweep: refinery chains, asteroid scouting, probes and expeditions (Requirement AB#723, Resolved, not verified)
+### ISP-37 Bug sweep: refinery chains, asteroid scouting, probes and expeditions (Requirement AB#723, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweeps replacing ISP-7 (#406). What it is. A structured pass over refinery chains, belt scouting, mining-probe fabrication and asteroid expeditions on a local production-mode build of main (NODE_ENV=production, a fresh ISP_DATA_DIR), or on the deployed URL once v0.5-s24 exists, filing what it finds. Why it matters. Four versions of systems have accumulated without a sweep; each bug filed before it is fixed is also data for the… (the rest: AB#723)
 
@@ -103,7 +103,7 @@ What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweep
 - [x] The sweep reports the number of findings per system and the actions that could not be exercised and why, so a quiet area is distinguishable from an untested one.
 - [x] One screenshot per screen exercised, at 1280x800, attached to the item.
 
-### ISP-38 Bug sweep: missions and contracts, travel and the starmap (Requirement AB#724, Resolved, not verified)
+### ISP-38 Bug sweep: missions and contracts, travel and the starmap (Requirement AB#724, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweeps replacing ISP-7 (#406). What it is. A structured pass over the Contracting and Assignments Bureau (accept, abandon, complete), personal travel and the starmap on a local production-mode build of main (NODE_ENV=production, a fresh ISP_DATA_DIR), or on the deployed URL once v0.5-s24 exists, filing what it finds. Why it matters. Four versions of systems have accumulated without a sweep; each bug filed before it is fixed is… (the rest: AB#724)
 
@@ -113,7 +113,7 @@ What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweep
 - [x] The sweep reports the number of findings per system and the actions that could not be exercised and why, so a quiet area is distinguishable from an untested one.
 - [x] One screenshot per screen exercised, at 1280x800, attached to the item.
 
-### ISP-39 Bug sweep: chat, forums, in-game mail and notifications (Requirement AB#725, Resolved, not verified)
+### ISP-39 Bug sweep: chat, forums, in-game mail and notifications (Requirement AB#725, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweeps replacing ISP-7 (#406). What it is. A structured pass over global chat, forums, in-game mail and notifications on a local production-mode build of main (NODE_ENV=production, a fresh ISP_DATA_DIR), or on the deployed URL once v0.5-s24 exists, filing what it finds. Why it matters. Four versions of systems have accumulated without a sweep; each bug filed before it is fixed is also data for the proposal hit rate in hq… (the rest: AB#725)
 
@@ -124,7 +124,7 @@ What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, one of six sweep
 - [x] The sweep records what one account can see of another account's data over the socket (see v0.5-s41) and files any leak as severity 1.
 - [x] One screenshot per screen exercised, at 1280x800, attached to the item.
 
-### ISP-43 Measure server tick and persistence cost at 10, 100 and 1,000 corporations (Requirement AB#729, Resolved, not verified)
+### ISP-43 Measure server tick and persistence cost at 10, 100 and 1,000 corporations (Requirement AB#729, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, first of two replacing ISP-9 (#408). What it is. A benchmark script that creates N synthetic corporations with active extractors, refineries and queues, runs each of the eight tickers (server/index.js:460 to :797) once, and times each; then times one full state write to disk at each N and records the file size. Why it matters. The per-second tick is what falls over first under load; the 30-second financial snapshot ticker also emits to… (the rest: AB#729)
 
@@ -133,7 +133,7 @@ What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, first of two rep
 - [x] Each over-budget ticker is filed as its own story with its number attached.
 - [x] The persistence frequency (debounce interval) is stated with the data-loss window it implies on a crash.
 
-### ISP-44 Measure the client render budget on a throttled mid-range profile (Requirement AB#730, Resolved, not verified)
+### ISP-44 Measure the client render budget on a throttled mid-range profile (Requirement AB#730, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, second of two replacing ISP-9 (#408). What it is. Measure first paint, time to interactive, and the cost of one full re-render (public/scripts/app.js:4788 re-renders every view on every update, per its own TODO) under Chrome DevTools 4x CPU throttling, with a corporation that has 5 extractors, a full order book and 50 trades. Why it matters. A vanilla-JS client with no build step and 6,641 lines in one file is where a phone will feel… (the rest: AB#730)
 
@@ -141,7 +141,7 @@ What: Where it sits. v0.5 Beta MVP (#389), Release Engineering, second of two re
 - [x] The budget is stated: a re-render under 16 ms median and under 50 ms p95.
 - [x] Anything over budget is filed as its own story with its number.
 
-### ISP-51 Write the one-file-per-system rule and split server/gameState.js (Requirement AB#737, Resolved, not verified)
+### ISP-51 Write the one-file-per-system rule and split server/gameState.js (Requirement AB#737, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Where it sits. v0.5 Beta MVP (#389), QoL Fixes, first of three replacing ISP-12 (#411). What it is. Write the rule into DESIGN_DOCUMENT.md and CONTRIBUTING.md (one module per system; a soft cap of about 600 lines; state, rules and I/O separated), then split server/gameState.js (2,594 lines) into modules along system lines: persistence, accounts, corporation and progression, mining, refining, asteroid operations, market, missions, messaging, with gameState.js left as a thin re-export. Why it… (the rest: AB#737)
 
@@ -151,7 +151,7 @@ What: Where it sits. v0.5 Beta MVP (#389), QoL Fixes, first of three replacing I
 - [x] The PR lists each new module with its line count.
 - [x] npm test is green on a fresh clone (no data/ directory), with the number of tests executed stated in the PR.
 
-### ISP-52 Split public/scripts/app.js, part 1: shared state, API client, helpers, walkthrough and dialogue (Requirement AB#738, Resolved, not verified)
+### ISP-52 Split public/scripts/app.js, part 1: shared state, API client, helpers, walkthrough and dialogue (Requirement AB#738, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Where it sits. v0.5 Beta MVP (#389), QoL Fixes, second of three replacing ISP-12 (#411). What it is. Move the shared pieces out of app.js (6,641 lines) into ES modules under public/scripts/: app state, the API and socket client, formatting helpers (consolidating the duplicates its TODOs name at :533, :2254, :2606), the walkthrough and the dialogue system. Why it matters. The screen rebuild (ISP-26) touches every tab; doing it on a single 6,641-line file makes every change a whole-file change.… (the rest: AB#738)
 
@@ -160,7 +160,7 @@ What: Where it sits. v0.5 Beta MVP (#389), QoL Fixes, second of three replacing 
 - [x] Screenshot of the Overview tab after the split at 1280x800 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 - [x] npm test is green on a fresh clone (no data/ directory), with the number of tests executed stated in the PR.
 
-### ISP-53 Split public/scripts/app.js, part 2: one module per tab (Requirement AB#739, Resolved, not verified)
+### ISP-53 Split public/scripts/app.js, part 2: one module per tab (Requirement AB#739, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Where it sits. v0.5 Beta MVP (#389), QoL Fixes, third of three replacing ISP-12 (#411). What it is. Move each tab's renderer (Overview, Inbox, Station and building views, Financial Core, R&D, CEO Insight, Refinery Chains, Exchange, Assets, Logistics, Comms, Forums, Assignments, Starmap) into public/scripts/views/, leaving app.js as bootstrap and routing. Why it matters. It is the shape ISP-26 rebuilds screen by screen. Estimate: 1 session, assuming v0.5-s26 has landed.
 
@@ -169,7 +169,7 @@ What: Where it sits. v0.5 Beta MVP (#389), QoL Fixes, third of three replacing I
 - [x] Screenshot of every tab (one screenshot each) at 1280x800 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 - [x] npm test is green on a fresh clone (no data/ directory), with the number of tests executed stated in the PR.
 
-### ISP-56 Procedural renders for every body outside Sol (Requirement AB#742, Resolved, not verified)
+### ISP-56 Procedural renders for every body outside Sol (Requirement AB#742, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Where it sits. v0.5 Beta MVP (#389), carried over from the kanban (was ISP-14, #413). What it is. The 20 bodies in Alpha Centauri, Barnard's Star, Wolf 359, Tau Ceti and Epsilon Eridani are fictional, so no photograph exists. Render each procedurally on the canvas from a per-body style in data/systems.json (base colour, bands, craters or clouds, atmosphere), deterministic per body. Why it matters. The same placeholder argument as Sol, for the systems the player reaches by research. Estimate: 1… (the rest: AB#742)
 
@@ -178,7 +178,7 @@ What: Where it sits. v0.5 Beta MVP (#389), carried over from the kanban (was ISP
 - [x] Rendering the busiest system costs under 16 ms a frame at 4x CPU throttle (measured, number in the PR).
 - [x] Screenshot of the Alpha Centauri and Barnard's Star views at 1280x800 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-57 Confirmation modal for the core-loop actions, and the first level-up (Requirement AB#743, Resolved, not verified)
+### ISP-57 Confirmation modal for the core-loop actions, and the first level-up (Requirement AB#743, Resolved, not verified) (lane: interstellar-settlement-protocol/combat)
 
 What: Where it sits. v0.5 Beta MVP (#389), Onboarding (Board direction 2026-09-20), first of two replacing ISP-19 (#582). What it is. One shared confirmation component (what was bought, what it cost, what it grants, the next action) used by rent office, renew office, hire, file extraction lease, commission extractor yard and start cycle; and a distinct milestone variant for a level-up that names what the level unlocked (hiring the fifth employee: Level 1, employees 5/20, building slots 4, fleet cap… (the rest: AB#743)
 
@@ -188,7 +188,7 @@ What: Where it sits. v0.5 Beta MVP (#389), Onboarding (Board direction 2026-09-2
 - [x] Copy is in the ISA register (no exclamation marks, no "Congratulations!").
 - [x] Screenshot of the modal after hiring, and the Level 1 milestone modal at 1280x800 and 375x812 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-58 Confirmation modal for every remaining committing action (Requirement AB#744, Resolved, not verified)
+### ISP-58 Confirmation modal for every remaining committing action (Requirement AB#744, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Where it sits. v0.5 Beta MVP (#389), Onboarding, second of two replacing ISP-19 (#582). What it is. Wire the component into refinery build and start, probe fabrication, belt scouting, expeditions, R&D and CEO Insight queueing, exchange listing, buying and selling to a standing order, transfers, travel and mission accept and complete. Why it matters. Same reason as v0.5-s31, applied to the rest of the game. Estimate: 1 session, assuming v0.5-s31 has landed.
 
@@ -196,7 +196,7 @@ What: Where it sits. v0.5 Beta MVP (#389), Onboarding, second of two replacing I
 - [x] An action that fails shows the error, not a confirmation.
 - [x] Screenshot of the modal after an exchange sale and after queueing research at 1280x800 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-59 Acknowledge changing numbers where they change (Requirement AB#745, Resolved, not verified)
+### ISP-59 Acknowledge changing numbers where they change (Requirement AB#745, Resolved, not verified) (lane: interstellar-settlement-protocol/combat)
 
 What: Where it sits. v0.5 Beta MVP (#389), polish (Board direction 2026-09-20), first of two replacing ISP-20 (#583). What it is. When credits, employees, building slots, fleet cap or inventory change, the number animates to its new value and briefly highlights (up and down distinguished), using the design system's motion tokens; prefers-reduced-motion shows the change without motion. Why it matters. The Board: "when we do something it should feel rewarding"; today the only evidence a hire worked is… (the rest: AB#745)
 
@@ -206,7 +206,7 @@ What: Where it sits. v0.5 Beta MVP (#389), polish (Board direction 2026-09-20), 
 - [x] A number updated by a socket event while the tab is hidden does not queue a burst of animations on return.
 - [x] A screen recording (GIF or MP4) of a hire and a sale attached to the PR, looked at by the author.
 
-### ISP-60 Show accumulation in an active mining cycle (Requirement AB#746, Resolved, not verified)
+### ISP-60 Show accumulation in an active mining cycle (Requirement AB#746, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. v0.5 Beta MVP (#389), polish, second of two replacing ISP-20 (#583). What it is. The active cycle shows a flat bar at 0% and a countdown while tonnage accrues every five seconds. Show tonnes mined this cycle (from #575's minedThisCycle), the credits spent so far, the rate, and a bar that fills with elapsed time. Why it matters. The core verb is invisible while it happens; accumulation is what makes a running cycle feel like it is working. Estimate: 1 session, assuming #575 has… (the rest: AB#746)
 
@@ -214,7 +214,7 @@ What: Where it sits. v0.5 Beta MVP (#389), polish, second of two replacing ISP-2
 - [x] The bar reflects elapsed fraction of the cycle and is correct after a reload.
 - [x] Screenshot of an extractor panel 1 minute and 1 hour into a cycle at 1280x800 and 375x812 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-61 A scripted first-hour playtest in Playwright that saves screenshots (Requirement AB#747, Resolved, not verified)
+### ISP-61 A scripted first-hour playtest in Playwright that saves screenshots (Requirement AB#747, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Where it sits. v0.5 Beta MVP (#389), release gate, first of three replacing ISP-23 (#587). What it is. A Playwright script that registers a fresh account against BASE_URL and plays the first hour (office, hire to five, lease, yard, cycle, sell to a standing order, queue research, accept a contract) at 1280x800 and 375x812, saving a screenshot per step, with a shortened clock in dev builds. Why it matters. Builder rule 4 and CLAUDE.md: unit tests certify rules, not the product. Every looked-at… (the rest: AB#747)
 
@@ -223,7 +223,7 @@ What: Where it sits. v0.5 Beta MVP (#389), release gate, first of three replacin
 - [x] At 375x812 the script asserts no horizontal scroll on each screen (document.scrollingElement.scrollWidth <= innerWidth).
 - [x] The run's screenshots are attached to the PR and the author states what they looked at.
 
-### ISP-62 A one-page how-to-start for playtesters, linked from the landing page (Requirement AB#748, Resolved, not verified)
+### ISP-62 A one-page how-to-start for playtesters, linked from the landing page (Requirement AB#748, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Where it sits. v0.5 Beta MVP (#389), release gate, second of three replacing ISP-23 (#587). What it is. A single in-app page (/how-to-start) in the ISA voice: what the game is, the first hour in eight steps, how to report a bug, and what is not in this build. Why it matters. It is the artefact the Board hands out with the URL. Estimate: 1 session, assuming the walkthrough stories (ISP-5, 17, 18, 16) have landed so it describes the real first hour.
 
@@ -231,7 +231,7 @@ What: Where it sits. v0.5 Beta MVP (#389), release gate, second of three replaci
 - [x] Every step it names matches the walkthrough order and the build's figures (checked against ECONOMY.md).
 - [x] Screenshot of /how-to-start at 1280x800 and 375x812 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-65 Security headers: helmet, a content security policy the app runs under, and an explicit CORS policy (Requirement AB#753, Resolved, not verified)
+### ISP-65 Security headers: helmet, a content security policy the app runs under, and an explicit CORS policy (Requirement AB#753, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. v0.5 Beta MVP (#389), authentication review, replacing point 4 of ISP-24 (#590). What it is. Add helmet with a CSP: script-src 'self' and the Chart.js CDN origin (or Chart.js vendored), no 'unsafe-inline' for scripts, so inline event handlers in rendered HTML are converted to listeners; style-src may keep 'unsafe-inline' until ISP-26 removes inline styles, stated in the PR. CORS allows only the app's own origin. Why it matters. On a public origin, headers are the difference… (the rest: AB#753)
 
@@ -240,7 +240,7 @@ What: Where it sits. v0.5 Beta MVP (#389), authentication review, replacing poin
 - [x] A cross-origin request from another origin is refused by CORS (tested).
 - [x] Screenshot of the browser console on the Overview and Exchange tabs showing no CSP violations at 1280x800 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-66 Validate registration fields on the server with copy that says what to fix (Requirement AB#755, Resolved, not verified)
+### ISP-66 Validate registration fields on the server with copy that says what to fix (Requirement AB#755, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. v0.5 Beta MVP (#389), authentication review, replacing point 5 of ISP-24 (#590), alongside #433 (corporation names). What it is. createAccount (server/gameState.js:2146) checks password length and duplicate email only. Add: email format and a 254-character limit, email lower-cased before the duplicate check, password 10 to 128 characters, ceoName 2 to 40 characters with the same character rules as corpName. Why it matters. Input validation at the boundary is the first line of… (the rest: AB#755)
 
@@ -249,7 +249,7 @@ What: Where it sits. v0.5 Beta MVP (#389), authentication review, replacing poin
 - [x] Security: only email, password hash and names are stored; hostile values are rejected before hashing; the error never echoes the password.
 - [x] Screenshot of the register page showing one field error at 375x812 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### Move login tokens out of localStorage: refresh token in an HttpOnly cookie, access token in memory (Requirement AB#757, Resolved, not verified)
+### Move login tokens out of localStorage: refresh token in an HttpOnly cookie, access token in memory (Requirement AB#757, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. v0.5 Beta MVP (#389), authentication review, replacing points 2, 7 and 8 of ISP-24 (#590). The Board answered D-0.5-2 (AB#694): "Login tokens should live where they would normally live. Yes to email verification and password reset." Read as option B, the standard answer (OWASP Session Management and JWT cheat sheets). Email verification and password reset are separate new stories; the Board-only reset script (option C) is dropped because the Board chose reset by email. What it… (the rest: AB#757)
 
@@ -259,7 +259,7 @@ What: Where it sits. v0.5 Beta MVP (#389), authentication review, replacing poin
 - [x] Security answer in the PR: what is stored where, what an injected script can and cannot read, what fails closed.
 - [x] npm test is green on a fresh clone (no data/ directory), with the number of tests executed stated in the PR.
 
-### ISP-69 One flat-direction mockup of the Station screen for the Board's yes or no (Requirement AB#758, Resolved, not verified)
+### ISP-69 One flat-direction mockup of the Station screen for the Board's yes or no (Requirement AB#758, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. v0.5 Beta MVP (#389), design system (Board direction 2026-09-20), first of six replacing ISP-25 (#592). Rewritten 2026-09-25 to the Board's answer on Decision AB#1764: one mockup, not three. The visual-design Critique (AB#1757, POLISH 2.4/5) and AB#592 both point to the same direction, so the Board reviews one mockup and answers yes, or no with what is wrong. / What it is. One Station screen as a real HTML page with real copy and the existing station artwork, at 1280 and 375 wide,… (the rest: AB#758)
 
@@ -268,7 +268,7 @@ What: Where it sits. v0.5 Beta MVP (#389), design system (Board direction 2026-0
 - [x] Screenshots at 1280x800 and 375x812 are attached and the mockup is shown to the Board as an artifact.
 - [x] The PR files a Board Decision asking yes, or no with what is wrong, with the screenshots and the artifact link, linked from this item and from AB#1764. A no produces a second mockup aimed at the Board's note, not three new directions.
 
-### ISP-70 Design tokens and type for the chosen direction, with contrast checked (Requirement AB#759, Resolved, not verified)
+### ISP-70 Design tokens and type for the chosen direction, with contrast checked (Requirement AB#759, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. v0.5 Beta MVP (#389), design system, second of six replacing ISP-25 (#592). What it is. CSS custom properties for colour (background, surface, raised, border, three text weights, accent, warn, danger, success, each with hover and pressed), a six-step type scale with one body face and at most one display face, a 4px spacing scale, radii, elevation, motion durations and easings, and z-index layers, in one token block at the top of styles.css. Why it matters. Tokens are what make a… (the rest: AB#759)
 
@@ -278,7 +278,7 @@ What: Where it sits. v0.5 Beta MVP (#389), design system, second of six replacin
 - [x] Every text token against each surface token meets WCAG AA (4.5:1 body, 3:1 large), checked with a tool, ratios listed in the PR.
 - [x] Screenshot of a token specimen page at /styleguide/tokens at 1280x800 and 375x812 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-71 Replace hard-coded colours, sizes and spacing in styles.css with tokens (Requirement AB#760, Resolved, not verified)
+### ISP-71 Replace hard-coded colours, sizes and spacing in styles.css with tokens (Requirement AB#760, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. v0.5 Beta MVP (#389), design system, third of six replacing ISP-25 (#592). What it is. public/styles.css is 5,386 lines with literal colours, sizes and spacing; move every one onto the tokens, removing the glow and 1px cyan borders the direction drops. Why it matters. Until the literals are gone, the tokens are decoration. Direction. The Board closed D-0.5-3 (AB#695) as prematurely opened: the choice is made on the Board Decision that ISP-69 (AB#758) files with the three mockups.… (the rest: AB#760)
 
@@ -286,7 +286,7 @@ What: Where it sits. v0.5 Beta MVP (#389), design system, third of six replacing
 - [x] Outside the token block, git grep in styles.css for hex colours, rgb( and px font sizes returns nothing (a test runs the grep).
 - [x] Every tab renders with no layout break compared with before (before and after screenshots of each tab at 1280x800 attached).
 
-### ISP-72 Core components on a /styleguide page: buttons, inputs, cards, panels, tabs, badges, tooltips (Requirement AB#761, Resolved, not verified)
+### ISP-72 Core components on a /styleguide page: buttons, inputs, cards, panels, tabs, badges, tooltips (Requirement AB#761, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. v0.5 Beta MVP (#389), design system, fourth of six replacing ISP-25 (#592). What it is. Button (primary, secondary, ghost, danger; hover, focus, active, disabled, loading), input and select, card, panel with header, tabs, badge/pill and tooltip, each rendered in every state with real ISP copy on an in-app /styleguide page. Why it matters. The Board reviews the system before any screen is touched. Direction. The Board closed D-0.5-3 (AB#695) as prematurely opened: the choice is… (the rest: AB#761)
 
@@ -295,7 +295,7 @@ What: Where it sits. v0.5 Beta MVP (#389), design system, fourth of six replacin
 - [x] Every interactive component has a visible focus ring by keyboard and a 44px touch target at 375px.
 - [x] Screenshot of /styleguide at 1280x800 and 375x812 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-73 Data components on the styleguide: table-to-cards, toast, modal, progress and cycle, empty state, skeleton, KPI tile (Requirement AB#762, Resolved, not verified)
+### ISP-73 Data components on the styleguide: table-to-cards, toast, modal, progress and cycle, empty state, skeleton, KPI tile (Requirement AB#762, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. v0.5 Beta MVP (#389), design system, fifth of six replacing ISP-25 (#592). What it is. A data table that becomes cards below 768px, toast, modal and confirmation (restyling v0.5-s31's component), progress bar and the cycle indicator, an empty state that says why it is empty and what to do (distinct from an error state), skeleton loading and the KPI tile. Why it matters. These are the pieces the screens are built from, and the empty-versus-error distinction is how #577 would have… (the rest: AB#762)
 
@@ -304,7 +304,7 @@ What: Where it sits. v0.5 Beta MVP (#389), design system, fifth of six replacing
 - [x] The table shows as a table at 1280 and as cards at 375, with no horizontal scroll.
 - [x] Screenshot of /styleguide data section at 1280x800 and 375x812 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-74 The app shell: sidebar on desktop, bottom navigation on phone, focus and reduced motion (Requirement AB#763, Resolved, not verified)
+### ISP-74 The app shell: sidebar on desktop, bottom navigation on phone, focus and reduced motion (Requirement AB#763, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. v0.5 Beta MVP (#389), design system, sixth of six replacing ISP-25 (#592). What it is. A layout that is sidebar plus content at 1280 and bottom navigation plus full-width content at 375, decided by the layout rather than by the current fifteen media queries; visible focus throughout; prefers-reduced-motion respected. Why it matters. Mobile must never be a limitation (Board, 2026-09-20). Direction. The Board closed D-0.5-3 (AB#695) as prematurely opened: the choice is made on the… (the rest: AB#763)
 
@@ -314,7 +314,7 @@ What: Where it sits. v0.5 Beta MVP (#389), design system, sixth of six replacing
 - [x] The old media queries that the shell replaces are deleted, with the count before and after in the PR.
 - [x] Screenshot of the shell on the Overview tab at 1280x800 and 375x812 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-75 Group the navigation into Company, Station, Industry, Market, Comms and Map (Requirement AB#764, Resolved, not verified)
+### ISP-75 Group the navigation into Company, Station, Industry, Market, Comms and Map (Requirement AB#764, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board direction 2026-09-20), one of nine replacing ISP-26 (#593). What it is. Rebuild the navigation: the fourteen tabs grouped as Company, Station, Industry, Market, Comms, Map, reachable from the bottom nav at 375 without scrolling the nav on the design system at 375, 768 and 1280 wide, with no legacy component or ad-hoc style left. Why it matters. Fourteen top-level tabs is too many for a bottom nav and for a first hour.… (the rest: AB#764)
 
@@ -325,7 +325,7 @@ What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board d
 - [x] The walkthrough reveals a group when it first becomes relevant, and a returning player sees all groups.
 - [x] Screenshots of every screen in scope at 375x812, 768x1024 and 1280x800 attached to the PR, and the author states what they looked at in each (RUBRIC gate).
 
-### ISP-76 Rebuild the landing, login and register pages (Requirement AB#765, Resolved, not verified)
+### ISP-76 Rebuild the landing, login and register pages (Requirement AB#765, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board direction 2026-09-20), one of nine replacing ISP-26 (#593). What it is. Rebuild the landing, login and register pages on the design system at 375, 768 and 1280 wide, with no legacy component or ad-hoc style left. Why it matters. They are the first thing a stranger sees. Direction. The Board closed D-0.5-3 (AB#695) as prematurely opened: the choice is made on the Board Decision that ISP-69 (AB#758) files with the three… (the rest: AB#765)
 
@@ -335,7 +335,7 @@ What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board d
 - [x] Every table in scope is cards below 768px.
 - [x] Screenshots of every screen in scope at 375x812, 768x1024 and 1280x800 attached to the PR, and the author states what they looked at in each (RUBRIC gate).
 
-### ISP-77 Rebuild Overview, Inbox and the Financial Core (Requirement AB#766, Resolved, not verified)
+### ISP-77 Rebuild Overview, Inbox and the Financial Core (Requirement AB#766, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board direction 2026-09-20), one of nine replacing ISP-26 (#593). What it is. Rebuild Overview, Inbox and Financial Core (including the statements view from v0.5-s03) on the design system at 375, 768 and 1280 wide, with no legacy component or ad-hoc style left. Why it matters. They are the Company group, where every session starts. Direction. The Board closed D-0.5-3 (AB#695) as prematurely opened: the choice is made on the… (the rest: AB#766)
 
@@ -345,7 +345,7 @@ What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board d
 - [x] Every table in scope is cards below 768px.
 - [x] Screenshots of every screen in scope at 375x812, 768x1024 and 1280x800 attached to the PR, and the author states what they looked at in each (RUBRIC gate).
 
-### ISP-78 Rebuild the Station and building views, with each station's artwork doing the work (Requirement AB#767, Resolved, not verified)
+### ISP-78 Rebuild the Station and building views, with each station's artwork doing the work (Requirement AB#767, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board direction 2026-09-20), one of nine replacing ISP-26 (#593). What it is. Rebuild the Station tab and its building views (Orbital Executive Suites, ISA Claims and Leases, extractor panel) on the design system at 375, 768 and 1280 wide, with no legacy component or ad-hoc style left. Why it matters. The first hour happens here, and the station artwork is the atmosphere the design leans on. Absorbs ISP-15 (#414). Direction. The… (the rest: AB#767)
 
@@ -356,7 +356,7 @@ What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board d
 - [x] Each station's artwork is visible at full contrast behind or beside its views, and the station a player is in is identifiable from a screenshot alone (ISP-15's criterion).
 - [x] Screenshots of every screen in scope at 375x812, 768x1024 and 1280x800 attached to the PR, and the author states what they looked at in each (RUBRIC gate).
 
-### ISP-79 Rebuild Corporate R&D, CEO Insight, Refinery Chains, Assets and Logistics (Requirement AB#768, Resolved, not verified)
+### ISP-79 Rebuild Corporate R&D, CEO Insight, Refinery Chains, Assets and Logistics (Requirement AB#768, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board direction 2026-09-20), one of nine replacing ISP-26 (#593). What it is. Rebuild Corporate R&D, CEO Insight, Refinery Chains, Assets and Logistics on the design system at 375, 768 and 1280 wide, with no legacy component or ad-hoc style left. Why it matters. The Industry group is the mid-game. Direction. The Board closed D-0.5-3 (AB#695) as prematurely opened: the choice is made on the Board Decision that ISP-69 (AB#758)… (the rest: AB#768)
 
@@ -366,7 +366,7 @@ What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board d
 - [x] Every table in scope is cards below 768px.
 - [x] Screenshots of every screen in scope at 375x812, 768x1024 and 1280x800 attached to the PR, and the author states what they looked at in each (RUBRIC gate).
 
-### ISP-80 Rebuild the Galactic Exchange (Requirement AB#769, Resolved, not verified)
+### ISP-80 Rebuild the Galactic Exchange (Requirement AB#769, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board direction 2026-09-20), one of nine replacing ISP-26 (#593). What it is. Rebuild the Galactic Exchange (order book, standing buy orders, my listings, trade history, price charts, filters) on the design system at 375, 768 and 1280 wide, with no legacy component or ad-hoc style left. Why it matters. The exchange is the game's core bet and its densest screen. Direction. The Board closed D-0.5-3 (AB#695) as prematurely opened:… (the rest: AB#769)
 
@@ -377,7 +377,7 @@ What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board d
 - [x] No scrollbar furniture shows on an empty table (from ISP-20).
 - [x] Screenshots of every screen in scope at 375x812, 768x1024 and 1280x800 attached to the PR, and the author states what they looked at in each (RUBRIC gate).
 
-### ISP-81 Rebuild Comms, Forums and Assignments (Requirement AB#770, Resolved, not verified)
+### ISP-81 Rebuild Comms, Forums and Assignments (Requirement AB#770, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board direction 2026-09-20), one of nine replacing ISP-26 (#593). What it is. Rebuild Comms, Forums and Assignments (all of chat, forums and player mail: the Board ruled on D-0.5-4, AB#696, that they ship to the playtest with no safety measures) on the design system at 375, 768 and 1280 wide, with no legacy component or ad-hoc style left. Why it matters. The Comms group and the contract loop. Direction. The Board closed D-0.5-3… (the rest: AB#770)
 
@@ -387,7 +387,7 @@ What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board d
 - [x] Every table in scope is cards below 768px.
 - [x] Screenshots of every screen in scope at 375x812, 768x1024 and 1280x800 attached to the PR, and the author states what they looked at in each (RUBRIC gate).
 
-### ISP-82 Rebuild the Starmap, the walkthrough surface and the dialogue (Requirement AB#771, Resolved, not verified)
+### ISP-82 Rebuild the Starmap, the walkthrough surface and the dialogue (Requirement AB#771, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board direction 2026-09-20), one of nine replacing ISP-26 (#593). What it is. Rebuild the Starmap, the walkthrough overlay and the dialogue (with Elara Voss's portrait) on the design system at 375, 768 and 1280 wide, with no legacy component or ad-hoc style left. Why it matters. They carry the opening and the sense of scale. Direction. The Board closed D-0.5-3 (AB#695) as prematurely opened: the choice is made on the Board… (the rest: AB#771)
 
@@ -397,7 +397,7 @@ What: Where it sits. v0.5 Beta MVP (#389), screens on the design system (Board d
 - [x] Every table in scope is cards below 768px.
 - [x] Screenshots of every screen in scope at 375x812, 768x1024 and 1280x800 attached to the PR, and the author states what they looked at in each (RUBRIC gate).
 
-### ISP-83 Accessibility score and a three-width sweep of every screen (Requirement AB#772, Resolved, not verified)
+### ISP-83 Accessibility score and a three-width sweep of every screen (Requirement AB#772, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Where it sits. v0.5 Beta MVP (#389), screens on the design system, last of nine replacing ISP-26 (#593). What it is. Run Lighthouse accessibility on the main app view and the landing page, fix what it finds, and run the Playwright harness (v0.5-s35) at 375, 768 and 1280 over every screen. Why it matters. It is the check that the nine screen stories add up to one product. Direction. The Board closed D-0.5-3 (AB#695) as prematurely opened: the choice is made on the Board Decision that ISP-69… (the rest: AB#772)
 
@@ -406,7 +406,7 @@ What: Where it sits. v0.5 Beta MVP (#389), screens on the design system, last of
 - [x] No screen has horizontal scroll at any of the three widths (asserted by the harness).
 - [x] Screenshots of every screen at all three widths attached, and the author states what they looked at.
 
-### ISP-84 Write ISP's first probe: ladder reachability, content runway and the sink curve (Requirement AB#773, Resolved, not verified)
+### ISP-84 Write ISP's first probe: ladder reachability, content runway and the sink curve (Requirement AB#773, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. Depth Critique #426 epic 4, merged with Monetization Critique #434 epic 4. hq/ops/probes holds only relic-vault-runway.ts. What it is. hq/ops/probes/isp-runway.ts: a headless planner bot and a greedy bot that drive ISP in-process (ISP_DISABLE_TICKERS, a fake clock, the real route handlers through supertest or the exported rules) for 30 simulated days, printing the highest corporation level reached, the day each research and insight queue empties, and credits banked versus spent… (the rest: AB#773)
 
@@ -415,14 +415,14 @@ What: Where it sits. Depth Critique #426 epic 4, merged with Monetization Critiq
 - [x] On main before #424 is fixed it reports level 5 as the highest reachable, matching the bug (a check that the probe measures the real thing).
 - [x] The nightly probe job picks it up (or the PR says why not), and review #2 can quote its raw output.
 
-### ISP-85 Add decision density and the greedy-versus-planner gap to the ISP probe (Requirement AB#774, Resolved, not verified)
+### ISP-85 Add decision density and the greedy-versus-planner gap to the ISP probe (Requirement AB#774, Resolved, not verified) (lane: interstellar-settlement-protocol/finance-politics)
 
 What: Where it sits. Depth Critique #426 epic 4 (second half). What it is. Extend the probe with the Depth RUBRIC's decision density (the share of extractor-start decisions where at least two settings are non-equivalent) and the credit gap between the greedy and planner bots at day 7. Why it matters. It is the measurement the extractor trade-off (v0.5-c03) is judged by. Estimate: 1 session, assuming v0.5-c01 has landed.
 
 - [x] The probe prints decision density for extractor starts and the day-7 greedy/planner credit gap, labelled as bot numbers.
 - [x] On main today it reports decision density near 0 for throughput (max is always optimal, T-018), confirming it measures the known problem.
 
-### ISP-86 Give extractor throughput an interior optimum (Requirement AB#775, Resolved, not verified)
+### ISP-86 Give extractor throughput an interior optimum (Requirement AB#775, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. Depth Critique #426 epic 2; T-018. What it is. Revenue is 24 x T x 0.92 an hour and operating cost 16 x T, both linear in the throughput T the player sets, so 250 t/h is always right. Make the operating cost superlinear in T (for example cost = base x T x (1 + (T / T_ref)^2), constants in data/economy.json) so the best throughput depends on the body, the research owned and the price, and write the optimum into ECONOMY.md. Why it matters. The core verb currently contains no… (the rest: AB#775)
 
@@ -432,7 +432,7 @@ What: Where it sits. Depth Critique #426 epic 2; T-018. What it is. Revenue is 2
 - [x] The cost is a tax on rate, never on access: every throughput from 10 to 250 stays startable.
 - [x] Screenshot of the extractor start form at two throughputs showing different projected profit at 1280x800 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-87 Make the NPC standing bid a floor that drifts with volume, and stop the price helper pinning to it (Requirement AB#777, Resolved, not verified)
+### ISP-87 Make the NPC standing bid a floor that drifts with volume, and stop the price helper pinning to it (Requirement AB#777, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. Depth Critique #426 epic 3, with the Monetization Critique's note on the suggested-price helper (public/scripts/app.js:920 to 964). What it is. The silicate standing bid is a fixed 24 credits with 1,000,000 units a day of depth (server/gameState.js:1488), which no player reaches, so the rational play is never to trade with another player. Shrink the daily quota to a level a real corporation reaches, let the bid fall with volume sold that day and recover overnight, never below a… (the rest: AB#777)
 
@@ -443,7 +443,7 @@ What: Where it sits. Depth Critique #426 epic 3, with the Monetization Critique'
 - [x] Security: the bid is computed on the server; a hostile seller dumping volume only lowers the bid to the floor, so a new player is never stranded.
 - [x] Screenshot of the standing buy orders with a drifted bid and remaining quota at 1280x800 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-88 Design the credit sinks that scale with income past the first session (Requirement AB#778, Resolved, not verified)
+### ISP-88 Design the credit sinks that scale with income past the first session (Requirement AB#778, Resolved, not verified) (lane: interstellar-settlement-protocol/finance-politics)
 
 What: Where it sits. Monetization Critique #434 epic 2 (the sink half; the ladder half is #424). What it is. Credits pile up after about minute 120 with nothing to want: about 13 sinks, all one-off except payroll and office rent. Write a design in ECONOMY.md for sinks that scale with income (recurring facility upkeep, tiered leases, a capital cost that rises with corporation size), with the numbers the probe will check, and file one implementation story per sink under TRACKING.md. Why it matters.… (the rest: AB#778)
 
@@ -452,7 +452,7 @@ What: Where it sits. Monetization Critique #434 epic 2 (the sink half; the ladde
 - [x] Prior art cited: faucet-and-sink design from MMO economics (for example the Game Developer article cited in #434).
 - [x] One implementation story per sink is filed with description, acceptance and estimate, linked here.
 
-### ISP-89 A test that fails if payment code appears in ISP before 1.0 (Requirement AB#779, Resolved, not verified)
+### ISP-89 A test that fails if payment code appears in ISP before 1.0 (Requirement AB#779, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Where it sits. Monetization Critique #434 epic 3 (the test half; the brief paragraph is v0.5-c07). What it is. BRIEF.md says "none before 1.0"; nothing enforces it. Add a Vitest test that fails if payment or pricing vocabulary appears in server/ or public/ (stripe, paypal, paddle, checkout, iap, in-app, subscription, loot box, gacha, real-money currency formatting other than the credits formatter at public/scripts/app.js:537). Why it matters. P-WIRED-NOTHING: a promise in prose is kept by… (the rest: AB#779)
 
@@ -460,14 +460,14 @@ What: Where it sits. Monetization Critique #434 epic 3 (the test half; the brief
 - [x] Its allowlist names each benign match with the reason (the credits formatter, the word "premium" in flavour text).
 - [x] npm test is green on a fresh clone (no data/ directory), with the number of tests executed stated in the PR.
 
-### ISP-90 Write the monetization constraint into ISP's brief as the Board worded it (Requirement AB#780, Resolved, not verified)
+### ISP-90 Write the monetization constraint into ISP's brief as the Board worded it (Requirement AB#780, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. Monetization Critique #434 epic 3 (the brief half). The Board closed D-0.5-7 (AB#699) with "I don't know what this means"; it is re-asked in plain words as D-reask-699, and this story waits on that. What it is. Once the re-asked Decision is answered, write the Board's answer into BRIEF.md's Monetization section. If the Board chooses A, name ceo-negotiation-fundamentals (data/ceo-insight.json) as never sold or sped up for real money, and record the 8% GEX sales tax as the house… (the rest: AB#780)
 
 - [x] BRIEF.md's Monetization section states the Board's answer in the Board's words and cites the re-asked Decision's id.
 - [x] If the answer names the node: a comment beside the ceo-negotiation-fundamentals loader (JSON has no comments) points to the constraint. If it does not, the PR says so and adds nothing to code.
 
-### Open registration on the beta to anyone, behind one switch the Board can close (Requirement AB#781, Resolved, not verified)
+### Open registration on the beta to anyone, behind one switch the Board can close (Requirement AB#781, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. v0.5 Beta MVP (#389); from ISP-11's "a stated way in" and D-0.5-5 (AB#697), which the Board answered "Once beta, anybody should be able to register." What it is. Invite codes are dropped. Assumption, stated because the answer leaves it open: the deployed v0.5 build is the beta, so registration is open to anyone. One environment switch (REGISTRATION_OPEN, default open in the beta deployment) lets the Board close registration without a code change. Abuse is handled by the login and… (the rest: AB#781)
 
@@ -477,7 +477,7 @@ What: Where it sits. v0.5 Beta MVP (#389); from ISP-11's "a stated way in" and D
 - [x] Security answer: no new data is stored; hostile input is rate-limited (AB#752) and validated (email shape, password length, name lengths, each with a test); the switch fails closed.
 - [x] Screenshot of the register page open, and of the closed message, at 375x812 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### ISP-280 Verify email addresses at registration, through one mail module with a test transport (Requirement AB#987, Resolved, not verified)
+### ISP-280 Verify email addresses at registration, through one mail module with a test transport (Requirement AB#987, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. v0.5 Beta MVP (#389), authentication review. The Board answered D-0.5-2 (AB#694) "Yes to email verification and password reset"; public/scripts/register-page.js:10 had a TODO for it. / What it is (slice 1 of 2, re-scoped 2026-09-26 to match what merged in PR !697). A server mail module with one interface and a test transport that captures messages to an in-memory outbox for tests and local development and refuses to load under NODE_ENV=production; verification tokens (32 random… (the rest: AB#987)
 
@@ -487,7 +487,7 @@ What: Where it sits. v0.5 Beta MVP (#389), authentication review. The Board answ
 - [x] Security answer: the email address is never logged; links are built from a configured base URL, never the Host header; the verify and resend endpoints fail closed with no real transport configured (test). Registration itself is not yet wired to this module - that is ISP-305 - so registration's own production behavior is not this item's claim.
 - [x] Screenshot of the "check your email" page and the verified landing at 375x812 and 1280x800 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3).
 
-### ISP-281 Reset a forgotten password by email (Requirement AB#988, Resolved, not verified)
+### ISP-281 Reset a forgotten password by email (Requirement AB#988, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. v0.5 Beta MVP (#389), authentication review, the second half of the Board's "Yes to email verification and password reset" (D-0.5-2, AB#694). What it is. A "forgot password" link on the login page, a request form, an emailed single-use reset link through the mail module, a set-new-password page, and revocation of every refresh token for the account when the password changes, with an email telling the owner it changed. Why it matters. Without it, a player who forgets a password… (the rest: AB#988)
 
@@ -497,7 +497,7 @@ What: Where it sits. v0.5 Beta MVP (#389), authentication review, the second hal
 - [x] Security answer in the PR: data stored, hostile inputs tried, what fails closed.
 - [x] Screenshot of the forgot-password and set-new-password pages at 375x812 and 1280x800 attached to the pull request, and the author states what they looked at in it (DOCTRINE constraint 3; a unit test is not looking).
 
-### Two extractor errors tell the player to upgrade a lease tier or the headquarters, which the game cannot do (Bug AB#1057, Resolved, not verified)
+### Two extractor errors tell the player to upgrade a lease tier or the headquarters, which the game cannot do (Bug AB#1057, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. Building a third extractor on a two-slot lease returns 'This lease has used all 2/2 building slots. Upgrade your lease tier or acquire an additional claim to expand capacity.' Running out of corporation slots returns 'No corporation building slots available... Upgrade your headquarters or release an existing building.' No route, button or research upgrades a lease tier, upgrades the headquarters or releases a building (grep of server/ and public/scripts/). / Repro. Fresh account: office,… (the rest: AB#1057)
 Symptom: Building a third extractor on a two-slot lease returns 'This lease has used all 2/2 building slots. Upgrade your lease tier or acquire an additional claim to expand capacity.' Running out of corporation slots returns 'No corporation building slots available... Upgrade your headquarters or release an existing building.' No route, button or research upgrades a lease tier, upgrades the headquarters or releases a building (grep of server/ and public/scripts/).
@@ -506,7 +506,7 @@ Proposed fix: Confidence: high. Rewrite both strings in server/index.js:1655-165
 
 - [x] Fixed: Two extractor errors tell the player to upgrade a lease tier or the headquarters, which the game cannot do
 
-### Gameplay error messages say what failed but not what to do: employee cap, mining credits, mission quota (Bug AB#1058, Resolved, not verified)
+### Gameplay error messages say what failed but not what to do: employee cap, mining credits, mission quota (Bug AB#1058, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Symptom. 'Employee cap reached. Current staffing is 20/20.' (seen in play) does not say the cap rises with corporation level. 'Insufficient credits to start the mining cycle. Check your finances.' does not say how much is needed. 'Insufficient resources at this station.' on completing a mission does not say which item, how many, or which station. / Repro. Fresh account with an office: hire 20, then hire 1 (Workforce panel shows the cap message). start-mining with credits below the cycle cost.… (the rest: AB#1058)
 Symptom: 'Employee cap reached. Current staffing is 20/20.' (seen in play) does not say the cap rises with corporation level. 'Insufficient credits to start the mining cycle. Check your finances.' does not say how much is needed. 'Insufficient resources at this station.' on completing a mission does not say which item, how many, or which station.
@@ -515,7 +515,7 @@ Proposed fix: Confidence: high. hire: append 'Reaching Corporation Level N raise
 
 - [x] Fixed: Gameplay error messages say what failed but not what to do: employee cap, mining credits, mission quota
 
-### Register and login errors do not tell a new player what to do, and login steers them to the shared demo account (Bug AB#1059, Resolved, not verified)
+### Register and login errors do not tell a new player what to do, and login steers them to the shared demo account (Bug AB#1059, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Symptom. Register with an existing email: 'An account with this email already exists.' with no pointer to Log In. Login with a wrong password: 'Invalid credentials. Use the dummy account button for temporary access.' which sends a real player to a shared sandbox instead of telling them to check the email and password or register. Server failures show 'Registration failed.' / 'Login failed.' with no next step. The login page intro also tells players about a 'prototype command gateway' and a… (the rest: AB#1059)
 Symptom: Register with an existing email: 'An account with this email already exists.' with no pointer to Log In. Login with a wrong password: 'Invalid credentials. Use the dummy account button for temporary access.' which sends a real player to a shared sandbox instead of telling them to check the email and password or register. Server failures show 'Registration failed.' / 'Login failed.' with no next step. The login page intro also tells players about a 'prototype command gateway' and a dummy account… (the rest: AB#1059)
@@ -524,7 +524,7 @@ Proposed fix: Confidence: high. Duplicate email: 'An account with this email alr
 
 - [x] Fixed: Register and login errors do not tell a new player what to do, and login steers them to the shared demo account
 
-### Empty states on the Exchange, Inbox and Claims blame a filter or state a fact instead of naming the next action (Bug AB#1060, Resolved, not verified)
+### Empty states on the Exchange, Inbox and Claims blame a filter or state a fact instead of naming the next action (Bug AB#1060, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Symptom. Galactic Exchange: 'No sell orders match the current filter.' and 'No standing buy orders match the current filter.' while the filter is All (first boot has no orders at all, #574); 'You have no items in inventory to list.' does not say how to get items. Inbox sub-tabs: 'No messages here.' ISA Claims with no office: 'Submit a lease application below to begin.' directly above 'A registered corporate office is required...'; after the one local lease: 'All extraction zones available from… (the rest: AB#1060)
 Symptom: Galactic Exchange: 'No sell orders match the current filter.' and 'No standing buy orders match the current filter.' while the filter is All (first boot has no orders at all, #574); 'You have no items in inventory to list.' does not say how to get items. Inbox sub-tabs: 'No messages here.' ISA Claims with no office: 'Submit a lease application below to begin.' directly above 'A registered corporate office is required...'; after the one local lease: 'All extraction zones available from this… (the rest: AB#1060)
@@ -533,7 +533,7 @@ Proposed fix: Confidence: high. Exchange: when the filter is All, say 'No player
 
 - [x] Fixed: Empty states on the Exchange, Inbox and Claims blame a filter or state a fact instead of naming the next action
 
-### The walkthrough card and the element it highlights overlap: hidden behind the card at 1280x800, drawn over her text at 375x812 (Bug AB#1083, Resolved, not verified)
+### The walkthrough card and the element it highlights overlap: hidden behind the card at 1280x800, drawn over her text at 375x812 (Bug AB#1083, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Symptom. At 1280x800, steps that highlight a station office (Staff, A mining claim, Equipment, Your first cycle) scroll the target to the centre of the screen, directly behind the centred briefing card, so the player cannot see what the step points at. At 375x812 the highlighted element (for example the Station tab on step 3) is drawn on top of the briefing card and covers words of the text. / Repro. Local build of the AB#579 branch (walkthrough.js on !144), a fresh account, 1280x800: Brief me,… (the rest: AB#1083)
 Symptom: At 1280x800, steps that highlight a station office (Staff, A mining claim, Equipment, Your first cycle) scroll the target to the centre of the screen, directly behind the centred briefing card, so the player cannot see what the step points at. At 375x812 the highlighted element (for example the Station tab on step 3) is drawn on top of the briefing card and covers words of the text.
@@ -542,7 +542,7 @@ Proposed fix: Confidence: medium. Stop centring the card over the target: positi
 
 - [x] Fixed: The walkthrough card and the element it highlights overlap: hidden behind the card at 1280x800, drawn over her text at 375x812
 
-### Order-book test 'keeps every order past 200' hit vitest's 5s timeout once under load, and five tests after it in the file failed (Bug AB#1092, Resolved, not verified)
+### Order-book test 'keeps every order past 200' hit vitest's 5s timeout once under load, and five tests after it in the file failed (Bug AB#1092, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Symptom. In one full-suite run of a scratch tree merging main b45dbf3 with every open ISP PR plus fix/575, tests/integration/order-book.test.js (from !154, AB#425) failed 6 tests: 'keeps every order past 200, and every seller's goods are either in stock or listed' took 5010ms (vitest's default 5000ms timeout), then five 'player sell order refuses quantity ...' tests failed. The same file passed 20/20 run alone on that tree, and the full suite passed 442/442 on a rerun; the tree without fix/575… (the rest: AB#1092)
 Symptom: In one full-suite run of a scratch tree merging main b45dbf3 with every open ISP PR plus fix/575, tests/integration/order-book.test.js (from !154, AB#425) failed 6 tests: 'keeps every order past 200, and every seller's goods are either in stock or listed' took 5010ms (vitest's default 5000ms timeout), then five 'player sell order refuses quantity ...' tests failed. The same file passed 20/20 run alone on that tree, and the full suite passed 442/442 on a rerun; the tree without fix/575 passed… (the rest: AB#1092)
@@ -551,7 +551,7 @@ Proposed fix: Confidence: medium. In tests/integration/order-book.test.js, give 
 
 - [x] Fixed: Order-book test 'keeps every order past 200' hit vitest's 5s timeout once under load, and five tests after it in the file failed
 
-### Payroll is never charged: hiring adds $150 a day to dailyCosts, and nothing ever deducts it (Bug AB#1097, Resolved, not verified)
+### Payroll is never charged: hiring adds $150 a day to dailyCosts, and nothing ever deducts it (Bug AB#1097, Resolved, not verified) (lane: interstellar-settlement-protocol/finance-politics)
 
 What: Symptom. DESIGN_DOCUMENT.md and .github/custom-instructions.md set payroll at $150 a day per employee, and the hire route adds hired * 150 to finances.dailyCosts (server/index.js, the hire handler). No code ever deducts dailyCosts from credits or books it with recordExpense. A corporation with 200 employees pays nothing after the one-time $2,000 hire fee. The Financial Core still projects 7 days of this rate as a liability ('Forward Operating (7d)'), and until Bug #1022 it was the whole cost… (the rest: AB#1097)
 Symptom: DESIGN_DOCUMENT.md and .github/custom-instructions.md set payroll at $150 a day per employee, and the hire route adds hired * 150 to finances.dailyCosts (server/index.js, the hire handler). No code ever deducts dailyCosts from credits or books it with recordExpense. A corporation with 200 employees pays nothing after the one-time $2,000 hire fee. The Financial Core still projects 7 days of this rate as a liability ('Forward Operating (7d)'), and until Bug #1022 it was the whole cost side of Net… (the rest: AB#1097)
@@ -560,7 +560,7 @@ Proposed fix: Confidence: medium. Charge payroll continuously in the existing mi
 
 - [x] Fixed: Payroll is never charged: hiring adds $150 a day to dailyCosts, and nothing ever deducts it
 
-### Two gameplay routes nothing in the game calls still work and skip the core loop: a corporation with no office, staff or lease builds an extractor yard and runs a 250 t/h cycle (Bug AB#1121, Resolved, not verified)
+### Two gameplay routes nothing in the game calls still work and skip the core loop: a corporation with no office, staff or lease builds an extractor yard and runs a 250 t/h cycle (Bug AB#1121, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Symptom. POST /api/accounts/:id/gameplay/build-extractor builds a Basic Extractor Yard for $50,000 on a brand-new corporation with no office, no employees and no mining lease; the yard belongs to no lease. POST /api/accounts/:id/gameplay/mine then starts a 250 t/h, 72-hour cycle on it with no office check. The lease-based routes the game uses (lease/:leaseId/build-extractor and lease/:leaseId/start-mining) refuse all of this. Any player with their own access token can skip office, staffing and… (the rest: AB#1121)
 Symptom: POST /api/accounts/:id/gameplay/build-extractor builds a Basic Extractor Yard for $50,000 on a brand-new corporation with no office, no employees and no mining lease; the yard belongs to no lease. POST /api/accounts/:id/gameplay/mine then starts a 250 t/h, 72-hour cycle on it with no office check. The lease-based routes the game uses (lease/:leaseId/build-extractor and lease/:leaseId/start-mining) refuse all of this. Any player with their own access token can skip office, staffing and claim.
@@ -569,7 +569,7 @@ Proposed fix: Confidence: high. Delete POST /gameplay/build-extractor and POST /
 
 - [x] Fixed: Two gameplay routes nothing in the game calls still work and skip the core loop: a corporation with no office, staff or lease builds an extractor yard and runs a 250 t/h cycle
 
-### A blank or unreadable number on the core-loop forms is replaced by a default and the action goes through and is charged: a blank Head Count hires one employee for $2,000 (Bug AB#1122, Resolved, not verified)
+### A blank or unreadable number on the core-loop forms is replaced by a default and the action goes through and is charged: a blank Head Count hires one employee for $2,000 (Bug AB#1122, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Symptom. In the Orbital Executive Suites, clearing Head Count and pressing Hire Personnel hires one employee and charges $2,000. On a mining lease, clearing Throughput and pressing Start Cycle starts a 40 t/h, 24-hour cycle and charges $500. The API does the same for every unparseable value. Hire count '', 'abc', -5, 0, 1.5, [3], {n:3} or a 400-digit string hires one employee for $2,000. For start-mining, amount '' / 'abc' / 400 digits runs 40 t/h, and -5 or 0 runs 10 t/h; hours '' or 'abc'… (the rest: AB#1122)
 Symptom: In the Orbital Executive Suites, clearing Head Count and pressing Hire Personnel hires one employee and charges $2,000. On a mining lease, clearing Throughput and pressing Start Cycle starts a 40 t/h, 24-hour cycle and charges $500. The API does the same for every unparseable value. Hire count '', 'abc', -5, 0, 1.5, [3], {n:3} or a 400-digit string hires one employee for $2,000. For start-mining, amount '' / 'abc' / 400 digits runs 40 t/h, and -5 or 0 runs 10 t/h; hours '' or 'abc' runs 24 h,… (the rest: AB#1122)
@@ -578,7 +578,7 @@ Proposed fix: Confidence: high. Reject, do not substitute. This is AB#731's acce
 
 - [x] Fixed: A blank or unreadable number on the core-loop forms is replaced by a default and the action goes through and is charged: a blank Head Count hires one employee for $2,000
 
-### Chat has no length limit on the server, and deletes anything a player types between < and > (Bug AB#1127, Resolved, not verified)
+### Chat has no length limit on the server, and deletes anything a player types between < and > (Bug AB#1127, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Symptom. Two defects in the chat:send socket handler (server/index.js). First, a chat line has no length limit on the server. The 300-character limit exists only as the input box's maxlength, so any socket client can store a line of any size in the shared chat log, which every client downloads in /api/bootstrap. Second, every line goes through stripHtml, which deletes anything between '<' and '>' and collapses whitespace: 'buying 10 < price < 30, selling > 50' arrives as 'buying 10 50'. The… (the rest: AB#1127)
 Symptom: Two defects in the chat:send socket handler (server/index.js). First, a chat line has no length limit on the server. The 300-character limit exists only as the input box's maxlength, so any socket client can store a line of any size in the shared chat log, which every client downloads in /api/bootstrap. Second, every line goes through stripHtml, which deletes anything between '<' and '>' and collapses whitespace: 'buying 10 < price < 30, selling > 50' arrives as 'buying 10 50'. The client… (the rest: AB#1127)
@@ -587,7 +587,7 @@ Proposed fix: Confidence: high. In chat:send, keep the content as sent (trimmed)
 
 - [x] Fixed: Chat has no length limit on the server, and deletes anything a player types between < and >
 
-### Forum threads, replies and likes publish players' account ids to anyone, including sockets with no login (Bug AB#1134, Resolved, not verified)
+### Forum threads, replies and likes publish players' account ids to anyone, including sockets with no login (Bug AB#1134, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Symptom. Every forum thread and reply carries authorAccountId, and every liked post carries likedBy, a list of account ids. The forums are sent to every socket in state:init and forums:updated, including sockets with no login, and to anyone through GET /api/bootstrap. So anyone can read the internal account id of every player who has posted or liked, and which posts each one liked. Mail was changed so that account ids never leave the server (Bug #711); the forums still publish them. Filed as… (the rest: AB#1134)
 Symptom: Every forum thread and reply carries authorAccountId, and every liked post carries likedBy, a list of account ids. The forums are sent to every socket in state:init and forums:updated, including sockets with no login, and to anyone through GET /api/bootstrap. So anyone can read the internal account id of every player who has posted or liked, and which posts each one liked. Mail was changed so that account ids never leave the server (Bug #711); the forums still publish them. Filed as severity 1… (the rest: AB#1134)
@@ -596,7 +596,7 @@ Proposed fix: Confidence: medium. Publish a forum view, not the stored state: re
 
 - [x] Fixed: Forum threads, replies and likes publish players' account ids to anyone, including sockets with no login
 
-### Chat does not follow the conversation: a new line arrives out of view, and switching channel shows the oldest lines (Bug AB#1135, Resolved, not verified)
+### Chat does not follow the conversation: a new line arrives out of view, and switching channel shows the oldest lines (Bug AB#1135, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Symptom. With the Global log scrolled to the newest line, a line from another player is added below the visible area, so the player does not see it. Switching channel (Trade, then Global) opens the log at the top, on the oldest of up to 120 lines, not the newest. / Repro. Comms with a long Global log, scrolled to the bottom: another player posts; the log's scrollTop stays where it was while its height grows (4452 of 4512 in the sweep). Click Trade, then Global: scrollTop is 0. / System info.… (the rest: AB#1135)
 Symptom: With the Global log scrolled to the newest line, a line from another player is added below the visible area, so the player does not see it. Switching channel (Trade, then Global) opens the log at the top, on the oldest of up to 120 lines, not the newest.
@@ -605,7 +605,7 @@ Proposed fix: Confidence: high. In renderChatLog, record whether the log was at 
 
 - [x] Fixed: Chat does not follow the conversation: a new line arrives out of view, and switching channel shows the oldest lines
 
-### Opening a mail does not lower the Inbox unread count until the page is reloaded (Bug AB#1136, Resolved, not verified)
+### Opening a mail does not lower the Inbox unread count until the page is reloaded (Bug AB#1136, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Symptom. Opening an unread mail marks it read on the server, but the subtab badge (for example 'System & NPC (1)') still counts it after going back to the list. It drops only after a reload. / Repro. Fresh account: Inbox shows 'System & NPC (1)'. Open the settlement licence, click Back: still (1). The server's readAt is set. Reload: the badge is gone. / System info. interstellar-settlement-protocol main b45dbf3, run with NODE_ENV=production and a fresh data directory; Edge 1280x800 through… (the rest: AB#1136)
 Symptom: Opening an unread mail marks it read on the server, but the subtab badge (for example 'System & NPC (1)') still counts it after going back to the list. It drops only after a reload.
@@ -614,7 +614,7 @@ Proposed fix: Confidence: high. Call updateInboxSubtabBadges() (and re-render th
 
 - [x] Fixed: Opening a mail does not lower the Inbox unread count until the page is reloaded
 
-### A saved draft cannot be deleted: opening it goes to Compose, which has no Delete, and the Delete Draft button is on a view drafts never open (Bug AB#1137, Resolved, not verified)
+### A saved draft cannot be deleted: opening it goes to Compose, which has no Delete, and the Delete Draft button is on a view drafts never open (Bug AB#1137, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Symptom. Drafts can be saved, edited and sent, but not deleted. Opening a draft goes straight to Compose, whose buttons are Back, Send and Save Draft. The Delete Draft and Edit Draft buttons exist in the message view, which drafts never reach, so they never show. A draft a player does not want stays in Drafts for good. / Repro. Inbox → Compose → Save Draft; open Drafts; open the draft: Compose opens with Back, Send and Save Draft. No Delete Draft button is visible anywhere. / System info.… (the rest: AB#1137)
 Symptom: Drafts can be saved, edited and sent, but not deleted. Opening a draft goes straight to Compose, whose buttons are Back, Send and Save Draft. The Delete Draft and Edit Draft buttons exist in the message view, which drafts never reach, so they never show. A draft a player does not want stays in Drafts for good.
@@ -623,7 +623,7 @@ Proposed fix: Confidence: high. Show a Delete Draft button in the compose view w
 
 - [x] Fixed: A saved draft cannot be deleted: opening it goes to Compose, which has no Delete, and the Delete Draft button is on a view drafts never open
 
-### Trade History shows a cancelled listing as a bare 'cancelled' with no badge, and a total that reads as money moved (Bug AB#1168, Resolved, not verified)
+### Trade History shows a cancelled listing as a bare 'cancelled' with no badge, and a total that reads as money moved (Bug AB#1168, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. After cancelling a listing, Trade History gains a row whose Type is plain text CANCELLED with none of the badge styling the other rows have, and whose Total shows the listing's value ($50) although nothing was paid. / Repro. 1. List 2 Silicates at $25, then Cancel it in My Active Listings. / 2. Trade History: the newest row reads 'CANCELLED Silicates 2 $25 $50 Market' without a badge. / Screenshot: sweep721-r2-10-trade-history-after-cancel.png. / Build:ddd4d7e, a scratch merge of origin/main… (the rest: AB#1168)
 Symptom: After cancelling a listing, Trade History gains a row whose Type is plain text CANCELLED with none of the badge styling the other rows have, and whose Total shows the listing's value ($50) although nothing was paid.
@@ -632,7 +632,7 @@ Proposed fix: Confidence: high. Add cancelled to both maps (label 'Cancelled', a
 
 - [x] Fixed: Trade History shows a cancelled listing as a bare 'cancelled' with no badge, and a total that reads as money moved
 
-### Sell Orders shows at most 30 listings and does not say there are more (Bug AB#1169, Resolved, not verified)
+### Sell Orders shows at most 30 listings and does not say there are more (Bug AB#1169, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. With 50 listings on the book from player B, player A's Sell Orders table showed 30 rows and nothing said 20 more existed. Sorting reaches the cheapest or dearest 30, but a buyer on the default sort (newest) cannot tell an older, cheaper listing is hidden. / Repro. 1. B creates 50 one-unit Silicates listings at $41 to $90. / 2. A opens Galactic Exchange: 30 rows in Sell Orders, no count or hint. / Screenshot: sweep721-r9-01-A-busy-book.png. / Build:ddd4d7e, a scratch merge of origin/main… (the rest: AB#1169)
 Symptom: With 50 listings on the book from player B, player A's Sell Orders table showed 30 rows and nothing said 20 more existed. Sorting reaches the cheapest or dearest 30, but a buyer on the default sort (newest) cannot tell an older, cheaper listing is hidden.
@@ -641,7 +641,7 @@ Proposed fix: Confidence: high. When the slice drops rows, show 'Showing 30 of 5
 
 - [x] Fixed: Sell Orders shows at most 30 listings and does not say there are more
 
-### A contract can be completed at any station through the route, though the page allows it only at the agent's station (Bug AB#1203, Resolved, not verified)
+### A contract can be completed at any station through the route, though the page allows it only at the agent's station (Bug AB#1203, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. The page lets a player complete a contract only while docked at the issuing agent's station ('You must be docked at Earth Station Prime to complete this contract.', and the Complete button hidden). POST /gameplay/complete-mission checks only that the quota is held at the corporation's current station, wherever that is. Anyone calling the route directly can complete a contract away from the agent. The two rules also make it unclear which one the game means. / Repro. On main b2c0310:… (the rest: AB#1203)
 Symptom: The page lets a player complete a contract only while docked at the issuing agent's station ('You must be docked at Earth Station Prime to complete this contract.', and the Complete button hidden). POST /gameplay/complete-mission checks only that the quota is held at the corporation's current station, wherever that is. Anyone calling the route directly can complete a contract away from the agent. The two rules also make it unclear which one the game means.
@@ -650,7 +650,7 @@ Proposed fix: Confidence: medium. Move MISSION_AGENTS to a shared module in publ
 
 - [x] Fixed: A contract can be completed at any station through the route, though the page allows it only at the agent's station
 
-### Every station's Orbital Executive Suites card says 'An Earth Station Prime office tells the ISA... that you are serious', at Mars and in other star systems too (Bug AB#1269, Resolved, not verified)
+### Every station's Orbital Executive Suites card says 'An Earth Station Prime office tells the ISA... that you are serious', at Mars and in other star systems too (Bug AB#1269, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. The Suites card's flavour text reads 'The prestige is in the address. An Earth Station Prime office tells the ISA, and everyone else, that you are serious.' All eight stations have the Suites and show the same line, so a player docked at Mars Orbital Dock or Centauri Prime Station is told about an Earth Station Prime office they are not leasing. / Repro. Reproduces on the combined build and on main b2c0310. Fresh account on 127.0.0.2 at 1280x800: Starmap, Sol, Mars, Dock at Mars Orbital… (the rest: AB#1269)
 Symptom: The Suites card's flavour text reads 'The prestige is in the address. An Earth Station Prime office tells the ISA, and everyone else, that you are serious.' All eight stations have the Suites and show the same line, so a player docked at Mars Orbital Dock or Centauri Prime Station is told about an Earth Station Prime office they are not leasing.
@@ -659,7 +659,7 @@ Proposed fix: Confidence: high. Make the line station-neutral ('The prestige is 
 
 - [x] Fixed: Every station's Orbital Executive Suites card says 'An Earth Station Prime office tells the ISA... that you are serious', at Mars and in other star systems too
 
-### On a desktop and a tablet the Starmap's outer planets touch or cross the top and bottom edges (Uranus in Sol, the Crown Belt in Epsilon Eridani) (Bug AB#1326, Resolved, not verified)
+### On a desktop and a tablet the Starmap's outer planets touch or cross the top and bottom edges (Uranus in Sol, the Crown Belt in Epsilon Eridani) (Bug AB#1326, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. In a system view at 1280x800 the outermost bodies reach the canvas's top and bottom edges. In Sol, Uranus sits on the top edge with its label half outside. In Epsilon Eridani, the Crown Belt is cut by the top edge. The same happens at 768x1024 (Uranus on the top edge in Sol). Phones are not affected once #1315 fits the orbits to the width. / Repro. Main b2c0310 with !203, 127.0.0.2, production mode, the app in a same-origin iframe at 1280x800 (canvas 881x534) and 768x1024 (685x558):… (the rest: AB#1326)
 Symptom: In a system view at 1280x800 the outermost bodies reach the canvas's top and bottom edges. In Sol, Uranus sits on the top edge with its label half outside. In Epsilon Eridani, the Crown Belt is cut by the top edge. The same happens at 768x1024 (Uranus on the top edge in Sol). Phones are not affected once #1315 fits the orbits to the width.
@@ -668,7 +668,7 @@ Proposed fix: Confidence: high. Fit the orbits to the height as #1315 fits them 
 
 - [x] Fixed: On a desktop and a tablet the Starmap's outer planets touch or cross the top and bottom edges (Uranus in Sol, the Crown Belt in Epsilon Eridani)
 
-### On a phone, with !212, a body label moved to the left of its planet can run across the system's star ('Centauri Prime' over Alpha Centauri's sun) (Bug AB#1337, Resolved, not verified)
+### On a phone, with !212, a body label moved to the left of its planet can run across the system's star ('Centauri Prime' over Alpha Centauri's sun) (Bug AB#1337, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. At 375x812 with !212 (AB#1315), in Alpha Centauri the label 'Centauri Prime' is drawn to the left of its planet because it would pass the right edge, and it runs across the star's glow. It is readable but crowded. Found in review of my own open PR; not on main, because main's labels run off the edge instead. / Repro. Look-only merge of fix/1270 + !212 (which contains !203), 127.0.0.2, production mode, the app in a same-origin iframe at 375x812: Starmap > Alpha Centauri. Screenshot… (the rest: AB#1337)
 Symptom: At 375x812 with !212 (AB#1315), in Alpha Centauri the label 'Centauri Prime' is drawn to the left of its planet because it would pass the right edge, and it runs across the star's glow. It is readable but crowded. Found in review of my own open PR; not on main, because main's labels run off the edge instead.
@@ -677,7 +677,7 @@ Proposed fix: Confidence: medium. When the right side does not fit, prefer drawi
 
 - [x] Fixed: On a phone, with !212, a body label moved to the left of its planet can run across the system's star ('Centauri Prime' over Alpha Centauri's sun)
 
-### On a phone, Barnard's Star's belt is drawn at the top edge of the Starmap and cannot be tapped, even with !203 (Bug AB#1344, Resolved, not verified)
+### On a phone, Barnard's Star's belt is drawn at the top edge of the Starmap and cannot be tapped, even with !203 (Bug AB#1344, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Symptom. At 375x812, opening Barnard's Star on the Starmap draws the Rift Debris Ring at the very top edge of the 309px canvas, at about (62, 5), just above the Back To Cluster button. Taps at eight points on and around it never open the belt; the panel stays on the system, then returns to the cluster view. Dragging does not pan the solar view. So a phone player cannot open that belt, scout it or launch an expedition to it. It reproduces on main (with AB#1287's squeezed drawing) and on a… (the rest: AB#1344)
 Symptom: At 375x812, opening Barnard's Star on the Starmap draws the Rift Debris Ring at the very top edge of the 309px canvas, at about (62, 5), just above the Back To Cluster button. Taps at eight points on and around it never open the belt; the panel stays on the system, then returns to the cluster view. Dragging does not pan the solar view. So a phone player cannot open that belt, scout it or launch an expedition to it. It reproduces on main (with AB#1287's squeezed drawing) and on a scratch merge… (the rest: AB#1344)
@@ -686,7 +686,7 @@ Proposed fix: Confidence: low. Fit the solar view inside the canvas with a margi
 
 - [x] Fixed: On a phone, Barnard's Star's belt is drawn at the top edge of the Starmap and cannot be tapped, even with !203
 
-### After ISP-40, a balance change in data/economy.json would not reach the browser: app.js still quotes and computes hire, payroll, build and operating costs from its own literals (Bug AB#1430, Resolved, not verified)
+### After ISP-40, a balance change in data/economy.json would not reach the browser: app.js still quotes and computes hire, payroll, build and operating costs from its own literals (Bug AB#1430, Resolved, not verified) (lane: interstellar-settlement-protocol/finance-politics)
 
 What: Symptom. ISP-40 (AB#726, !245 pending) moves the server's economy constants into data/economy.json so a balance pass is a diff of one file. The browser does not read that file. public/scripts/app.js repeats the same numbers as literals: the hire panel says each hire costs 2,000 and adds 150/day (app.js:1357) and computes them (1501, 1506); the build-extractor and refinery panels use 50000 (1681, 1881); the start-mining panel recomputes max(600, 16 x throughput) and max(500, 35%) (1944-1945);… (the rest: AB#1430)
 Symptom: ISP-40 (AB#726, !245 pending) moves the server's economy constants into data/economy.json so a balance pass is a diff of one file. The browser does not read that file. public/scripts/app.js repeats the same numbers as literals: the hire panel says each hire costs 2,000 and adds 150/day (app.js:1357) and computes them (1501, 1506); the build-extractor and refinery panels use 50000 (1681, 1881); the start-mining panel recomputes max(600, 16 x throughput) and max(500, 35%) (1944-1945); the probe… (the rest: AB#1430)
@@ -695,7 +695,7 @@ Proposed fix: Confidence: high. Serve the economy to the client once, in the boo
 
 - [x] Fixed: After ISP-40, a balance change in data/economy.json would not reach the browser: app.js still quotes and computes hire, payroll, build and operating costs from its own literals
 
-### ISP-43a Tickers deep-clone every account they touch: 35% of the event loop at 1,000 corporations (Requirement AB#1448, Resolved, not verified)
+### ISP-43a Tickers deep-clone every account they touch: 35% of the event loop at 1,000 corporations (Requirement AB#1448, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Where it sits. ISP v0.5 Beta MVP (#389), Release Engineering, found by AB#729 (ISP-43). / What it is. Every ticker (mining, refinery, expeditions, fabrication, travel, R&D, CEO, finance snapshot) calls mutateAccountState on every account. That runs applyMiningOperations twice, refreshContractOfferings, ensureCorpMiningModel and evaluateLevelProgress, schedules a save, and returns sanitizeAccount(account): a deep clone of the whole account that the tickers throw away. AB#729's benchmark (npm run… (the rest: AB#1448)
 
@@ -703,7 +703,7 @@ What: Where it sits. ISP v0.5 Beta MVP (#389), Release Engineering, found by AB#
 - [x] No ticker returns or builds a sanitized clone it does not use.
 - [x] Every existing test still passes, with the count stated; mining still advances exactly once per elapsed interval (a test with a fake clock).
 
-### ISP-44a A full re-render takes 155-180 ms at 4x throttling; the budget is 16: the market and the finance charts redraw while hidden (Requirement AB#1452, Resolved, not verified)
+### ISP-44a A full re-render takes 155-180 ms at 4x throttling; the budget is 16: the market and the finance charts redraw while hidden (Requirement AB#1452, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. ISP v0.5 Beta MVP (#389), Release Engineering, found by AB#730 (ISP-44) with scripts/bench-render.mjs: Edge, CPU throttled 4x, a corporation with 5 extractors, 200 open orders and 50 trades. / What it is. updateAllViews (public/scripts/app.js) runs after every action and refresh and redraws every view, visible or not. Measured over 20 re-renders: median 153-178 ms, p95 192-228 ms, against a budget of 16 ms median and 50 ms p95. Broken down by view (median ms): renderMarket 73.6… (the rest: AB#1452)
 
@@ -711,7 +711,7 @@ What: Where it sits. ISP v0.5 Beta MVP (#389), Release Engineering, found by AB#
 - [x] Opening the Market or Financial Core tab shows current data (a test or a look at both, stated which).
 - [x] npm test green, with the count stated.
 
-### ISP-44b The page keeps the main thread 40% busy while idle at 4x throttling; the starfield animation is half of it (Requirement AB#1453, Resolved, not verified)
+### ISP-44b The page keeps the main thread 40% busy while idle at 4x throttling; the starfield animation is half of it (Requirement AB#1453, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. ISP v0.5 Beta MVP (#389), Release Engineering, found by AB#730 (ISP-44) with scripts/bench-render.mjs: Edge, CPU throttled 4x, a corporation with 5 extractors, 200 open orders and 50 trades. / What it is. Left alone for 60 s with live socket updates, the page kept the main thread busy 40-41% of the time. With public/scripts/starfield.js blocked, 20%: the animated background costs about half of all idle CPU, drawing every animation frame forever. The rest is the page's 1-second… (the rest: AB#1453)
 
@@ -719,7 +719,7 @@ What: Where it sits. ISP v0.5 Beta MVP (#389), Release Engineering, found by AB#
 - [x] The starfield still animates for a player who has not asked for reduced motion (a look, with a screenshot).
 - [x] npm test green, with the count stated.
 
-### ISP-289 Design the way back from broke: what a corporation with no credits and no ore can always do (Requirement AB#1740, Resolved, not verified)
+### ISP-289 Design the way back from broke: what a corporation with no credits and no ore can always do (Requirement AB#1740, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. ISP v0.5 (AB#389), Release Engineering. It replaces the next attempt at ISP-42 (AB#728), which the probe shows cannot be fixed by retuning values. What it is. A design, in ECONOMY.md or a doc it points to, for the affordance a corporation reaches for when it has spent its way to zero: what it can always do to earn its way back, what that pays, how long it takes, and why it cannot be farmed forever. Candidates to weigh, not a decision made in advance: an ISA salvage or survey… (the rest: AB#1740)
 
@@ -729,7 +729,7 @@ What: Where it sits. ISP v0.5 (AB#389), Release Engineering. It replaces the nex
 - [x] It lists the implementation stories, each session-sized, and what ISP-42 (AB#728) then retunes, if anything.
 - [x] Anything that changes what a player can earn is flagged in the PR for the Board, since it changes the economy every later balance number rests on.
 
-### ISP-290 Login and register: one primary button per screen (Requirement AB#1759, Resolved, not verified)
+### ISP-290 Login and register: one primary button per screen (Requirement AB#1759, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. ISP v0.5 (AB#389), a session-sized quick win from visual-design Critique AB#1757 (POLISH, 2.4/5, against the rubric ratified on main at 950d9f1), which says it needs no direction decision and so does not wait on the design system (AB#758 to AB#772). What it is. Give the login and register screens a single primary control each, with every other action secondary or a link, as the Critique's "cyan on at most one primary control per screen" rule asks. Why it matters. It is visible on… (the rest: AB#1759)
 
@@ -737,7 +737,7 @@ What: Where it sits. ISP v0.5 (AB#389), a session-sized quick win from visual-de
 - [x] Tab order and labels are unchanged; the primary control is still the one a keyboard user reaches first.
 - [x] Screenshots of the changed screens at 1280x800 and 375x812 attached to the PR, before and after.
 
-### ISP-291 A focus-ring token, and a prefers-reduced-motion block (Requirement AB#1760, Resolved, not verified)
+### ISP-291 A focus-ring token, and a prefers-reduced-motion block (Requirement AB#1760, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. ISP v0.5 (AB#389), a session-sized quick win from visual-design Critique AB#1757 (POLISH, 2.4/5, against the rubric ratified on main at 950d9f1), which says it needs no direction decision and so does not wait on the design system (AB#758 to AB#772). What it is. Add one focus-ring token used by every interactive element, so keyboard focus is visible everywhere, and a @media (prefers-reduced-motion: reduce) block that turns off the animations for anyone who asks for less motion.… (the rest: AB#1760)
 
@@ -745,14 +745,14 @@ What: Where it sits. ISP v0.5 (AB#389), a session-sized quick win from visual-de
 - [x] With reduced motion requested, animations and transitions are disabled or reduced to an instant change, including the walkthrough and the typewriter; a test asserts the media block covers the animation rules.
 - [x] Screenshots of the changed screens at 1280x800 and 375x812 attached to the PR, before and after.
 
-### ISP-293 Corporate R&D and Assignments at full content width (Requirement AB#1762, Resolved, not verified)
+### ISP-293 Corporate R&D and Assignments at full content width (Requirement AB#1762, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. ISP v0.5 (AB#389), a session-sized quick win from visual-design Critique AB#1757 (POLISH, 2.4/5, against the rubric ratified on main at 950d9f1), which says it needs no direction decision and so does not wait on the design system (AB#758 to AB#772). What it is. Both panels sit narrower than the content column, so they look unfinished beside the others. Give them the same width as their siblings at every breakpoint. Why it matters. It is visible on a screen a player meets early,… (the rest: AB#1762)
 
 - [x] Both panels match the content width used by the neighbouring panels at 1280 and at 375, with no fixed pixel width left behind; a test asserts no vw or px cap remains on those two containers.
 - [x] Screenshots of the changed screens at 1280x800 and 375x812 attached to the PR, before and after.
 
-### ISP-294 The typewriter finishes on click (Requirement AB#1763, Resolved, not verified)
+### ISP-294 The typewriter finishes on click (Requirement AB#1763, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. ISP v0.5 (AB#389), a session-sized quick win from visual-design Critique AB#1757 (POLISH, 2.4/5, against the rubric ratified on main at 950d9f1), which says it needs no direction decision and so does not wait on the design system (AB#758 to AB#772). What it is. The typewritten briefing text makes a reader wait. A click, tap or key press completes the text immediately; with reduced motion requested it is complete from the start. Why it matters. It is visible on a screen a player… (the rest: AB#1763)
 
@@ -760,7 +760,7 @@ What: Where it sits. ISP v0.5 (AB#389), a session-sized quick win from visual-de
 - [x] With prefers-reduced-motion, the text renders complete with no animation.
 - [x] Screenshots of the changed screens at 1280x800 and 375x812 attached to the PR, before and after.
 
-### ISP-295 The runway probe gets a third bot that banks a reserve (Requirement AB#1774, Resolved, not verified)
+### ISP-295 The runway probe gets a third bot that banks a reserve (Requirement AB#1774, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. ISP v0.5 (AB#389), ops/probes/isp-runway.ts (ISP-84, AB#773), epic 1 of Monetization review #2 (AB#1773, 1.8/5 REPRICE). What it is. A third bot profile alongside planner and greedy that keeps a safety margin rather than reinvesting every credit. Why it matters. Review #2 measured banked÷spent at 0.00x at day 3, 7 and 30 in all four runs, with both bots refused start-mining between 900 and 1,700 times per run for want of a four-figure sum. That reads as an economy too tight to… (the rest: AB#1774)
 
@@ -770,7 +770,7 @@ What: Where it sits. ISP v0.5 (AB#389), ops/probes/isp-runway.ts (ISP-84, AB#773
 - [x] The pull request states which profile the economy actually rewards, and says in one line whether the 0.00x result reflects the economy or the bot policy — that is the question this story exists to answer.
 - [x] Every output line still says it is a bot number and states the bot's assumed pace (P-PROXY). No economy constant, cost curve or bid rule changes in this story.
 
-### ISP-296 BRIEF.md carries the Board's three no-RMT rulings by decision number (Requirement AB#1776, Resolved, not verified)
+### ISP-296 BRIEF.md carries the Board's three no-RMT rulings by decision number (Requirement AB#1776, Resolved, not verified) (lane: interstellar-settlement-protocol/platform)
 
 What: Where it sits. ISP v0.5 (AB#389), BRIEF.md Monetization section. Epic 3 of Monetization review #2 (AB#1773); its other half, the code-side guard test, shipped as AB#779 (ISP-89). What it is. Fold the Board's three explicit no-RMT rulings into BRIEF.md itself, each named with its decision number. Why it matters. The rulings exist only as decision comments on closed Issues. P-WRITE-ONLY: written once, read by the session that closed the ticket, and by nobody since. BRIEF.md is the one document a… (the rest: AB#1776)
 
@@ -779,7 +779,7 @@ What: Where it sits. ISP v0.5 (AB#389), BRIEF.md Monetization section. Epic 3 of
 - [x] The section says which of them bind mechanics that do not exist yet (v0.9 financial, v0.10 military), so a builder starting one of those knows the constraint precedes the code.
 - [x] No other section of BRIEF.md changes, and nothing in the repo's behaviour changes — this is a documentation story on purpose.
 
-### ISP-299 Probe: a broke corporation always has a way back, checked on every economy change (Requirement AB#1792, Resolved, not verified)
+### ISP-299 Probe: a broke corporation always has a way back, checked on every economy change (Requirement AB#1792, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. ISP v0.5 Beta MVP (AB#389). One of three implementation stories from ISP-289 (AB#1740), whose design is ECONOMY.md The way back from broke (PR !437). Together they close Bug AB#1741: a corporation with no credits and no ore is permanently stuck, which both probe bots hit in every run of the 2026-09-25 Systems Audit. The design's Board flag (a new, permanent credits faucet) was accepted by the Director on 2026-09-25, open to Board veto: it is deliberately worse than any real… (the rest: AB#1792)
 
@@ -787,7 +787,7 @@ What: Where it sits. ISP v0.5 Beta MVP (AB#389). One of three implementation sto
 - [x] Run at seeds 7000 and 7001 over 7 and 30 simulated days: all four runs show credits above 0 within 4 simulated hours of the floor; the output is pasted in the PR as bot numbers, not player time (P-PROXY).
 - [x] If any run is still refused on every action after reaching 0, the story files a Bug against the design rather than tuning the probe to pass.
 
-### Registration accepts non-string fields by coercing them: a password sent as {"x":1} creates an account whose password is literally "[object Object]" (Bug AB#2050, Resolved, not verified)
+### Registration accepts non-string fields by coercing them: a password sent as {"x":1} creates an account whose password is literally "[object Object]" (Bug AB#2050, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Symptom. POST /api/auth/register coerces every field with String(x || "") before validating, so a value of the wrong type is accepted rather than rejected. Observed live: password {"x":1} returned 201, and that account then logs in with the password "[object Object]" (200 with an access token). A password, CEO name or corporation name sent as a one-element array also returned 201, with the element's text stored. An email of 12345 or of a two-element array is refused only because the coerced… (the rest: AB#2050)
 Symptom: POST /api/auth/register coerces every field with String(x || "") before validating, so a value of the wrong type is accepted rather than rejected. Observed live: password {"x":1} returned 201, and that account then logs in with the password "[object Object]" (200 with an access token). A password, CEO name or corporation name sent as a one-element array also returned 201, with the element's text stored. An email of 12345 or of a two-element array is refused only because the coerced string fails… (the rest: AB#2050)
@@ -838,7 +838,7 @@ What: Where it sits. ISP-88's sink design (AB#778), the probe half of ECONOMY.md
 - [x] Probe target: this story's own subject is the four checks above; no further target beyond making them real.
 - [x] No screen: this is a probe script's console output, not a player-visible surface. State that plainly in the PR rather than a look-alike proxy for one.
 
-### ISP-305 Wire email verification into registration and login, and migrate the tests that assume none (Requirement AB#2288, Resolved, not verified)
+### ISP-305 Wire email verification into registration and login, and migrate the tests that assume none (Requirement AB#2288, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. v0.5 Beta MVP (#389), authentication review, slice 2 of ISP-280's email verification (AB#987, slice 1 merged in PR !697). / What it is. Wire registration to send the verification link through the merged mail module; refuse login on an unverified account with 403 and "Check your email to verify your account." plus a resend action (AB#987's original clause 1); prompt an account that existed before this story to verify at its next login instead of locking it out retroactively; and… (the rest: AB#2288)
 
@@ -849,7 +849,7 @@ What: Where it sits. v0.5 Beta MVP (#389), authentication review, slice 2 of ISP
 - [x] Production registration still returns 503 and creates nothing with no real transport configured, now genuinely exercised since registration calls the mail module (test).
 - [x] Screenshot of the 403 "check your email" page reached from a real login attempt, and the verify-then-log-in path, at 375x812 and 1280x800, attached to the PR.
 
-### ISP-306 Shorten the access token lifetime now that refresh is automatic (Requirement AB#2294, Resolved, not verified)
+### ISP-306 Shorten the access token lifetime now that refresh is automatic (Requirement AB#2294, Resolved, not verified) (lane: interstellar-settlement-protocol/accounts)
 
 What: Where it sits. v0.5 Beta MVP (#389), authentication review; a follow-up named in AB#2291's fix, not a defect on its own - AB#2291 already closes the real hole (an access token issued before a password reset now gets 401 via passwordChangedAt). / What it is. server/auth.js:8's ACCESS_TOKEN_SECONDS is 7 * 24 * 60 * 60 (7 days), chosen when the token still lived in localStorage (AB#757's own predecessor). Since AB#757, the access token lives in memory only and the client refreshes it silently and… (the rest: AB#2294)
 

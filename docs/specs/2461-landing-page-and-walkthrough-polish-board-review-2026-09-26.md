@@ -15,7 +15,7 @@ _To be written: the Feature had no acceptance criteria in Azure DevOps._
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 0 open, 2 resolved.
 
-### Landing page: a logo section at the top, tagline below, rewritten intro, remove the three tags (Requirement AB#2462, Resolved, not verified)
+### Landing page: a logo section at the top, tagline below, rewritten intro, remove the three tags (Requirement AB#2462, Resolved, not verified) (lane: interstellar-settlement-protocol/client-shell)
 
 What: Where it sits. Landing/walkthrough polish (2461). Board review items 1, 2, 3. / What it is. Add a section at the very top with the ISP logo, the tagline moved below it; replace the intro paragraph with the Board's own rewritten text (quoted in the review, docs/board-reviews/interstellar-settlement-protocol-review-2026-09-26.md item 2); remove the three tag elements below the description.
 
@@ -24,7 +24,7 @@ What: Where it sits. Landing/walkthrough polish (2461). Board review items 1, 2,
 - [x] The three tag elements are removed.
 - [x] Screenshot at 1280x800 and 375x812 from a real look, attached to the PR.
 
-### Walkthrough: Elara's portrait, no repeat intro, line spacing, a wider dynamic container, no "Start Here", padding around highlights (Requirement AB#2463, Resolved, not verified)
+### Walkthrough: Elara's portrait, no repeat intro, line spacing, a wider dynamic container, no "Start Here", padding around highlights (Requirement AB#2463, Resolved, not verified) (lane: interstellar-settlement-protocol/social)
 
 What: Where it sits. Landing/walkthrough polish (2461). Board review items 4, 5, 6, 7, 9, 10. / What it is. "Elara Voss, Senior Logistics Coordinator" gets colour and a larger square portrait. Step 1 of 12 drops its introduction (already given the message before the walkthrough starts). Every step gets a line-break audit for generous spacing (for example after "first day on the station." before "start with your inbox"). The container width becomes dynamic to screen size (about 600px at 1920x1080 as the… (the rest: AB#2463)
 

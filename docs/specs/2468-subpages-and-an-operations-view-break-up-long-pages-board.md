@@ -24,7 +24,7 @@ What: Where it sits. ISP epic AB#388. docs/board-reviews/interstellar-settlement
 - [ ] Page sections are collapsible and start collapsed by default at 375px.
 - [ ] Screenshot at 375x812, taken after the Critic's mobile pass is folded in.
 
-### NPC profile popup: show the NPC's portrait, once AB#2491 generates them (Requirement AB#4748, Proposed)
+### NPC profile popup: show the NPC's portrait, once AB#2491 generates them (Requirement AB#4748, Proposed) (lane: interstellar-settlement-protocol/client-views)
 
 What: ISP, the NPC profile popup (public/scripts/views/npcProfileModal.js, opened from an NPC's name on the Exchange). AB#2492 asked for two things: move Close to the bottom right, and add profile pictures. Close shipped in AB#2492 on its own. The portraits wait on AB#2491 (programmatic portrait generation), which is unstarted. This item carries the portrait half so it stays visible.
 
@@ -32,7 +32,7 @@ What: ISP, the NPC profile popup (public/scripts/views/npcProfileModal.js, opene
 - [ ] An NPC with no portrait shows the popup as it is now, not a broken image.
 - [ ] Screenshots at 1280x800 and 375x812.
 
-### Audit every ISP page against DOCTRINE P-010 (little to no desktop scrolling) and name which need subpages (Requirement AB#2469, Resolved, not verified)
+### Audit every ISP page against DOCTRINE P-010 (little to no desktop scrolling) and name which need subpages (Requirement AB#2469, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Where it sits. Subpages and Operations (2468). Board review item 34, the general principle behind items 20, 29, 30, 33. / What it is. A page-by-page audit (public/, at a standard desktop viewport) measuring how much scrolling each page needs, naming every page that needs "a lot" and recommending how it should split. No page is changed in this story - it produces the punch list the other stories in this Feature work from.
 
@@ -40,7 +40,7 @@ What: Where it sits. Subpages and Operations (2468). Board review item 34, the g
 - [x] The PR lists every page that needs a lot of scrolling, with a recommended split for each.
 - [x] Financial Core, Station and Galactic Exchange (already named by the Board) are confirmed on the list with their own findings.
 
-### Financial Core: split into subpages (Requirement AB#2470, Resolved, not verified)
+### Financial Core: split into subpages (Requirement AB#2470, Resolved, not verified) (lane: interstellar-settlement-protocol/finance-politics)
 
 What: Where it sits. Subpages and Operations (2468), reads the audit's own findings (2469). Board review item 20. / What it is. Break Financial Core into subpages along the lines the audit finds, so no single page crams every financial section together with no logical order.
 
@@ -48,7 +48,7 @@ What: Where it sits. Subpages and Operations (2468), reads the audit's own findi
 - [x] No information from the original page is lost.
 - [x] Screenshot at 1280x800 and 375x812.
 
-### Station: split into subpages, and a new Operations view (mining, research, travel, probes, attacks) (Requirement AB#2471, Resolved, not verified)
+### Station: split into subpages, and a new Operations view (mining, research, travel, probes, attacks) (Requirement AB#2471, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Where it sits. Subpages and Operations (2468), reads the audit's own findings (2469). Board review items 29, 30. / What it is. Station's many sections (Construction, Licensed Corporate Holdings, and more) split into subpages along the audit's findings. Active Mining Cycles moves off Station into a new Operations view, which is where every kind of ongoing activity lives together: mining, research, travel, probes and attacks - itself split into subpages if it grows too long, per the same rule.
 
@@ -57,7 +57,7 @@ What: Where it sits. Subpages and Operations (2468), reads the audit's own findi
 - [x] If the Operations view itself needs a lot of scrolling, it is split into subpages too - stated in the PR either way.
 - [x] Screenshot at 1280x800 and 375x812.
 
-### Galactic Exchange: consolidate into subpages (Requirement AB#2472, Resolved, not verified)
+### Galactic Exchange: consolidate into subpages (Requirement AB#2472, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Where it sits. Subpages and Operations (2468), reads the audit's own findings (2469). Board review item 33. / What it is. Split the Galactic Exchange into subpages along the audit's findings, so it reads as organized sections rather than one long view.
 
@@ -65,7 +65,7 @@ What: Where it sits. Subpages and Operations (2468), reads the audit's own findi
 - [x] No information from the original page is lost.
 - [x] Screenshot at 1280x800 and 375x812.
 
-### Galactic Exchange: the standing buy orders are short by default (Requirement AB#4710, Resolved, not verified)
+### Galactic Exchange: the standing buy orders are short by default (Requirement AB#4710, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Where it sits. Subpages and Operations (AB#2468), the follow-up to AB#2472, which split the Exchange into five subpages. docs/design/p010-scroll-audit.md, As built under Galactic Exchange. / What it is. With All picked, the Standing orders page lists every NPC buyer, about 50 rows and 3,100px. The page is still 5.0 screens at 1440x900, against DOCTRINE P-010's little or no scrolling. Make the table short by default without hiding any buyer for good. A proposal for the Board to veto: the rows for… (the rest: AB#4710)
 
