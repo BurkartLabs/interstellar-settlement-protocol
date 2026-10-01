@@ -21,23 +21,6 @@ _To be written: the Feature had no acceptance criteria in Azure DevOps._
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 2 open, 23 resolved.
 
-### ISP-244 Run the v0.13 milestone playthrough and look at every new screen (Requirement AB#940, Active) (lane: interstellar-settlement-protocol/platform)
-
-What: Where it sits. v0.13 Corporation warfare (Feature AB#397), plan line "Territorial control and system ownership". Verifies all four lines; last story of the version. What it is. A human-looked-at run of the deployed build with three accounts. One earns and holds a concession and sets a tariff and lease modifier. A second trades through it, routes around it, and floods a market until the ITC flags it. The first files a patent and the second pays royalties. The two run opposing lobbying campaigns.… (the rest: AB#940)
-
-- [ ] The run is on the deployed build with three accounts, and each step is shown by a screenshot on this item.
-- [ ] Every dead end, surprise charge or unhelpful error is filed as a bug before this closes.
-- [ ] The full suite is green on a fresh clone, with the count stated.
-- [ ] The Board has looked at the screenshots and says so on this item.
-
-### Balance risk: the concession upkeep brake holds at 300,000 of trade a day per system, not at ten times that (Bug AB#4877, Proposed) (lane: interstellar-settlement-protocol/combat)
-
-What: ISP warfare economy (v0.13), the v1.0 final balance pass. AB#967's probe (tests/probes/warfareProbe.js, npm run probe:warfare) plays four rival factions in one world through the real control, concession, upkeep and tariff code. Every AB#967 target passed: at 300,000 of trade a day per held system the top faction holds 3 of 17 concedable systems (17.6%) at day 30 and still at day 60. Concession, patent and lobbying returns all flatten as spend grows. This bug records a sensitivity the probe… (the rest: AB#4877)
-Repro: Symptom: the report's "Sensitivity" block (10x trade) shows the top faction's holdings rising through day 60, while the target world is flat. Repro: in the ISP repo, npm run probe:warfare -- --out <dir> (about a minute); the reports are in docs/ab-967 and attached to AB#967.
-Proposed fix: A decision for AB#968 and the PM, no change needed today (every target passes). Options: (1) data: raise concessionUpkeepBase if measured trade per system turns out well above 300,000 a day; the break-even k is about 1 + keep / (2 x base), so 10x trade needs about 10x base to hold k at 3. (2) Rule: make upkeep a share of the tariff a concession collected (say 30%) on top of the k-scaled base, so the brake scales with the income it brakes. (3) Re-run this probe once real trade volumes exist and… (the rest: AB#4877)
-
-- [ ] Fixed: Balance risk: the concession upkeep brake holds at 300,000 of trade a day per system, not at ten times that
-
 ### ISP-221 Design territorial control: an ISA concession, not ownership, earned by sustained dominance (Requirement AB#916, Resolved, not verified) (lane: interstellar-settlement-protocol/combat)
 
 What: Where it sits. v0.13 Corporation warfare (Feature AB#397), plan line "Territorial control and system ownership". The first story of the version. What it is. A design doc at docs/design/TERRITORY.md that reconciles "system ownership" with the lore. The ISP Treaty says no body may be privately owned (LORE.md), so ownership becomes an ISA administrative concession held by a corporation or conglomerate. The doc covers: how a concession is earned (v0.12's dominance metric sustained over a stated… (the rest: AB#916)
@@ -239,6 +222,31 @@ What: Where it sits. v0.13 Corporation warfare (Feature AB#397), plan line "Gala
 - [x] A player can file a case end-to-end from the wizard and later see its ruling.
 - [x] The evidence preview shows exactly what the server will attach.
 - [x] Screenshots of the wizard, the docket and a ruling at 1280px and 375px are attached to the PR and looked at by a human.
+
+## Held back
+
+Not dispatched: each of these waits on something a Builder session cannot supply, named on its "Held" line. Its lines stay as its acceptance for when it opens. The headings are level 4 so that dispatch, which reads level-3 headings as slices, skips them (PM, 2026-10-01).
+
+#### ISP-244 Run the v0.13 milestone playthrough and look at every new screen (Requirement AB#940, Active) (lane: interstellar-settlement-protocol/platform)
+
+Held (2026-10-01): the three-account test on a local server is on main (d6fea4b9). The open lines need the deployed build, a fresh-clone suite count and the Board's look (AB#4671: not a gate on other work).
+
+What: Where it sits. v0.13 Corporation warfare (Feature AB#397), plan line "Territorial control and system ownership". Verifies all four lines; last story of the version. What it is. A human-looked-at run of the deployed build with three accounts. One earns and holds a concession and sets a tariff and lease modifier. A second trades through it, routes around it, and floods a market until the ITC flags it. The first files a patent and the second pays royalties. The two run opposing lobbying campaigns.… (the rest: AB#940)
+
+- [ ] The run is on the deployed build with three accounts, and each step is shown by a screenshot on this item.
+- [ ] Every dead end, surprise charge or unhelpful error is filed as a bug before this closes.
+- [ ] The full suite is green on a fresh clone, with the count stated.
+- [ ] The Board has looked at the screenshots and says so on this item.
+
+#### Balance risk: the concession upkeep brake holds at 300,000 of trade a day per system, not at ten times that (Bug AB#4877, Proposed) (lane: interstellar-settlement-protocol/combat)
+
+Held (2026-10-01): no change is needed today, in the bug's own words (every target passes). Choosing between a data change and a rule change needs real trade volumes, which do not exist yet.
+
+What: ISP warfare economy (v0.13), the v1.0 final balance pass. AB#967's probe (tests/probes/warfareProbe.js, npm run probe:warfare) plays four rival factions in one world through the real control, concession, upkeep and tariff code. Every AB#967 target passed: at 300,000 of trade a day per held system the top faction holds 3 of 17 concedable systems (17.6%) at day 30 and still at day 60. Concession, patent and lobbying returns all flatten as spend grows. This bug records a sensitivity the probe… (the rest: AB#4877)
+Repro: Symptom: the report's "Sensitivity" block (10x trade) shows the top faction's holdings rising through day 60, while the target world is flat. Repro: in the ISP repo, npm run probe:warfare -- --out <dir> (about a minute); the reports are in docs/ab-967 and attached to AB#967.
+Proposed fix: A decision for AB#968 and the PM, no change needed today (every target passes). Options: (1) data: raise concessionUpkeepBase if measured trade per system turns out well above 300,000 a day; the break-even k is about 1 + keep / (2 x base), so 10x trade needs about 10x base to hold k at 3. (2) Rule: make upkeep a share of the tariff a concession collected (say 30%) on top of the k-scaled base, so the brake scales with the income it brakes. (3) Re-run this probe once real trade volumes exist and… (the rest: AB#4877)
+
+- [ ] Fixed: Balance risk: the concession upkeep brake holds at 300,000 of trade a day per system, not at ten times that
 
 ## Demo script
 

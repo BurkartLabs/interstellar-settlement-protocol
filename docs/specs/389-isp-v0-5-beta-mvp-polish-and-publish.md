@@ -13,32 +13,12 @@ Why it matters. ISP is the company's first multiplayer economy and the first pro
 
 ## Acceptance
 
-_To be written: the Feature had no acceptance criteria in Azure DevOps._
+1. A stranger can register on a hosted URL the Board can hand out, play through the first hour, come back on day three, and trade with another stranger (the Board, 2026-09-20).
+2. The playtest release gate (ISP-63, AB#750) passes on that deployed build, checked last.
 
 ## Checklist
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 2 open, 92 resolved.
-
-### ISP-63 Run the playtest release gate on the deployed build (Requirement AB#750, Proposed) (lane: interstellar-settlement-protocol/platform)
-
-What: Where it sits. v0.5 Beta MVP (#389), release gate, third of three replacing ISP-23 (#587): the item that says whether v0.5 is done. What it is. On the public URL: the Playwright run from v0.5-s35 at both viewports; a second account on a second device lists an item and the first account buys it; a return after the first cycle completes shows output, credits and something new to do; every dead end or unhelpful error is filed and fixed or deferred by the Board; then the Board plays it. Why it… (the rest: AB#750)
-
-- [ ] The Playwright run passes against the public URL at 1280x800 and 375x812, screenshots attached to this item.
-- [ ] A player-to-player trade between two accounts on two devices is completed once, with both sides' trade history screenshots attached (the BRIEF's second measure, shown once; it is not a player number).
-- [ ] A return visit after one completed cycle shows output, credits and a next action, screenshot attached.
-- [ ] Every finding is a Bug, and each is Closed or explicitly deferred by the Board before this item closes.
-- [ ] Access and social features match the Board's answers, checked on the URL: a new account registers with no invitation code, must verify its email before logging in, and can reset its password by email (D-0.5-5, D-0.5-2); chat, forums and player mail work between the two test accounts (D-0.5-4). If the email sender (Decision D-email) is not live, this item says so and does not close.
-- [ ] The suite is green on a fresh clone, count stated.
-- [ ] The Board has played it and says so on this item.
-
-### ISP-282 Wire the email sender the Board approved into the beta (Requirement AB#989, Active) (lane: interstellar-settlement-protocol/accounts)
-
-What: Where it sits. v0.5 Beta MVP (#389), authentication review; the only part of D-0.5-2 (AB#694) that needs a new paid service, so it is blocked on Decision D-email. What it is. Provision the sender the Board chose in the infrastructure code, add its transport to the mail module, and configure the beta to use it. The connection secret (if any) is a Key Vault reference, set by a command the PR prints for the Board to run. Why it matters. Until this lands, verification and reset work only in tests,… (the rest: AB#989)
-
-- [ ] A verification email and a reset email sent from the deployed beta arrive at a Board-controlled address; a screenshot of each received message (sender shown) is attached.
-- [ ] The resource is defined in infrastructure code; no secret is in the repository, the image or the logs.
-- [ ] A transport failure makes registration and reset return 503 with nothing half-created, and is logged without the recipient address (test with a failing transport).
-- [ ] The PR states the expected monthly cost at playtest volume against what the Board approved on D-email.
 
 ### ISP-21 Design the quest spine: why you are a CEO, and what the journey is (Requirement AB#584, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
@@ -900,6 +880,35 @@ What: Where it sits. ISP-88's sink design (AB#778), follow-up to AB#2287 (probe 
 - [x] With that profile, checks 2, 3 and 4 report a real PASS or FAIL, not WAIT, at seeds 7000 and 7001; ECONOMY.md's "What the probe printed" section quotes the actual output.
 - [x] If the new profile still cannot reach 3+ yards or 2+ leases in the time budget, that is written down as its own finding (per the Director's "the problem is not reproduced" note) rather than patched by loosening the checks' thresholds.
 - [x] No screen: probe console output only, stated plainly rather than proxied with a look-alike.
+
+## Held back
+
+Not dispatched: each of these waits on something a Builder session cannot supply, named on its "Held" line. Its lines stay as its acceptance for when it opens. The headings are level 4 so that dispatch, which reads level-3 headings as slices, skips them (PM, 2026-10-01).
+
+#### ISP-63 Run the playtest release gate on the deployed build (Requirement AB#750, Proposed) (lane: interstellar-settlement-protocol/platform)
+
+Held (2026-10-01): needs the deployed beta, two accounts on two devices and the Board's own playthrough. The Board (AB#4671) will verify by playing the deployed build over time, and this is not a gate on other work.
+
+What: Where it sits. v0.5 Beta MVP (#389), release gate, third of three replacing ISP-23 (#587): the item that says whether v0.5 is done. What it is. On the public URL: the Playwright run from v0.5-s35 at both viewports; a second account on a second device lists an item and the first account buys it; a return after the first cycle completes shows output, credits and something new to do; every dead end or unhelpful error is filed and fixed or deferred by the Board; then the Board plays it. Why it… (the rest: AB#750)
+
+- [ ] The Playwright run passes against the public URL at 1280x800 and 375x812, screenshots attached to this item.
+- [ ] A player-to-player trade between two accounts on two devices is completed once, with both sides' trade history screenshots attached (the BRIEF's second measure, shown once; it is not a player number).
+- [ ] A return visit after one completed cycle shows output, credits and a next action, screenshot attached.
+- [ ] Every finding is a Bug, and each is Closed or explicitly deferred by the Board before this item closes.
+- [ ] Access and social features match the Board's answers, checked on the URL: a new account registers with no invitation code, must verify its email before logging in, and can reset its password by email (D-0.5-5, D-0.5-2); chat, forums and player mail work between the two test accounts (D-0.5-4). If the email sender (Decision D-email) is not live, this item says so and does not close.
+- [ ] The suite is green on a fresh clone, count stated.
+- [ ] The Board has played it and says so on this item.
+
+#### ISP-282 Wire the email sender the Board approved into the beta (Requirement AB#989, Active) (lane: interstellar-settlement-protocol/accounts)
+
+Held (2026-10-01): the sender is on main (264c2f5f: server/mail.js, server/mailSmtpTransport.js, the 503 when no mail can be sent). The open lines need SMTP credentials only the Board can set, and the deployed beta.
+
+What: Where it sits. v0.5 Beta MVP (#389), authentication review; the only part of D-0.5-2 (AB#694) that needs a new paid service, so it is blocked on Decision D-email. What it is. Provision the sender the Board chose in the infrastructure code, add its transport to the mail module, and configure the beta to use it. The connection secret (if any) is a Key Vault reference, set by a command the PR prints for the Board to run. Why it matters. Until this lands, verification and reset work only in tests,… (the rest: AB#989)
+
+- [ ] A verification email and a reset email sent from the deployed beta arrive at a Board-controlled address; a screenshot of each received message (sender shown) is attached.
+- [ ] The resource is defined in infrastructure code; no secret is in the repository, the image or the logs.
+- [ ] A transport failure makes registration and reset return 503 with nothing half-created, and is logged without the recipient address (test with a failing transport).
+- [ ] The PR states the expected monthly cost at playtest volume against what the Board approved on D-email.
 
 ## Demo script
 

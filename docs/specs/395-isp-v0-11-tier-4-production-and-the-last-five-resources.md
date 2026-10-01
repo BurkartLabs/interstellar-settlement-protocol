@@ -20,15 +20,6 @@ _To be written: the Feature had no acceptance criteria in Azure DevOps._
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 1 open, 10 resolved.
 
-### npm run probe:tier4's busy-market 60%-split target misses for every contest, not just Exotic Matter (Bug AB#4781, Active) (lane: interstellar-settlement-protocol/economy)
-
-What: Where: the Tier 4 probe (npm run probe:tier4; tests/probes/tier4Probe.js, allocation and targets), against AB#887's target that the planner splits a contested intermediate between two or more recipes in at least 60% of runs (the design's interior optimum, docs/design/v0.11-tier4.md section 4). What: the quiet market meets it for every contest (84 to 100%); the busy market (others have sold 0 to 80% of each quota today) misses it for every contest (6 to 36%). Why it matters: whether Tier 4… (the rest: AB#4781)
-Symptom: npm run probe:tier4 prints MISS for the busy-market 60% split target: Fusion Pellets 36%, Rare-Earth Magnets 35%, Cryogenic Coolant 7%, Pressure Vessels 6%, Exotic Matter 19%, Synthesis Array hours 20%. The quiet market prints MET (84 to 100%). In the busy market sold-as-it-is takes 68 to 86% of contested stock.
-Repro: - On origin/main c0a03819: npm run probe:tier4 / - Read the Targets block: the busy market line is MISS for all six contests.
-Proposed fix: A decision, not a defect. Options: / - Keep the economy; restate the target as a quiet-market claim (recommended, confidence medium). The design's worked example is at fresh bids; into a saturated market, selling the raw or idling is the right answer and arguably a real market signal. The probe keeps printing the busy table as information, not a target. Cost: a line in the probe and a sentence in section 4. / - Widen Tier 4 margins (raise Tier 4 product base prices about 20 to 25%, or lower their… (the rest: AB#4781)
-
-- [ ] Fixed: npm run probe:tier4's busy-market 60%-split target misses for every contest, not just Exotic Matter
-
 ### ISP-184 Design Tier 4: name the final five resources, one tier table, the R&D gates and the recipes (Requirement AB#878, Resolved, not verified) (lane: interstellar-settlement-protocol/economy)
 
 What: Where it sits. v0.11 Tier 4 production (Feature AB#395), under the ISP epic AB#388. / What it is. docs/design/v0.11-tier4.md resolving what the plan leaves open: which five resources are "the final 5", one canonical tier numbering, which research gates each, and the Tier 4 recipes. Today the sources disagree: LORE puts Uranium in Tier 2 and lists Aerogel, Quantum Insulators, Plasma Conduits, Dark-Matter Capacitors and Exotic Matter as Tier 3, while those four products already exist as outputs of… (the rest: AB#878)
@@ -115,6 +106,21 @@ What: Where it sits. v0.11 Tier 4 production (Feature AB#395), under the ISP epi
 - [x] Printed as bot numbers (not player time, P-PROXY): bot-days from the start profile to the first unit of each Tier 4 product; the share of the planner bot's intermediate stock sent to each competing recipe.
 - [x] Target: the planner splits contested intermediates between at least two recipes in at least 60% of runs (interior optimum). Misses are reported and filed.
 - [x] Target: every Tier 4 product is reachable by the bot (reachability, T-019); any unreachable product fails the probe.
+
+## Held back
+
+Not dispatched: each of these waits on something a Builder session cannot supply, named on its "Held" line. Its lines stay as its acceptance for when it opens. The headings are level 4 so that dispatch, which reads level-3 headings as slices, skips them (PM, 2026-10-01).
+
+#### npm run probe:tier4's busy-market 60%-split target misses for every contest, not just Exotic Matter (Bug AB#4781, Active) (lane: interstellar-settlement-protocol/economy)
+
+Held (2026-10-01): a decision, not a defect, in the bug's own words: restate the probe's target as a quiet-market claim, or widen margins by 20 to 25%. Waits for the Board's economy review (AB#4779, AB#4881).
+
+What: Where: the Tier 4 probe (npm run probe:tier4; tests/probes/tier4Probe.js, allocation and targets), against AB#887's target that the planner splits a contested intermediate between two or more recipes in at least 60% of runs (the design's interior optimum, docs/design/v0.11-tier4.md section 4). What: the quiet market meets it for every contest (84 to 100%); the busy market (others have sold 0 to 80% of each quota today) misses it for every contest (6 to 36%). Why it matters: whether Tier 4… (the rest: AB#4781)
+Symptom: npm run probe:tier4 prints MISS for the busy-market 60% split target: Fusion Pellets 36%, Rare-Earth Magnets 35%, Cryogenic Coolant 7%, Pressure Vessels 6%, Exotic Matter 19%, Synthesis Array hours 20%. The quiet market prints MET (84 to 100%). In the busy market sold-as-it-is takes 68 to 86% of contested stock.
+Repro: - On origin/main c0a03819: npm run probe:tier4 / - Read the Targets block: the busy market line is MISS for all six contests.
+Proposed fix: A decision, not a defect. Options: / - Keep the economy; restate the target as a quiet-market claim (recommended, confidence medium). The design's worked example is at fresh bids; into a saturated market, selling the raw or idling is the right answer and arguably a real market signal. The probe keeps printing the busy table as information, not a target. Cost: a line in the probe and a sentence in section 4. / - Widen Tier 4 margins (raise Tier 4 product base prices about 20 to 25%, or lower their… (the rest: AB#4781)
+
+- [ ] Fixed: npm run probe:tier4's busy-market 60%-split target misses for every contest, not just Exotic Matter
 
 ## Demo script
 

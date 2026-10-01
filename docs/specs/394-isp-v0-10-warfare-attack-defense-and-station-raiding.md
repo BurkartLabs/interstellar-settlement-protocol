@@ -25,23 +25,6 @@ _To be written: the Feature had no acceptance criteria in Azure DevOps._
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 2 open, 27 resolved.
 
-### ISP v0.10: the combat probe's misses: raiding out-earns producing, and light-fighter fleets hit the cap (AB#877 targets failed) (Requirement AB#4650, Proposed) (lane: interstellar-settlement-protocol/combat)
-
-What: Where it sits. v0.10 Warfare (Feature AB#394). This is the follow-up AB#877 promised: two probe targets failed, and they were not lowered. / What the probe showed (npm run probe:combat; bot numbers, P-PROXY: bots on the design's assumed business and fixed policies, not players). (1) Over 4 raid profiles and 30 days, the pure raider beat the average producer on net worth in all 4: 281,572 vs 258,195 at 200k capital with a 2% garrison, and 509,676 vs 448,968 at 400k. The mixed bot beat both by… (the rest: AB#4650)
-
-- [ ] A Director or Board call, with the probe table as evidence, names what changes: the loot share or floor, the repeat limit across all attackers, the cooldown, garrison economics, or smarter defender bots in the probe (a producer that rebuilds its garrison or keeps a counter fleet). A change to the probe's defender policy must be argued as closer to play, not chosen to pass.
-- [ ] After it, npm run probe:combat shows the pure raider not beating the producer at day 30 in most profiles, or the design records why that target was replaced.
-- [ ] The fleet-size target (below the cap in 80% of runs) is met or explicitly reframed, for example as counted in supply rather than hulls.
-- [ ] The counter matrix and the five-way cycle still pass.
-
-### Balance: destroyers appear in no top-quartile fleet composition (best is 24th of 70) (Bug AB#4875, Proposed) (lane: interstellar-settlement-protocol/combat)
-
-What: ISP combat, the v0.10 unit set (data/units.json), the v1.0 final balance pass. AB#966's fleet composition tournament (tests/probes/tournamentProbe.js, npm run probe:tournament) sets 70 compositions against each other: the budget in quarters over the five units, whole units at replacement value, both roles, budgets 30,000, 120,000 and 480,000, and four modifier sets a side. That is 231,840 battles through the real resolver. The target is that every unit type appears in at least one top-quartile… (the rest: AB#4875)
-Repro: Symptom: the report prints "FAIL every unit type is in at least one top-quartile composition: missing ds". Repro: in the ISP repo, npm run probe:tournament -- --out <dir> (about 80 seconds); the report, raw JSON and chart are attached to AB#966.
-Proposed fix: Data change in data/units.json, for AB#968 (not applied here). Each option below was measured by running the full tournament against a temporary catalog edit: / - Destroyer attack 34 to 40 (recommended, the smallest that works): the best destroyer composition ranks 18th of 70, one composition in the top quartile, and every other target still passes (best win rate 22.1%, fully invested defender 4.7% to 14.7%). / - Destroyer credits 3,350 to 2,600: ranks 5th, 9 of the top 18 hold destroyers, best win… (the rest: AB#4875)
-
-- [ ] Fixed: Balance: destroyers appear in no top-quartile fleet composition (best is 24th of 70)
-
 ### Design Rats in asteroid fields: encounters, escorts and hunts using the v0.10 combat model (Requirement AB#819, Resolved, not verified) (lane: interstellar-settlement-protocol/combat)
 
 What: Where it sits. v0.7 World Expansion plan line "Pirate (Rats) NPC enemies in asteroid fields", moved after v0.10 combat. The Board answered D-0.7-1 (AB#701): "We should be able to fight pirates by the time they're added." Rats therefore land once v0.10 has units, the combat resolver and fleets, and the player fights them with those. What it is. Each system already has a pirateDensity (11 in Sol to 31 in Wolf 359) that nothing reads. Design: the chance of an encounter per expedition from density… (the rest: AB#819)
@@ -281,6 +264,31 @@ What: Where it sits. v0.10 Warfare (Feature AB#394), Rats in asteroid fields (do
 - [x] A hired fleet whose contract allows pve or raids escorts an expedition; a defense-only contract is refused (test).
 - [x] Escort losses are recorded against the contract and settle from the collateral (conservation test).
 - [x] A contract that ends while its fleet escorts waits for the expedition to come home (test), as a raid does.
+
+## Held back
+
+Not dispatched: each of these waits on something a Builder session cannot supply, named on its "Held" line. Its lines stay as its acceptance for when it opens. The headings are level 4 so that dispatch, which reads level-3 headings as slices, skips them (PM, 2026-10-01).
+
+#### ISP v0.10: the combat probe's misses: raiding out-earns producing, and light-fighter fleets hit the cap (AB#877 targets failed) (Requirement AB#4650, Proposed) (lane: interstellar-settlement-protocol/combat)
+
+Held (2026-10-01): balance tuning (raiding out-earns producing; light-fighter fleets hit the cap), and it needs a call on which lever moves. Waits for the Board's economy review (AB#4779, AB#4881).
+
+What: Where it sits. v0.10 Warfare (Feature AB#394). This is the follow-up AB#877 promised: two probe targets failed, and they were not lowered. / What the probe showed (npm run probe:combat; bot numbers, P-PROXY: bots on the design's assumed business and fixed policies, not players). (1) Over 4 raid profiles and 30 days, the pure raider beat the average producer on net worth in all 4: 281,572 vs 258,195 at 200k capital with a 2% garrison, and 509,676 vs 448,968 at 400k. The mixed bot beat both by… (the rest: AB#4650)
+
+- [ ] A Director or Board call, with the probe table as evidence, names what changes: the loot share or floor, the repeat limit across all attackers, the cooldown, garrison economics, or smarter defender bots in the probe (a producer that rebuilds its garrison or keeps a counter fleet). A change to the probe's defender policy must be argued as closer to play, not chosen to pass.
+- [ ] After it, npm run probe:combat shows the pure raider not beating the producer at day 30 in most profiles, or the design records why that target was replaced.
+- [ ] The fleet-size target (below the cap in 80% of runs) is met or explicitly reframed, for example as counted in supply rather than hulls.
+- [ ] The counter matrix and the five-way cycle still pass.
+
+#### Balance: destroyers appear in no top-quartile fleet composition (best is 24th of 70) (Bug AB#4875, Proposed) (lane: interstellar-settlement-protocol/combat)
+
+Held (2026-10-01): balance tuning: a number change (destroyer attack 34 to 40) for the 1.0 balance pass (AB#968). Waits for the Board's economy review.
+
+What: ISP combat, the v0.10 unit set (data/units.json), the v1.0 final balance pass. AB#966's fleet composition tournament (tests/probes/tournamentProbe.js, npm run probe:tournament) sets 70 compositions against each other: the budget in quarters over the five units, whole units at replacement value, both roles, budgets 30,000, 120,000 and 480,000, and four modifier sets a side. That is 231,840 battles through the real resolver. The target is that every unit type appears in at least one top-quartile… (the rest: AB#4875)
+Repro: Symptom: the report prints "FAIL every unit type is in at least one top-quartile composition: missing ds". Repro: in the ISP repo, npm run probe:tournament -- --out <dir> (about 80 seconds); the report, raw JSON and chart are attached to AB#966.
+Proposed fix: Data change in data/units.json, for AB#968 (not applied here). Each option below was measured by running the full tournament against a temporary catalog edit: / - Destroyer attack 34 to 40 (recommended, the smallest that works): the best destroyer composition ranks 18th of 70, one composition in the top quartile, and every other target still passes (best win rate 22.1%, fully invested defender 4.7% to 14.7%). / - Destroyer credits 3,350 to 2,600: ranks 5th, 9 of the top 18 hold destroyers, best win… (the rest: AB#4875)
+
+- [ ] Fixed: Balance: destroyers appear in no top-quartile fleet composition (best is 24th of 70)
 
 ## Demo script
 

@@ -65,14 +65,6 @@ What: ISP economy pacing. Found fixing Bug AB#2360. The ladder bot test (tests/p
 - [ ] If yes, the mission requirement or its supply is retuned so seeds 1 to 10 all reach Level 30 inside 240 days (LADDER_SEED=n LADDER_OUT=file npx vitest run tests/probes/ladder-bot.test.js).
 - [ ] If no, the test's cap and its comment say what it does check.
 
-### A broke corporation whose office has lapsed can never rent one again: the Salvage Assignment stops paying at 3,000 and an office costs 7,000 (Bug AB#4868, Proposed) (lane: interstellar-settlement-protocol/economy)
-
-What: ISP economy, the way back from broke (ECONOMY.md, ISP-289; the Salvage Assignment, ISP-297). A corporation with no credits, no goods and no office has one income: the Salvage Assignment, offered only while credits are under salvage.creditsThreshold (3,000) and paying salvage.payoutCredits (3,000). The cheapest office is a 7-day lease at 1,000 a day, 7,000. Without an office it cannot mine, hire or lease, and contracts need goods it has none of. So its credits cycle between under 3,000 and under… (the rest: AB#4868)
-Repro: Symptom: rent-office refused "requires 7,000 credits. Current reserves: 2,9xx" (and 3,xxx to 5,xxx) indefinitely. Repro: node ops/probes/isp-progression.ts --repo <isp> --broke-staffed prints FAIL. By hand: a corporation with staff, let its office run out at under 3,000 credits with no goods; take the Salvage Assignment each time it is offered; the office is never affordable.
-Proposed fix: Data change: raise salvage.creditsThreshold in data/economy.json from 3,000 to 10,000, payout unchanged, so salvage stays on offer until a corporation can afford a week's office plus a short mining cycle. A 30-staff corporation then nets about 1,500 a day (2 payouts less 4,500 wages) and reaches an office in about a week. Confidence: medium; the threshold also changes who sees salvage (ISP-298's copy says "under 3,000"). Alternative, a rule change: offer salvage while the corporation cannot… (the rest: AB#4868)
-
-- [ ] Fixed: A broke corporation whose office has lapsed can never rent one again: the Salvage Assignment stops paying at 3,000 and an office costs 7,000
-
 ### Balance: no bot climbs past level 14 of 30; mining a corporation's own ore is at or below break-even at the bid it drives down (Bug AB#4871, Proposed) (lane: interstellar-settlement-protocol/client-views)
 
 What: ISP economy and level ladder, the v1.0 final balance pass (AB#965 measured it, AB#968 applies changes). The full-progression probe (ops/probes/isp-progression.ts) drives a new corporation up the ladder through the real routes. The target is the top level: 40 in the item's text, but the ladder defines 30 (Bug #424 corrected the cap). Neither bot gets near it. Every number below is a bot number (P-PROXY): 48 looks a bot day, up to 4 moves a look, seed 7000, one corporation alone in its world, ISP… (the rest: AB#4871)
