@@ -9,28 +9,38 @@ What it is. An audit of every page against that rule first, then the splits it f
 
 ## Acceptance
 
-_To be written: the Feature had no acceptance criteria in Azure DevOps._
+1. At 1440x900 no page of the game needs more than about a screen and a half of scrolling (DOCTRINE P-010): Financial Core, Station and the Galactic Exchange are split into subpages, and an Operations view shows mining, research, travel, probes and attacks in one place.
+2. At 375 wide the layout is the one the Board asked for (review of 2026-09-26, second pass, items 45 to 47): navigation at the top, the header panel hidden, Profile, Milestones and Quick Actions pinned at the bottom, and page sections collapsed by default.
 
 ## Checklist
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 2 open, 5 resolved.
 
-### Mobile layout: top nav, hide the header panel, pin Profile/Milestones/Quick Actions, sections collapsed by default (Requirement AB#2493, Proposed, under Epic AB#388) (lane: interstellar-settlement-protocol/client-shell)
+**Mobile layout: top nav, hide the header panel, pin Profile/Milestones/Quick Actions, sections collapsed by default** (was Requirement AB#2493, under Epic AB#388)
 
 What: Where it sits. ISP epic AB#388. docs/board-reviews/interstellar-settlement-protocol-review-2026-09-26.md, second pass, items 45, 46, 47. The Board's second pass covers phone width (375px) specifically. / What it is. On mobile: the panel holding the header, notifications, Replay Onboarding and Log out is hidden, with navigation moved to the top instead. Corporation Identity, Milestones and Quick Actions become three pinned buttons at the bottom of the screen: Profile, Milestones, Quick Actions.… (the rest: AB#2493)
 
-- [ ] At 375px width, the header/notifications/Replay Onboarding/Log out panel is hidden and navigation is at the top.
-- [ ] Corporation Identity, Milestones and Quick Actions render as three pinned buttons at the bottom of the screen.
-- [ ] Page sections are collapsible and start collapsed by default at 375px.
-- [ ] Screenshot at 375x812, taken after the Critic's mobile pass is folded in.
+PM note (2026-10-01): split into the three slices below, one session each. Main today does the opposite of the first slice (a kept header and a bottom navigation bar at 767px and below, public/styles.css, from the 1.0 facelift), so the first slice reverses that on the Board's written ask. Each pull request shows the phone layout before and after.
 
-### NPC profile popup: show the NPC's portrait, once AB#2491 generates them (Requirement AB#4748, Proposed) (lane: interstellar-settlement-protocol/client-views)
+### Slice 1: Phone layout: navigation at the top, the header panel hidden (lane: interstellar-settlement-protocol/client-shell)
 
-What: ISP, the NPC profile popup (public/scripts/views/npcProfileModal.js, opened from an NPC's name on the Exchange). AB#2492 asked for two things: move Close to the bottom right, and add profile pictures. Close shipped in AB#2492 on its own. The portraits wait on AB#2491 (programmatic portrait generation), which is unstarted. This item carries the portrait half so it stays visible.
+- [ ] At 375px width the panel holding the header, notifications, Replay Onboarding and Log out is hidden, and navigation is at the top. Notifications, Replay Onboarding and Log out are still reachable, and the pull request says where.
+- [ ] Above 767px nothing changes.
+- [ ] Screenshots at 375x812, before and after, attached to the pull request.
 
-- [ ] The NPC profile popup shows the NPC's generated portrait (from AB#2491) beside its name, as the dialogue portraits sit.
-- [ ] An NPC with no portrait shows the popup as it is now, not a broken image.
-- [ ] Screenshots at 1280x800 and 375x812.
+### Slice 2: Phone layout: Profile, Milestones and Quick Actions pinned at the bottom (lane: interstellar-settlement-protocol/client-shell)
+
+Needs slice 1.
+
+- [ ] At 375px width Corporation Identity, Milestones and Quick Actions render as three pinned buttons at the bottom of the screen: Profile, Milestones, Quick Actions. Each opens its panel and closes again, by touch and by keyboard.
+- [ ] The pinned buttons never cover a page's last control: the page scrolls clear of them.
+- [ ] Screenshots at 375x812 of the bar and of each panel open, attached to the pull request.
+
+### Slice 3: Phone layout: page sections collapse, and start collapsed (lane: interstellar-settlement-protocol/client-shell)
+
+- [ ] At 375px width page sections are collapsible and start collapsed by default; a section the player opened stays open while they are on the page.
+- [ ] Above 767px sections are as they are today.
+- [ ] Screenshots at 375x812 of two pages, collapsed and with one section open, attached to the pull request.
 
 ### Audit every ISP page against DOCTRINE P-010 (little to no desktop scrolling) and name which need subpages (Requirement AB#2469, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
@@ -73,6 +83,20 @@ What: Where it sits. Subpages and Operations (AB#2468), the follow-up to AB#2472
 - [x] Every standing buy order stays reachable within one control, and the resource and tier filters still narrow the table as today.
 - [x] The first-hour sale of Silicates is on the page without extra steps.
 - [x] Screenshots at 1280x800 and 375x812.
+
+## Held back
+
+Not dispatched: each of these waits on something a Builder session cannot supply, named on its "Held" line. Its lines stay as its acceptance for when it opens. The headings are level 4 so that dispatch, which reads level-3 headings as slices, skips them (PM, 2026-10-01).
+
+#### NPC profile popup: show the NPC's portrait, once AB#2491 generates them (Requirement AB#4748, Proposed) (lane: interstellar-settlement-protocol/client-views)
+
+Held (2026-10-01): waits on AB#2491 (programmatic portrait generation), which itself waits on the Board's answer about paying for an image service.
+
+What: ISP, the NPC profile popup (public/scripts/views/npcProfileModal.js, opened from an NPC's name on the Exchange). AB#2492 asked for two things: move Close to the bottom right, and add profile pictures. Close shipped in AB#2492 on its own. The portraits wait on AB#2491 (programmatic portrait generation), which is unstarted. This item carries the portrait half so it stays visible.
+
+- [ ] The NPC profile popup shows the NPC's generated portrait (from AB#2491) beside its name, as the dialogue portraits sit.
+- [ ] An NPC with no portrait shows the popup as it is now, not a broken image.
+- [ ] Screenshots at 1280x800 and 375x812.
 
 ## Demo script
 

@@ -20,17 +20,6 @@ _To be written: the Feature had no acceptance criteria in Azure DevOps._
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 1 open, 30 resolved.
 
-### ISP-110 Author levels 31 to 40 in the milestone data (Requirement AB#802, Active) (lane: interstellar-settlement-protocol/accounts)
-
-What: Where it sits. v0.6 Industrial Expansion (Feature AB#390), plan line "Full milestone roadmap (Levels 11–40)". What it is. Add levels 31 to 40 to data/milestones.json exactly as specified in docs/design/ladder-11-40.md, and make any stat writes those levels need through the bumpStat allowlist from AB#424. Why it matters. Ten levels is the most one session can author and verify against the ladder bot; the ladder is the goal horizon DEPTH scored 1/5. Estimate: 1 session, assuming the design is… (the rest: AB#802)
-
-- [ ] Levels 31 to 40 are in the data and match the design document (a reviewer can diff the two).
-- [ ] The ladder bot (v0.6-16) climbs to level 40 and the PR quotes its per-level numbers, labelled as bot numbers.
-- [ ] The schema and cross-catalog tests pass: every research id, building, stat and unlock key used by these levels resolves.
-- [ ] A corporation saved at level 10 before this change loads, is evaluated, and keeps every unlock it had (regression test).
-- [ ] The year-pacing probe's check-in profile reaches level 40 between simulated day 330 and day 400, quoted in the PR as a bot number (not player time, P-PROXY); if it does not, the PR retunes the band's numbers, not the probe.
-- [ ] Unblocked 2026-09-26 (Board answer, Decision AB#2324): every stat:silicateSoldOnExchange target here (Levels 32, 34, 36, 37 and 40) is redrawn as a production target, not a sales target - the Board's rule is that progress never waits on the market. Cite ECONOMY.md's new "Demand: the Board's rule (AB#2324)" section (AB#2375). Follow AB#2321's own method (90% of the curve at that level's simulated day, from a production-based rate at the shared quota, not a sales-based one) to pick the… (the rest: AB#802)
-
 ### ISP-92 Design the player building catalogue: every designed type, and one data shape for all of them (Requirement AB#782, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Where it sits. v0.6 Industrial Expansion (Feature AB#390), plan line "Full buildable building catalogue (all types currently designed)". First story of the line; everything else in it builds on this document. What it is. The plan says "all types currently designed", but there is no list of them. Player buildings exist only as hardcoded endpoints in server/index.js (Basic Extractor Yard, Assembly Facility at $60,000, Refinery at $75,000, plus the starting Headquarters and a "Refinery Annex" in… (the rest: AB#782)
@@ -308,6 +297,23 @@ What: Where it sits. Third of three stories from docs/design/belts.md (AB#1050);
 - [x] The three states (scouted with reserve, unscouted, empty with the next chance) are on the design system and looked at at 375, 768 and 1280, with screenshots on the PR.
 - [x] A respawn while the panel is open shows as unscouted without a reload.
 - [x] The AB#772 sweep (e2e/every-screen.spec.js) still passes.
+
+## Held back
+
+Not dispatched: each of these waits on something a Builder session cannot supply, named on its "Held" line. Its lines stay as its acceptance for when it opens. The headings are level 4 so that dispatch, which reads level-3 headings as slices, skips them (PM, 2026-10-01).
+
+#### ISP-110 Author levels 31 to 40 in the milestone data (Requirement AB#802, Active) (lane: interstellar-settlement-protocol/accounts)
+
+Held (2026-10-01): Levels 31 to 40 are drafted on origin/agent/802-levels-31-40 (d4c63efd; it predates Levels 21 to 30 and needs a rebase). The remaining lines retune the band until a bot reaches 40 on day 330 to 400, and rest on AB#4774's open question (must Level 30 fit in 240 days). Economy tuning waits for the Board's economy review (AB#4779, AB#4881).
+
+What: Where it sits. v0.6 Industrial Expansion (Feature AB#390), plan line "Full milestone roadmap (Levels 11–40)". What it is. Add levels 31 to 40 to data/milestones.json exactly as specified in docs/design/ladder-11-40.md, and make any stat writes those levels need through the bumpStat allowlist from AB#424. Why it matters. Ten levels is the most one session can author and verify against the ladder bot; the ladder is the goal horizon DEPTH scored 1/5. Estimate: 1 session, assuming the design is… (the rest: AB#802)
+
+- [ ] Levels 31 to 40 are in the data and match the design document (a reviewer can diff the two).
+- [ ] The ladder bot (v0.6-16) climbs to level 40 and the PR quotes its per-level numbers, labelled as bot numbers.
+- [ ] The schema and cross-catalog tests pass: every research id, building, stat and unlock key used by these levels resolves.
+- [ ] A corporation saved at level 10 before this change loads, is evaluated, and keeps every unlock it had (regression test).
+- [ ] The year-pacing probe's check-in profile reaches level 40 between simulated day 330 and day 400, quoted in the PR as a bot number (not player time, P-PROXY); if it does not, the PR retunes the band's numbers, not the probe.
+- [ ] Unblocked 2026-09-26 (Board answer, Decision AB#2324): every stat:silicateSoldOnExchange target here (Levels 32, 34, 36, 37 and 40) is redrawn as a production target, not a sales target - the Board's rule is that progress never waits on the market. Cite ECONOMY.md's new "Demand: the Board's rule (AB#2324)" section (AB#2375). Follow AB#2321's own method (90% of the curve at that level's simulated day, from a production-based rate at the shared quota, not a sales-based one) to pick the… (the rest: AB#802)
 
 ## Demo script
 

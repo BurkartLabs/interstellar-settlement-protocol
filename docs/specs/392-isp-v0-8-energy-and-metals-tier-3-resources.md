@@ -18,13 +18,16 @@ Each line becomes a story when this version is next. They are listed here rather
 
 ## Acceptance
 
-_To be written: the Feature had no acceptance criteria in Azure DevOps._
+1. Every tier-3 track under "What it contains" can be played on the running build from extraction to its manufactured good, each step gated by its research.
+2. The production-chain probe (bots, not players) shows no single refine-or-sell policy winning at every price.
 
 ## Checklist
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 2 open, 16 resolved.
 
 ### ISP-141 Production-chain probe: no single refine-or-sell policy wins at every price (Requirement AB#835, Active) (lane: interstellar-settlement-protocol/economy)
+
+PM note (2026-10-01): the probe looks done on main (d67bd53e, 33ab3d2b: tests/probes/chain-probe.test.js, chainProbe.js). Check the first two lines against main and tick them; do not rebuild. The last two lines describe the original pull request's text: strike them through with that reason. The fourth as worded is contradicted by the test's week(), which sets inventory directly; say so when striking it.
 
 What: Where it sits. v0.8 Energy and Metals (Feature AB#392), multi-step manufacturing line. The measurement for the version's economy. What it is. A headless test bot runs a week of each track under three policies ("always sell raw", "always refine to the end", "the design's rule") at three NPC price states, and reports credits at the end. Why it matters. T-018 and DEPTH's decision-density gate: the chains are a decision only if the best policy changes with prices. Estimate: 1 session, assuming… (the rest: AB#835)
 
@@ -34,6 +37,8 @@ What: Where it sits. v0.8 Energy and Metals (Feature AB#392), multi-step manufac
 - [ ] The bot drives the game only through server functions or routes; it never writes inventory or credits directly (grep in the PR).
 
 ### Gas-giant and ice-giant skimming: a lease on a giant needs Fusion Fuel Cycle, and giants take leases (Requirement AB#2352, Proposed) (lane: interstellar-settlement-protocol/economy)
+
+PM note (2026-10-01): which giants take a lease, and at what price, is the Builder's to choose and to write into docs/design/tier3-resources.md, as the lines say.
 
 What: Where it sits. v0.8 Energy and Metals (AB#392), the Fuel track's second source. docs/design/tier3-resources.md section 3: a gas giant (Hydrogen 55, Helium-3 30, Deuterium 15) or ice giant needs "a lease and skimming research (the Helium-3 track's)", and tier3-recipes.md section 3 has tt-fusion-fuel-cycle unlock "gas-giant skimming". Split out of AB#830, which put the research node and the Luna and Rime sources into data but not this mechanic. / What it is. Two things. (1) A lease that requires… (the rest: AB#2352)
 

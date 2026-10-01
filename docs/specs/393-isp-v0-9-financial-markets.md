@@ -16,22 +16,17 @@ Each line becomes a story when this version is next. They are listed here rather
 
 ## Acceptance
 
-_To be written: the Feature had no acceptance criteria in Azure DevOps._
+1. Two corporations on the running build can issue and buy a bond, make and repay a loan, and hold equity in each other, and each sees the other's credit rating.
+2. On a default the lender recovers what the Board allowed (AB#702: anything liquid, then assets force-sold), and nothing more.
+3. No instrument can be bought or sped up with real money (AB#703).
 
 ## Checklist
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 2 open, 22 resolved.
 
-### ISP v0.9: tune leverage so the planner's borrowing is a decision the probe can see (AB#856 target failed) (Requirement AB#4648, Proposed) (lane: interstellar-settlement-protocol/economy)
+### Default recovery never reaches ships or troops, so a borrower can move principal into units before defaulting (Bug AB#4803, Proposed) (lane: interstellar-settlement-protocol/finance-politics)
 
-What: Where it sits. v0.9 Financial markets (Feature AB#393). This is the follow-up AB#856 promised: the probe target failed, and the target was not lowered. / What the probe showed (npm run probe:markets; bot numbers, P-PROXY: bots on the design's assumed business, not players). Over 8 corporation profiles and 30 days, the planner-borrow bot never beat both the no-borrow and the max-borrow bot by 10% of net worth. The spread was -1.8% to +1.9% against no-borrow, and it lost to max-borrow by about 1%… (the rest: AB#4648)
-
-- [ ] A design note (v0.9-debt.md section 8 or 5) names what changes: the principal caps as a multiple of income, the origination fee, the rate spread, how a building bought with a loan is booked, or the 10% target itself, as a Board or Director call with the probe table as evidence.
-- [ ] After the change, npm run probe:markets shows the planner-borrow bot beating both the no-borrow and the max-borrow bot by at least 10% at day 30 in most profiles, or the design records why that target was replaced.
-- [ ] The planner's payout ratio is interior in at least 80% of the runs that reach an offering, or the design says why not.
-- [ ] The sink target stays between 5% and 10%.
-
-### Default recovery never reaches ships or troops, so a borrower can move principal into units before defaulting (Bug AB#4803, Proposed) (lane: interstellar-settlement-protocol/combat)
+PM note (2026-10-01): build the first option: fleets and reserve units join saleableAssets after buildings, salvaged at the same 40% of cost, with a regression test. The Board's answer on AB#702 is "anything liquid, assets force sold if not able to cover", and ships and troops are assets. The file is server/defaultRecovery.js, so the lane is finance-politics, not combat.
 
 What: ISP v0.9 debt. saleableAssets lists buildings (not the Headquarters) and leases (server/defaultRecovery.js:121-131); recovery also takes credits, goods, bond holdings and shares. Fleets and troops are neither sold nor named as protected in docs/design/v0.9-debt.md (its 'never sold' list is the office, research, the level and the Headquarters). A borrower who turns a loan's principal into ships and then defaults keeps them; the lasting cost is a D grade. Filed to confirm the intent with the… (the rest: AB#4803)
 Symptom: Units bought with borrowed credits are out of reach of recovery.
@@ -249,6 +244,21 @@ What: Where it sits. v0.9 Financial markets (Feature AB#393). A prerequisite of 
 - [x] corp.finances.assets drops by the building's asset value; a running cycle or batch is settled by the rule the PR states (test).
 - [x] Every new building records what it cost (paid); the design names the salvage base used for buildings built before that.
 - [x] No route removes a building yet: the function is for default recovery (AB#993); the office, research and level are never removable.
+
+## Held back
+
+Not dispatched: each of these waits on something a Builder session cannot supply, named on its "Held" line. Its lines stay as its acceptance for when it opens. The headings are level 4 so that dispatch, which reads level-3 headings as slices, skips them (PM, 2026-10-01).
+
+#### ISP v0.9: tune leverage so the planner's borrowing is a decision the probe can see (AB#856 target failed) (Requirement AB#4648, Proposed) (lane: interstellar-settlement-protocol/economy)
+
+Held (2026-10-01): balance tuning: it changes the leverage numbers until the planner's borrowing shows in the probe, and needs a call on which knob moves. Waits for the Board's economy review (AB#4779, AB#4881).
+
+What: Where it sits. v0.9 Financial markets (Feature AB#393). This is the follow-up AB#856 promised: the probe target failed, and the target was not lowered. / What the probe showed (npm run probe:markets; bot numbers, P-PROXY: bots on the design's assumed business, not players). Over 8 corporation profiles and 30 days, the planner-borrow bot never beat both the no-borrow and the max-borrow bot by 10% of net worth. The spread was -1.8% to +1.9% against no-borrow, and it lost to max-borrow by about 1%… (the rest: AB#4648)
+
+- [ ] A design note (v0.9-debt.md section 8 or 5) names what changes: the principal caps as a multiple of income, the origination fee, the rate spread, how a building bought with a loan is booked, or the 10% target itself, as a Board or Director call with the probe table as evidence.
+- [ ] After the change, npm run probe:markets shows the planner-borrow bot beating both the no-borrow and the max-borrow bot by at least 10% at day 30 in most profiles, or the design records why that target was replaced.
+- [ ] The planner's payout ratio is interior in at least 80% of the runs that reach an offering, or the design says why not.
+- [ ] The sink target stays between 5% and 10%.
 
 ## Demo script
 

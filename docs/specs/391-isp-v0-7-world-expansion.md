@@ -21,14 +21,6 @@ _To be written: the Feature had no acceptance criteria in Azure DevOps._
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 1 open, 13 resolved.
 
-### ISP-123 NPC bids and asks drift with traded volume, inside fixed bounds (Requirement AB#817, Active) (lane: interstellar-settlement-protocol/finance-politics)
-
-What: Where it sits. v0.7 World Expansion (Feature AB#391), NPC corporations line. What it is. Replace the fixed NPC prices with the design's rule: price moves with volume traded over the rolling window, between the floor and ceiling, and daily quantities come from the design rather than 1,000,000. Why it matters. A fixed bid with unbounded depth is the reason DEPTH found no player ever needs another player; drift is what makes the exchange a market. Estimate: 1 session, assuming v0.7-11 is merged.
-
-- [ ] A test sells a large volume to an NPC bid and sees the bid fall by the design's amount, and never below the floor; the same for asks and the ceiling.
-- [ ] The probe from v0.7-09 exists as a test and the PR quotes its two numbers (share of player-to-player volume, silicate price movement), labelled as bot numbers.
-- [ ] Price state is server-side only and persisted; a restart does not reset prices (test).
-
 ### ISP-112 Make data/systems.json the one source for every per-system fact (Requirement AB#804, Resolved, not verified) (lane: interstellar-settlement-protocol/client-views)
 
 What: Where it sits. v0.7 World Expansion (Feature AB#391), plan line "Starmap: expand to 20+ solar systems". Groundwork: adding fourteen systems today means editing seven places. What it is. Per-system facts live in data/systems.json and also in SYSTEM_DETAILS, BELT_COMPOSITIONS and SYSTEM_RARITY (server/gameState.js, with a TODO saying so), SYSTEM_ADJACENCY (server/index.js), and CLUSTER_LAYOUT and NEAR_STAR_SYSTEMS (public/scripts/starmap.js). Move adjacency, map position, rarity, belt composition… (the rest: AB#804)
@@ -147,6 +139,20 @@ What: Where it sits. v0.7 World Expansion (Feature AB#391), neutral stations lin
 - [x] AB#811's own acceptance clause 1 is updated to record this rule once this item merges.
 - [x] Screenshot from the running game (not a mock) at 1440x900 and 390x844, showing at least one system with a badge (Sol) and at least one without, so the rule is visibly demonstrated.
 - [x] The PR states whether this eases AB#2343's crowding at phone width; it does not need to fully resolve that bug, which stays open on its own.
+
+## Held back
+
+Not dispatched: each of these waits on something a Builder session cannot supply, named on its "Held" line. Its lines stay as its acceptance for when it opens. The headings are level 4 so that dispatch, which reads level-3 headings as slices, skips them (PM, 2026-10-01).
+
+#### ISP-123 NPC bids and asks drift with traded volume, inside fixed bounds (Requirement AB#817, Active) (lane: interstellar-settlement-protocol/finance-politics)
+
+Held (2026-10-01): waits on the NPC buy-order design (AB#2376, Feature AB#2374). The Board's direction there, a price fixed for the life of an order, conflicts with this slice's drifting bid, so building it as written would be redone.
+
+What: Where it sits. v0.7 World Expansion (Feature AB#391), NPC corporations line. What it is. Replace the fixed NPC prices with the design's rule: price moves with volume traded over the rolling window, between the floor and ceiling, and daily quantities come from the design rather than 1,000,000. Why it matters. A fixed bid with unbounded depth is the reason DEPTH found no player ever needs another player; drift is what makes the exchange a market. Estimate: 1 session, assuming v0.7-11 is merged.
+
+- [ ] A test sells a large volume to an NPC bid and sees the bid fall by the design's amount, and never below the floor; the same for asks and the ceiling.
+- [ ] The probe from v0.7-09 exists as a test and the PR quotes its two numbers (share of player-to-player volume, silicate price movement), labelled as bot numbers.
+- [ ] Price state is server-side only and persisted; a restart does not reset prices (test).
 
 ## Demo script
 

@@ -17,23 +17,16 @@ Each line becomes a story when this version is next. They are listed here rather
 
 ## Acceptance
 
-_To be written: the Feature had no acceptance criteria in Azure DevOps._
+1. Two players on the running build can found a conglomerate, level it, pool resources, share intel, co-own a station and see dominance on the Starmap.
+2. Players message each other privately, and a private message is stored in one place only: conversations.
 
 ## Checklist
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 2 open, 32 resolved.
 
-### ISP-220 Run the v0.12 milestone playthrough and look at every new screen (Requirement AB#915, Active) (lane: interstellar-settlement-protocol/platform)
+### ISP: move the Inbox's player mail onto conversations and drop it from the accounts snapshot (Requirement AB#2563, Proposed) (lane: interstellar-settlement-protocol/social)
 
-What: Where it sits. v0.12 Conglomerates (Feature AB#396), plan line "Conglomerate creation and membership system". Verifies all six lines; last story of the version. What it is. A human-looked-at run of the deployed build: two accounts on two devices found and join a conglomerate, upgrade it once, pool credits and goods, share a belt, fund and complete a station, use a member benefit, check the dominance overlay, and exchange memoranda if D-0.12-1 is answered. Screenshots of every new screen at… (the rest: AB#915)
-
-- [ ] The run is on the deployed build, not localhost, with two accounts on two devices.
-- [ ] Each step in the description is shown by a screenshot attached to this item.
-- [ ] Every dead end, empty state without a next action, or unhelpful error found is filed as a bug before this closes.
-- [ ] The full suite is green on a fresh clone, with the test count stated.
-- [ ] The Board has looked at the screenshots and says so on this item.
-
-### ISP: move the Inbox's player mail onto conversations and drop it from the accounts snapshot (Requirement AB#2563, Proposed) (lane: interstellar-settlement-protocol/platform)
+PM note (2026-10-01): the first and third lines look done on main under AB#911 (5a6266eb; tests/integration/conversations.test.js): check and tick them. The work left is the second line: stop the legacy write in server/game/messaging.js (the social lane's file) and drop player mail from the accounts snapshot after scripts/migrate-mail.mjs has run. Security: this is players' private mail. The purge deletes a snapshot row only when the same message is found in conversations (fail closed: a message that was not migrated is kept and counted), and the test shows the counts before and after on a fixture store.
 
 What: Where it sits. v0.12 Conglomerates (Feature AB#396), after AB#910 (private messages by corporation id) and the design in docs/design/messaging.md, step 3 of its migration plan. / What it is. AB#910 built the conversation store and routes (/api/accounts/:id/conversations...) and made the old Inbox's send route write each player message into its conversation too; scripts/migrate-mail.mjs copies the mail sent before that. The Inbox view (public/scripts/views/inbox.js) still reads and writes the old… (the rest: AB#2563)
 
@@ -337,6 +330,22 @@ What: Symptom. The Conglomerate tab's Station screen, for a station that opened 
 Repro: Symptom. The Conglomerate tab's Station screen, for a station that opened while the member's page was open, says "Offices at 0%. A member's suite here costs 0 credits a day, not 1,000". The server charges 50% (500 a day; the lease in the same run charged 3,500 for 7 days), and the starmap modal and the Station tab's panel say so. / Repro. Main 90865879. A member's page is open; the station project's build time ends and the server's tick opens the station; the member opens Conglomerate, Station.… (the rest: AB#4669)
 
 - [x] Fixed: ISP Station screen says a member's office costs 0% (0 credits a day) when the station opened after the page's last read
+
+## Held back
+
+Not dispatched: each of these waits on something a Builder session cannot supply, named on its "Held" line. Its lines stay as its acceptance for when it opens. The headings are level 4 so that dispatch, which reads level-3 headings as slices, skips them (PM, 2026-10-01).
+
+#### ISP-220 Run the v0.12 milestone playthrough and look at every new screen (Requirement AB#915, Active) (lane: interstellar-settlement-protocol/platform)
+
+Held (2026-10-01): the two-player test is on main (7fd17642). The open lines need the deployed build, attached screenshots and the Board's look. The Board (AB#4671) will verify by playing the deployed build over time, and this is not a gate on other work.
+
+What: Where it sits. v0.12 Conglomerates (Feature AB#396), plan line "Conglomerate creation and membership system". Verifies all six lines; last story of the version. What it is. A human-looked-at run of the deployed build: two accounts on two devices found and join a conglomerate, upgrade it once, pool credits and goods, share a belt, fund and complete a station, use a member benefit, check the dominance overlay, and exchange memoranda if D-0.12-1 is answered. Screenshots of every new screen at… (the rest: AB#915)
+
+- [ ] The run is on the deployed build, not localhost, with two accounts on two devices.
+- [ ] Each step in the description is shown by a screenshot attached to this item.
+- [ ] Every dead end, empty state without a next action, or unhelpful error found is filed as a bug before this closes.
+- [ ] The full suite is green on a fresh clone, with the test count stated.
+- [ ] The Board has looked at the screenshots and says so on this item.
 
 ## Demo script
 

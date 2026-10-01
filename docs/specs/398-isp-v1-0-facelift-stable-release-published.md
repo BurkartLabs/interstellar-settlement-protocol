@@ -18,76 +18,16 @@ Each line becomes a story when this version is next. They are listed here rather
 
 ## Acceptance
 
-_To be written: the Feature had no acceptance criteria in Azure DevOps._
+1. A stranger opens the public URL, registers and plays the redesigned game, and nothing placeholder is visible on any screen.
+2. The release-candidate gate (ISP-275, AB#971) passes on the production-like build, the Critic returns SHIP, and the Board has played it.
 
 ## Checklist
 
 Each heading replaces a Requirement or Bug, which Azure DevOps keeps (Closed, tagged folded, linked here); its lines are its Acceptance. A checked line was Resolved and has not been verified. 17 open, 27 resolved.
 
-### ISP-272 Apply the balance changes with before-and-after numbers and player-facing patch notes (Requirement AB#968, Proposed) (lane: interstellar-settlement-protocol/combat)
-
-What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Final balance pass across economy, combat, and progression". What it is. Applies the data-file changes proposed by the balance bugs from v1.0-25 to 27 (catalog values only; rule changes are separate stories). Re-runs the probes, and writes docs/PATCH_NOTES_1.0.md in the ISA voice, listing every changed number. Why it matters. Balance changes in a player economy must be announced. Players who planned around a… (the rest: AB#968)
-
-- [ ] Each change cites the bug that proposed it, and the probe's before and after output is attached.
-- [ ] Every target from v1.0-25 to 27 is met, or the remaining gap is stated and accepted in writing by the Board on this item.
-- [ ] The patch notes list every changed value (old and new), and a test asserts the notes and the data files agree.
-
-### Stand up a minimal production environment for launch (Requirement AB#969, Proposed) (lane: interstellar-settlement-protocol/accounts)
-
-What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Final security hardening and public deployment configuration". What it is. The Board answered D-1.0-1 (AB#708): "Registration, minimal, whatever, none", read in the order asked: registration open; hosting spend minimal; domain whatever (no preference, so none is bought: the conservative reading on spend); legal pages and age policy none. A production container app separate from the beta in the existing… (the rest: AB#969)
-
-- [ ] Production is reachable over HTTPS at its default Container Apps hostname, with its own data store and secrets; a test request shows beta and production return different build ids.
-- [ ] Replica count is exactly one; the PR states the monthly cost estimate and compares it with the beta's (the Board asked for minimal; anything above the beta's cost is explained).
-- [ ] Health probes and at least two alerts (error rate, restart loop) are configured, and a triggered test alert reached the Board (screenshot attached).
-- [ ] Security. Secrets are Key Vault references only, set by commands the PR prints for the Board to run (no secret is handled by the agent). NODE_ENV=production. Dummy and dev routes are absent (v1.0-16's test runs against production config). Fails closed: the app refuses to boot without its production secrets, and registration returns 503 if the email sender is not configured.
-
-### Start everyone fresh at 1.0: archive the beta and open production empty (Requirement AB#970, Proposed) (lane: interstellar-settlement-protocol/accounts)
-
-What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Public 1.0 release". What it is. The Board answered D-1.0-2 (AB#709): "Everyone starts fresh." Read literally and as the reading that moves the least personal data: nothing carries into production, not progress, not corporation names, not accounts; no beta-tester title (option B's recognition was not chosen). Beta players register again on 1.0. A script archives the beta data with restricted access and a stated… (the rest: AB#970)
-
-- [ ] Production opens with zero beta accounts, corporations or progress (a count query in the PR shows 0).
-- [ ] The beta archive exists, is readable once in a restore test, lists who can access it (the Board only), and has a deletion date stated in RUNBOOK.md.
-- [ ] Beta players receive an in-game notice at least 7 days before the change, with the date in UTC and a line saying they will need to register again.
-- [ ] Security. No beta personal data (emails, password hashes, tokens) is copied into production (verified by query); the archive is not reachable from either app's runtime identity.
-
-### ISP-275 Run the 1.0 release-candidate gate on the production-like build (Requirement AB#971, Proposed) (lane: interstellar-settlement-protocol/platform)
-
-What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Public 1.0 release". The ISP-23 gate again, at 1.0 scope. It is the evidence the Board decides D-1.0-1 on, so it is not blocked by it. What it is. A start-to-finish run of the release candidate: a fresh account through the first hour, then every navigation group; a second account trading and fighting with the first; a phone at 375px; and a return visit. Screenshots of every screen from v1.0-01's script. It also… (the rest: AB#971)
-
-- [ ] The run is on a production-like deployment, with screenshots of every step and every screen attached here, and a human has looked at them.
-- [ ] The v1.0-02 allowlist is empty, and no placeholder is visible (RUBRIC).
-- [ ] The telemetry events from v1.0-12 are seen in the store for the run.
-- [ ] The full test suite and Playwright smoke are green on a fresh clone, with counts stated (T-008).
-- [ ] A Critic review of the build returns SHIP, linked here. Every finding of the run is filed and fixed, or explicitly deferred by the Board.
-- [ ] The Board has played it and says so on this item.
-
-### ISP-276 Open ISP to the public (Requirement AB#972, Proposed) (lane: interstellar-settlement-protocol/accounts)
-
-What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Public 1.0 release". What it is. The Board answered D-1.0-1 (AB#708): "Registration, minimal, whatever, none", read in the order asked: registration open; hosting spend minimal; domain whatever (no preference, so none is bought: the conservative reading on spend); legal pages and age policy none. The cutover: production opens registration to anyone (with the email verification the Board chose on D-0.5-2), with… (the rest: AB#972)
-
-- [ ] Registration on the production URL works for a new external account, including the verification email, shown with screenshots of the register page and the verified landing at 375x812 and 1280x800.
-- [ ] No announcement is posted by the agent; the PR tells the Board the URL is ready to announce.
-- [ ] A 48-hour summary is posted on this item with sign-ups, D1 where available, error rate and incidents, each labelled with what it measures (P-PROXY).
-- [ ] Rollback to closed registration is the REGISTRATION_OPEN switch from ISP-91 (AB#781), documented, and was tested on production before cutover.
-
-### ISP-277 Write the 1.0 LEARNING.md and record the video overview (Requirement AB#973, Proposed) (lane: interstellar-settlement-protocol/platform)
-
-What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Public 1.0 release". The Charter's ship artifacts. What it is. projects/interstellar-settlement-protocol/LEARNING.md covers: what 1.0 taught, the numbers that mattered, what the probes said against what players did, and a Doctrine patch proposal ("merge, rewrite or no change"). Also a short video overview from the live build. Why it matters. CHARTER: shipping without a LEARNING writeup, a video and a Doctrine… (the rest: AB#973)
-
-- [ ] LEARNING.md exists with the sections above and at least three learnings, each tied to evidence (an item id, a metric or a probe output).
-- [ ] A Doctrine patch proposal is filed in DOCTRINE's patch-log format, even if "no change".
-- [ ] The video exists, is linked here, and was watched by the Board.
-
-### register-rate-limit.spec's 1280x800 case fails under the full Playwright run: page.goto register.html is net::ERR_ABORTED (Bug AB#2363, Active) (lane: interstellar-settlement-protocol/platform)
-
-What: Symptom. In a full `npx playwright test` run, 'a refused registration says to wait an hour at 1280x800' fails at its first line, page.goto(`${url}/register.html`) -> net::ERR_ABORTED. Run alone, repeated three times, it passes every time. / Repro. On agent/834-cross-track (8da56159, main 8c40b137 plus AB#834), start a scratch server and run BASE_URL=... npx playwright test --reporter=line: 218 passed, 4 failed, this one among them. npx playwright test e2e/register-rate-limit.spec.js --repeat-each… (the rest: AB#2363)
-Symptom: In a full `npx playwright test` run, 'a refused registration says to wait an hour at 1280x800' fails at its first line, page.goto(`${url}/register.html`) -> net::ERR_ABORTED. Run alone, repeated three times, it passes every time.
-Repro: On agent/834-cross-track (8da56159, main 8c40b137 plus AB#834), start a scratch server and run BASE_URL=... npx playwright test --reporter=line: 218 passed, 4 failed, this one among them. npx playwright test e2e/register-rate-limit.spec.js --repeat-each 3: all pass.
-Proposed fix: Confidence: low. Before the first goto, wait for the spec's server to answer (poll GET /register.html with the request fixture until 200), and retry the goto once on ERR_ABORTED. Confidence low: the cause is a guess until the error-context of a failing run is read.
-
-- [ ] Fixed: register-rate-limit.spec's 1280x800 case fails under the full Playwright run: page.goto register.html is net::ERR_ABORTED
-
 ### ISP: a flood priced just above the ITC line (85-95% of normal value) that takes a full day of demand beats the standing bid: 4 of 28 damaging bot floods profit (Bug AB#4672, Proposed) (lane: interstellar-settlement-protocol/finance-politics)
+
+PM note (2026-10-01): the Board answered Decision AB#4780 "trust your instinct". Take its recommended option (a): amend AB#929's target to read "a flood the watch finds" (priced below 85% of normal value) in the probe and the design note; priceThresholdPct stays 85. Flag it in the pull request for the Board's veto.
 
 What: Symptom. The AB#929 tariff and dumping probe (npm run probe:tariffs) misses its target: a flood that damages a rival by 20%+ of its daily revenue should be net-negative for the flooder after duty. 4 of 28 damaging floods profit against the flooder selling the same units to the standing bid; none of the 4 is found by the watch (all priced at 85%, 90% or 95% of normal value, at or above the 85% line). Every flood the watch finds is net-negative. BOT NUMBERS (P-PROXY): bots in an assumed market,… (the rest: AB#4672)
 Symptom: The AB#929 tariff and dumping probe (npm run probe:tariffs) misses its target: a flood that damages a rival by 20%+ of its daily revenue should be net-negative for the flooder after duty. 4 of 28 damaging floods profit against the flooder selling the same units to the standing bid; none of the 4 is found by the watch (all priced at 85%, 90% or 95% of normal value, at or above the 85% line). Every flood the watch finds is net-negative. BOT NUMBERS (P-PROXY): bots in an assumed market, not… (the rest: AB#4672)
@@ -96,16 +36,9 @@ Proposed fix: Confidence: medium. A Board/Director call. Recommended: amend the 
 
 - [ ] Fixed: ISP: a flood priced just above the ITC line (85-95% of normal value) that takes a full day of demand beats the standing bid: 4 of 28 damaging bot floods profit
 
-### Release gate: the AB#415 accounts snapshot (password hashes, 142 refresh-token JWTs) is still in ISP's git history on origin/main (Bug AB#4805, Proposed) (lane: interstellar-settlement-protocol/platform)
-
-What: Symptom. AB#959 (ISP-263) requires the AB#415 accounts snapshot to be gone from git history before the public release. It is not. `git log --remotes=origin -- data/accounts-snapshot.json` returns 4 commits (bee26cd6, 30581db2, 2e80d03d, 00d5d29e), all ancestors of origin/main and contained in 178 remote branches; each still holds the 6.6 MB file. gitleaks 8 over all refs (842 non-merge commits scanned, secrets redacted) reports 226 findings: 142 `jwt` in data/accounts-snapshot.json and 60 `jwt`… (the rest: AB#4805)
-Symptom: AB#959 (ISP-263) requires the AB#415 accounts snapshot to be gone from git history before the public release. It is not. `git log --remotes=origin -- data/accounts-snapshot.json` returns 4 commits (bee26cd6, 30581db2, 2e80d03d, 00d5d29e), all ancestors of origin/main and contained in 178 remote branches; each still holds the 6.6 MB file. gitleaks 8 over all refs (842 non-merge commits scanned, secrets redacted) reports 226 findings: 142 `jwt` in data/accounts-snapshot.json and 60 `jwt` in… (the rest: AB#4805)
-Repro: In any clone with origin fetched: `git log --remotes=origin --oneline -- data/accounts-snapshot.json data/accounts.json` (non-empty = fails). Full scan, values redacted: `docker run --rm -v <clone>:/repo:ro zricethezav/gitleaks:latest git /repo --log-opts="--all" --redact --no-banner` (in Git Bash prefix MSYS_NO_PATHCONV=1).
-Proposed fix: Confidence: high. A Board call, one of two. (A) Purge: on a fresh mirror clone, `git filter-repo --invert-paths --path data/accounts-snapshot.json --path data/accounts.json`, force-push every ref to Azure DevOps and the public GitHub copy, have every checkout (Board's tree, agent worktrees) re-clone, and treat the old shas as public forever (GitHub caches, forks). Then rotate JWT_SECRET in Key Vault so no refresh token from the file can be honoured, and change the passwords behind the two real… (the rest: AB#4805)
-
-- [ ] Fixed: Release gate: the AB#415 accounts snapshot (password hashes, 142 refresh-token JWTs) is still in ISP's git history on origin/main
-
 ### ISP-255c Rewrite status and notification copy in protocol language: Comms and Map (chat, conversations, inbox memoranda, Forums, Starmap, travel, concessions) (Requirement AB#4825, Active) (lane: interstellar-settlement-protocol/social)
+
+PM note (2026-10-01): this looks done on main under AB#4830 (Comms: cf25c38c, 61450d96, c349df65, docs/ab-4830/strings.md) and AB#4831 (Map: 80fdc151, c2dc3006, docs/ab-4831/strings.md). Check each line against main and tick it; do not rebuild. The "looked at" line is met by looking at the screens on a running build at 1280x800 and 375x812.
 
 What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Bureaucratic UI pass - reinforce the cold corporate sci-fi tone." Slice 951c of the original AB#951 scope, split out for the same reason as 951a. / What it is. Every status label, notification, inbox system message and error in Chat, conversations, the inbox's memoranda, Forums, Starmap and travel, concessions and the map overlays is rewritten against the v1.0-03 bureaucratic-voice guide, with the plain meaning… (the rest: AB#4825)
 
@@ -114,16 +47,9 @@ What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), 
 - [ ] No string names Aria Voss.
 - [ ] Screenshots of five representative notifications and statuses at 1280px are attached to the PR and looked at by a human.
 
-### The client ships 180 unbundled, unminified modules: no build step (Bug AB#4837, Proposed) (lane: interstellar-settlement-protocol/platform)
-
-What: ISP, the client's first load. Found measuring AB#964 (ISP-268): Lighthouse mobile profile, three runs a page, scratch server, Chromium. After AB#964's fixes (compression, images, self-hosted fonts and Chart.js, cache headers) the landing page scores 66 and the main app view 61, against the 85 AB#964 asks. Every page loads each ES module as its own request, unminified (Lighthouse: ~55 KB of minification and ~89 KB of unused script left after gzip). Its import depth makes a waterfall of round… (the rest: AB#4837)
-Symptom: Main app view Lighthouse mobile performance 61; 179 requests on a first load.
-Repro: - Sign in, open the app with the cache empty. / - Count the /scripts/ requests.
-Proposed fix: An esbuild step (npm run build) that bundles scripts/app.js with code splitting per view and minifies, writing public/dist/ with hashed names; index.html loads the bundle; the static cache keeps hashed files a year (server/staticCache.js already has the immutable rule for versioned paths). Keep the unbundled modules for tests. Confidence medium: a build step changes the Dockerfile and the dev loop; a Board call on the tooling.
-
-- [ ] Fixed: The client ships 180 unbundled, unminified modules: no build step
-
 ### The research and CEO prerequisite trees, and the sidebar's toggles, are buttons outside the design system's components (Bug AB#4845, Proposed) (lane: interstellar-settlement-protocol/client-shell)
+
+PM note (2026-10-01): PM's call between the bug's two options: add the two components to the design system (.ui-tree-node and .ui-disclosure in /styleguide, with focus and target sizes) and move the prerequisite trees and the sidebar's toggles onto them. Consistency is the visual review's lowest gate (VISUAL.md, review 2).
 
 What: ISP, Corporate R&D and CEO Insight (the prerequisite tree, AB#2473/AB#2474: button.prereq-node) and the shell's sidebar (button.side-panel__toggle). They are <button>s with bespoke classes and no .ui-* component class. Their CSS uses tokens only, so this is a components question, not a colour one: the design system has no tree-node or disclosure component. Found by the facelift inventory's component check.
 Repro: Repro: npm run look:facelift; FACELIFT_INVENTORY.md lists them under Components for rnd, ceo and shell.
@@ -131,16 +57,9 @@ Proposed fix: Either add the two to the design system (a .ui-tree-node and a .ui
 
 - [ ] Fixed: The research and CEO prerequisite trees, and the sidebar's toggles, are buttons outside the design system's components
 
-### HTTP p95 is over its 500 ms budget because tickers hold the event loop for a whole pass over every account: financialSnapshotTick up to ~700 ms, miningTick ~420 ms (Bug AB#4859, Active) (lane: interstellar-settlement-protocol/platform)
-
-What: Symptom. At 200 corporations (unprofiled, tmpfs), GET /api/accounts/:id p95 is 591 ms against a 500 ms budget. It was 596 ms before Bug #4849's fix, which halved p50 (123 -> 63 ms), so the handler is not what sets p95. What a request waits on is a synchronous ticker run already holding the event loop: financialSnapshotTick p95 663 ms per run, miningTick 488 ms, a snapshot write 239 ms. A request that arrives during one waits for the whole of it. Event-loop worst p99 286 ms. / Repro. npm run… (the rest: AB#4859)
-Symptom: At 200 corporations (unprofiled, tmpfs), GET /api/accounts/:id p95 is 591 ms against a 500 ms budget. It was 596 ms before Bug #4849's fix, which halved p50 (123 -> 63 ms), so the handler is not what sets p95. What a request waits on is a synchronous ticker run already holding the event loop: financialSnapshotTick p95 663 ms per run, miningTick 488 ms, a snapshot write 239 ms. A request that arrives during one waits for the whole of it. Event-loop worst p99 286 ms.
-Repro: npm run load:test -- --corps 200 --minutes 5 --data tmpfs (and --profile for the store-query table). Compare the HTTP p95 with the p95 per run of financialSnapshotTick and miningTick.
-Proposed fix: Confidence: medium. Walk the accounts in slices, yielding to the event loop between them (await a setImmediate after every ~20 accounts, or a time budget of ~10 ms). Keep the run's single now so every account is settled at the same instant, as today, and never start a run while the last is still walking. Do this for financialSnapshotTick and miningTick first. The results per account are unchanged; only the interleaving with requests is. Measure the HTTP p95 and the event-loop p99 with… (the rest: AB#4859)
-
-- [ ] Fixed: HTTP p95 is over its 500 ms budget because tickers hold the event loop for a whole pass over every account: financialSnapshotTick up to ~700 ms, miningTick ~420 ms
-
 ### After verifying their email, a new player types their email and password again to log in (Bug AB#4863, Proposed) (lane: interstellar-settlement-protocol/accounts)
+
+PM note (2026-10-01): build the smaller option: after verifying, the login page opens with the verified address filled in (from the token's account, not a stored default). The verify link does not issue a session: that would change the session rule and needs a security review first. Flag it in the pull request for the Board's veto.
 
 What: ISP, a stranger's path from the landing to the first extractor. AB#955's scripts/first-verb-path.mjs walks it in a real browser and counts it: 23 clicks and 7 fields at 375 and at 1280 (every step, with screenshots, in docs/ab-955). Registering gives no session (AB#2288), so after Verify My Email the player presses Log In and re-enters both fields: 1 click and 2 fields of the 23 and 7, the last ones before the game.
 Symptom: Clicks or fields on the way to the first extractor that do not decide anything.
@@ -150,6 +69,8 @@ Proposed fix: A Board call, because it touches the session rule: either the veri
 - [ ] Fixed: After verifying their email, a new player types their email and password again to log in
 
 ### Four receipts to acknowledge on the way to the first extractor (Bug AB#4864, Proposed) (lane: interstellar-settlement-protocol/client-shell)
+
+PM note (2026-10-01): build the first option: during the walkthrough a receipt is a card the next step replaces, with no press needed; the server's receipt is unchanged. Flag it in the pull request for the Board's veto.
 
 What: ISP, a stranger's path from the landing to the first extractor. AB#955's scripts/first-verb-path.mjs walks it in a real browser and counts it: 23 clicks and 7 fields at 375 and at 1280 (every step, with screenshots, in docs/ab-955). Renting the office, hiring, filing the lease and commissioning the yard each open a receipt modal the player must press Acknowledge on (AB#744): 4 of the 23 clicks, each after the action has already succeeded.
 Symptom: Clicks or fields on the way to the first extractor that do not decide anything.
@@ -168,6 +89,8 @@ Proposed fix: When a step's target is on a subpage or in a closed group, the wal
 - [ ] Fixed: The walkthrough sends a new player to controls one level down: the Station group and the Offices subpage
 
 ### Selectable display styles: the sixteen redesign directions on the live game (Requirement AB#4880, Proposed) (lane: interstellar-settlement-protocol/client-shell)
+
+PM note (2026-10-01): this looks done on main (pull request 1407, merge 176bee93: public/scripts/displayStyles.js, public/themes/*.css, tests/unit/displayStyles.test.js, docs/design/DISPLAY_STYLES.md). Run scripts/look-display-styles.mjs, look at the sixteen styles, run npm test and check:design, and tick what holds; do not rebuild. If looking at sixteen styles does not fit one session, do six and say so.
 
 What: Where: the game's client (public/). What: a display-style picker in the app header that switches the whole UI between the current look (the default) and sixteen styles from the Board's 2026-09-27 redesign round (design/mockups: Round 1 v2 — Constructivist, Phosphor Terminal, Stellar Deco, Blueprint Blue, Blueprint Graphite, Zaibatsu — and Round 2 — Monolith, Annual Report, Deep Glass, Command & Control, Settlement Gazette, Bearer Instrument, Megaproject, Director, Keynote, Lightline). / Why: the… (the rest: AB#4880)
 
@@ -410,6 +333,140 @@ What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), 
 - [x] The report gives, as bot numbers: the top faction's share of concedable systems at days 7 and 30, and the return on each warfare lever.
 - [x] Target: the top faction holds no more than 50% of concedable systems at day 30, and no lever has a return that grows without bound in spend. Misses are filed as balance bugs.
 - [x] The raw output is attached to this item.
+
+### A broke corporation whose office has lapsed can never rent one again: the Salvage Assignment stops paying at 3,000 and an office costs 7,000 (Bug AB#4868, Proposed) (lane: interstellar-settlement-protocol/economy)
+
+PM note (2026-10-01): moved here from the demand-tuning Feature (AB#2374), which the Board has set aside for a later economy review: this one is a dead end for a player, not tuning. Build the bug's proposed fix: salvage.creditsThreshold in data/economy.json goes from 3,000 to 10,000, payout unchanged, with a regression test in this repo, and ISP-298's offer copy ("under 3,000") follows the number.
+
+What: ISP economy, the way back from broke (ECONOMY.md, ISP-289; the Salvage Assignment, ISP-297). A corporation with no credits, no goods and no office has one income: the Salvage Assignment, offered only while credits are under salvage.creditsThreshold (3,000) and paying salvage.payoutCredits (3,000). The cheapest office is a 7-day lease at 1,000 a day, 7,000. Without an office it cannot mine, hire or lease, and contracts need goods it has none of. So its credits cycle between under 3,000 and under… (the rest: AB#4868)
+Repro: Symptom: rent-office refused "requires 7,000 credits. Current reserves: 2,9xx" (and 3,xxx to 5,xxx) indefinitely. Repro: node ops/probes/isp-progression.ts --repo <isp> --broke-staffed prints FAIL. By hand: a corporation with staff, let its office run out at under 3,000 credits with no goods; take the Salvage Assignment each time it is offered; the office is never affordable.
+Proposed fix: Data change: raise salvage.creditsThreshold in data/economy.json from 3,000 to 10,000, payout unchanged, so salvage stays on offer until a corporation can afford a week's office plus a short mining cycle. A 30-staff corporation then nets about 1,500 a day (2 payouts less 4,500 wages) and reaches an office in about a week. Confidence: medium; the threshold also changes who sees salvage (ISP-298's copy says "under 3,000"). Alternative, a rule change: offer salvage while the corporation cannot… (the rest: AB#4868)
+
+- [ ] Fixed: A broke corporation whose office has lapsed can never rent one again: the Salvage Assignment stops paying at 3,000 and an office costs 7,000
+
+## Held back
+
+Not dispatched: each of these waits on something a Builder session cannot supply, named on its "Held" line. Its lines stay as its acceptance for when it opens. The headings are level 4 so that dispatch, which reads level-3 headings as slices, skips them (PM, 2026-10-01).
+
+#### ISP-272 Apply the balance changes with before-and-after numbers and player-facing patch notes (Requirement AB#968, Proposed) (lane: interstellar-settlement-protocol/combat)
+
+Held (2026-10-01): balance tuning: it applies the balance bugs' number changes (AB#4871, AB#4875 and the rest). Waits for the Board's economy review (AB#4779, AB#4881).
+
+What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Final balance pass across economy, combat, and progression". What it is. Applies the data-file changes proposed by the balance bugs from v1.0-25 to 27 (catalog values only; rule changes are separate stories). Re-runs the probes, and writes docs/PATCH_NOTES_1.0.md in the ISA voice, listing every changed number. Why it matters. Balance changes in a player economy must be announced. Players who planned around a… (the rest: AB#968)
+
+- [ ] Each change cites the bug that proposed it, and the probe's before and after output is attached.
+- [ ] Every target from v1.0-25 to 27 is met, or the remaining gap is stated and accepted in writing by the Board on this item.
+- [ ] The patch notes list every changed value (old and new), and a test asserts the notes and the data files agree.
+
+#### Stand up a minimal production environment for launch (Requirement AB#969, Proposed) (lane: interstellar-settlement-protocol/accounts)
+
+Held (2026-10-01): the Board's: a production environment is a new Azure resource, its secrets and a production deploy (GOVERNANCE, Gates). The app side is ready on main (the mail-unavailable 503, REGISTRATION_OPEN).
+
+What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Final security hardening and public deployment configuration". What it is. The Board answered D-1.0-1 (AB#708): "Registration, minimal, whatever, none", read in the order asked: registration open; hosting spend minimal; domain whatever (no preference, so none is bought: the conservative reading on spend); legal pages and age policy none. A production container app separate from the beta in the existing… (the rest: AB#969)
+
+- [ ] Production is reachable over HTTPS at its default Container Apps hostname, with its own data store and secrets; a test request shows beta and production return different build ids.
+- [ ] Replica count is exactly one; the PR states the monthly cost estimate and compares it with the beta's (the Board asked for minimal; anything above the beta's cost is explained).
+- [ ] Health probes and at least two alerts (error rate, restart loop) are configured, and a triggered test alert reached the Board (screenshot attached).
+- [ ] Security. Secrets are Key Vault references only, set by commands the PR prints for the Board to run (no secret is handled by the agent). NODE_ENV=production. Dummy and dev routes are absent (v1.0-16's test runs against production config). Fails closed: the app refuses to boot without its production secrets, and registration returns 503 if the email sender is not configured.
+
+#### Start everyone fresh at 1.0: archive the beta and open production empty (Requirement AB#970, Proposed) (lane: interstellar-settlement-protocol/accounts)
+
+Held (2026-10-01): the Board's: it needs the beta's data store, a cutover date the Board picks, and a production deploy. Follows AB#969.
+
+What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Public 1.0 release". What it is. The Board answered D-1.0-2 (AB#709): "Everyone starts fresh." Read literally and as the reading that moves the least personal data: nothing carries into production, not progress, not corporation names, not accounts; no beta-tester title (option B's recognition was not chosen). Beta players register again on 1.0. A script archives the beta data with restricted access and a stated… (the rest: AB#970)
+
+- [ ] Production opens with zero beta accounts, corporations or progress (a count query in the PR shows 0).
+- [ ] The beta archive exists, is readable once in a restore test, lists who can access it (the Board only), and has a deletion date stated in RUNBOOK.md.
+- [ ] Beta players receive an in-game notice at least 7 days before the change, with the date in UTC and a line saying they will need to register again.
+- [ ] Security. No beta personal data (emails, password hashes, tokens) is copied into production (verified by query); the archive is not reachable from either app's runtime identity.
+
+#### ISP-275 Run the 1.0 release-candidate gate on the production-like build (Requirement AB#971, Proposed) (lane: interstellar-settlement-protocol/platform)
+
+Held (2026-10-01): the gate ran on the production image locally (docs/ab-971: 27 of 27 steps, 100 screens). The open lines need the deployed build, a Critic's SHIP and the Board's own play. One part a Builder could do is a clean fresh-clone Playwright run now that 06d06de0 is on main; ask for it as its own slice when the release is next.
+
+What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Public 1.0 release". The ISP-23 gate again, at 1.0 scope. It is the evidence the Board decides D-1.0-1 on, so it is not blocked by it. What it is. A start-to-finish run of the release candidate: a fresh account through the first hour, then every navigation group; a second account trading and fighting with the first; a phone at 375px; and a return visit. Screenshots of every screen from v1.0-01's script. It also… (the rest: AB#971)
+
+- [ ] The run is on a production-like deployment, with screenshots of every step and every screen attached here, and a human has looked at them.
+- [ ] The v1.0-02 allowlist is empty, and no placeholder is visible (RUBRIC).
+- [ ] The telemetry events from v1.0-12 are seen in the store for the run.
+- [ ] The full test suite and Playwright smoke are green on a fresh clone, with counts stated (T-008).
+- [ ] A Critic review of the build returns SHIP, linked here. Every finding of the run is filed and fixed, or explicitly deferred by the Board.
+- [ ] The Board has played it and says so on this item.
+
+#### ISP-276 Open ISP to the public (Requirement AB#972, Proposed) (lane: interstellar-settlement-protocol/accounts)
+
+Held (2026-10-01): the Board's: opening registration on the production URL and announcing it. Follows AB#969 and AB#970.
+
+What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Public 1.0 release". What it is. The Board answered D-1.0-1 (AB#708): "Registration, minimal, whatever, none", read in the order asked: registration open; hosting spend minimal; domain whatever (no preference, so none is bought: the conservative reading on spend); legal pages and age policy none. The cutover: production opens registration to anyone (with the email verification the Board chose on D-0.5-2), with… (the rest: AB#972)
+
+- [ ] Registration on the production URL works for a new external account, including the verification email, shown with screenshots of the register page and the verified landing at 375x812 and 1280x800.
+- [ ] No announcement is posted by the agent; the PR tells the Board the URL is ready to announce.
+- [ ] A 48-hour summary is posted on this item with sign-ups, D1 where available, error rate and incidents, each labelled with what it measures (P-PROXY).
+- [ ] Rollback to closed registration is the REGISTRATION_OPEN switch from ISP-91 (AB#781), documented, and was tested on production before cutover.
+
+#### ISP-277 Write the 1.0 LEARNING.md and record the video overview (Requirement AB#973, Proposed) (lane: interstellar-settlement-protocol/platform)
+
+Held (2026-10-01): follows the release (AB#972): the retrospective and the video are of the live build, and the Board watches the video.
+
+What: Where it sits. v1.0 Facelift, stable release, published (Feature AB#398), plan line "Public 1.0 release". The Charter's ship artifacts. What it is. projects/interstellar-settlement-protocol/LEARNING.md covers: what 1.0 taught, the numbers that mattered, what the probes said against what players did, and a Doctrine patch proposal ("merge, rewrite or no change"). Also a short video overview from the live build. Why it matters. CHARTER: shipping without a LEARNING writeup, a video and a Doctrine… (the rest: AB#973)
+
+- [ ] LEARNING.md exists with the sections above and at least three learnings, each tied to evidence (an item id, a metric or a probe output).
+- [ ] A Doctrine patch proposal is filed in DOCTRINE's patch-log format, even if "no change".
+- [ ] The video exists, is linked here, and was watched by the Board.
+
+#### register-rate-limit.spec's 1280x800 case fails under the full Playwright run: page.goto register.html is net::ERR_ABORTED (Bug AB#2363, Active) (lane: interstellar-settlement-protocol/platform)
+
+Held (2026-10-01): not reproduced in 24 repeats and a 321-test run. The diagnostics on main (eb682a07) print the spec server's output if it happens again; reopen with that output.
+
+What: Symptom. In a full `npx playwright test` run, 'a refused registration says to wait an hour at 1280x800' fails at its first line, page.goto(`${url}/register.html`) -> net::ERR_ABORTED. Run alone, repeated three times, it passes every time. / Repro. On agent/834-cross-track (8da56159, main 8c40b137 plus AB#834), start a scratch server and run BASE_URL=... npx playwright test --reporter=line: 218 passed, 4 failed, this one among them. npx playwright test e2e/register-rate-limit.spec.js --repeat-each… (the rest: AB#2363)
+Symptom: In a full `npx playwright test` run, 'a refused registration says to wait an hour at 1280x800' fails at its first line, page.goto(`${url}/register.html`) -> net::ERR_ABORTED. Run alone, repeated three times, it passes every time.
+Repro: On agent/834-cross-track (8da56159, main 8c40b137 plus AB#834), start a scratch server and run BASE_URL=... npx playwright test --reporter=line: 218 passed, 4 failed, this one among them. npx playwright test e2e/register-rate-limit.spec.js --repeat-each 3: all pass.
+Proposed fix: Confidence: low. Before the first goto, wait for the spec's server to answer (poll GET /register.html with the request fixture until 200), and retry the goto once on ERR_ABORTED. Confidence low: the cause is a guess until the error-context of a failing run is read.
+
+- [ ] Fixed: register-rate-limit.spec's 1280x800 case fails under the full Playwright run: page.goto register.html is net::ERR_ABORTED
+
+#### Release gate: the AB#415 accounts snapshot (password hashes, 142 refresh-token JWTs) is still in ISP's git history on origin/main (Bug AB#4805, Proposed) (lane: interstellar-settlement-protocol/platform)
+
+Held (2026-10-01): the Board's decision at release time (SECURITY.md, "Secrets in history"; the Board accepted the risk on AB#415, 2026-09-20). Purging the snapshot means rewriting main and the public GitHub copy and rotating JWT_SECRET, which no session may do.
+
+What: Symptom. AB#959 (ISP-263) requires the AB#415 accounts snapshot to be gone from git history before the public release. It is not. `git log --remotes=origin -- data/accounts-snapshot.json` returns 4 commits (bee26cd6, 30581db2, 2e80d03d, 00d5d29e), all ancestors of origin/main and contained in 178 remote branches; each still holds the 6.6 MB file. gitleaks 8 over all refs (842 non-merge commits scanned, secrets redacted) reports 226 findings: 142 `jwt` in data/accounts-snapshot.json and 60 `jwt`… (the rest: AB#4805)
+Symptom: AB#959 (ISP-263) requires the AB#415 accounts snapshot to be gone from git history before the public release. It is not. `git log --remotes=origin -- data/accounts-snapshot.json` returns 4 commits (bee26cd6, 30581db2, 2e80d03d, 00d5d29e), all ancestors of origin/main and contained in 178 remote branches; each still holds the 6.6 MB file. gitleaks 8 over all refs (842 non-merge commits scanned, secrets redacted) reports 226 findings: 142 `jwt` in data/accounts-snapshot.json and 60 `jwt` in… (the rest: AB#4805)
+Repro: In any clone with origin fetched: `git log --remotes=origin --oneline -- data/accounts-snapshot.json data/accounts.json` (non-empty = fails). Full scan, values redacted: `docker run --rm -v <clone>:/repo:ro zricethezav/gitleaks:latest git /repo --log-opts="--all" --redact --no-banner` (in Git Bash prefix MSYS_NO_PATHCONV=1).
+Proposed fix: Confidence: high. A Board call, one of two. (A) Purge: on a fresh mirror clone, `git filter-repo --invert-paths --path data/accounts-snapshot.json --path data/accounts.json`, force-push every ref to Azure DevOps and the public GitHub copy, have every checkout (Board's tree, agent worktrees) re-clone, and treat the old shas as public forever (GitHub caches, forks). Then rotate JWT_SECRET in Key Vault so no refresh token from the file can be honoured, and change the passwords behind the two real… (the rest: AB#4805)
+
+- [ ] Fixed: Release gate: the AB#415 accounts snapshot (password hashes, 142 refresh-token JWTs) is still in ISP's git history on origin/main
+
+#### The client ships 180 unbundled, unminified modules: no build step (Bug AB#4837, Proposed) (lane: interstellar-settlement-protocol/platform)
+
+Held (2026-10-01): adding a build step changes the Dockerfile and the dev loop of a product whose stated shape is "no build step": a Board call on the tooling, to be asked when the performance audit is next.
+
+What: ISP, the client's first load. Found measuring AB#964 (ISP-268): Lighthouse mobile profile, three runs a page, scratch server, Chromium. After AB#964's fixes (compression, images, self-hosted fonts and Chart.js, cache headers) the landing page scores 66 and the main app view 61, against the 85 AB#964 asks. Every page loads each ES module as its own request, unminified (Lighthouse: ~55 KB of minification and ~89 KB of unused script left after gzip). Its import depth makes a waterfall of round… (the rest: AB#4837)
+Symptom: Main app view Lighthouse mobile performance 61; 179 requests on a first load.
+Repro: - Sign in, open the app with the cache empty. / - Count the /scripts/ requests.
+Proposed fix: An esbuild step (npm run build) that bundles scripts/app.js with code splitting per view and minifies, writing public/dist/ with hashed names; index.html loads the bundle; the static cache keeps hashed files a year (server/staticCache.js already has the immutable rule for versioned paths). Keep the unbundled modules for tests. Confidence medium: a build step changes the Dockerfile and the dev loop; a Board call on the tooling.
+
+- [ ] Fixed: The client ships 180 unbundled, unminified modules: no build step
+
+#### HTTP p95 is over its 500 ms budget because tickers hold the event loop for a whole pass over every account: financialSnapshotTick up to ~700 ms, miningTick ~420 ms (Bug AB#4859, Active) (lane: interstellar-settlement-protocol/platform)
+
+Held (2026-10-01): the proposed fix was built on origin/fix/4859-ticker-slices (5f95c39e) and measured: event-loop p99 fell, but HTTP p95 did not move (591 to 584 ms), because the 0.5 CPU quota throttles. It needs a new approach before a Builder is sent.
+
+What: Symptom. At 200 corporations (unprofiled, tmpfs), GET /api/accounts/:id p95 is 591 ms against a 500 ms budget. It was 596 ms before Bug #4849's fix, which halved p50 (123 -> 63 ms), so the handler is not what sets p95. What a request waits on is a synchronous ticker run already holding the event loop: financialSnapshotTick p95 663 ms per run, miningTick 488 ms, a snapshot write 239 ms. A request that arrives during one waits for the whole of it. Event-loop worst p99 286 ms. / Repro. npm run… (the rest: AB#4859)
+Symptom: At 200 corporations (unprofiled, tmpfs), GET /api/accounts/:id p95 is 591 ms against a 500 ms budget. It was 596 ms before Bug #4849's fix, which halved p50 (123 -> 63 ms), so the handler is not what sets p95. What a request waits on is a synchronous ticker run already holding the event loop: financialSnapshotTick p95 663 ms per run, miningTick 488 ms, a snapshot write 239 ms. A request that arrives during one waits for the whole of it. Event-loop worst p99 286 ms.
+Repro: npm run load:test -- --corps 200 --minutes 5 --data tmpfs (and --profile for the store-query table). Compare the HTTP p95 with the p95 per run of financialSnapshotTick and miningTick.
+Proposed fix: Confidence: medium. Walk the accounts in slices, yielding to the event loop between them (await a setImmediate after every ~20 accounts, or a time budget of ~10 ms). Keep the run's single now so every account is settled at the same instant, as today, and never start a run while the last is still walking. Do this for financialSnapshotTick and miningTick first. The results per account are unchanged; only the interleaving with requests is. Measure the HTTP p95 and the event-loop p99 with… (the rest: AB#4859)
+
+- [ ] Fixed: HTTP p95 is over its 500 ms budget because tickers hold the event loop for a whole pass over every account: financialSnapshotTick up to ~700 ms, miningTick ~420 ms
+
+#### Visual-design review 2: the five POLISH epics (VISUAL.md, 2026-09-27; was Critique AB#2500)
+
+Held (2026-10-01): the review judged origin/main c176b25c, before the 1.0 facelift and the sixteen display styles. Each epic is checked against main as it is now before it becomes a slice (a verdict is a photograph, P-STALE-VERDICT). At most these five, in this order; the targets are the review's own.
+
+- [ ] One shell: the sidebar is navigation only, an identity strip in the header, Milestones on Overview, Quick Actions removed, a one-row phone header. First content at most 120px from the top at 375 wide and 110px at 1440; every tab at most 1.5 screens at 1440x900 and 4 at 375.
+- [ ] One card, one control: one card anatomy for offices, buildings and chains; the lease choice folded into Build; Refinery split into Can run now and Unavailable. At most one primary button per screen at 1440.
+- [ ] One number: one stat component on Finance, Logistics and the Overview cards; one currency glyph across public/.
+- [ ] Starmap on the tokens: flat marks, legible sizing (a body at least 24px, selected at least 64px), back controls above the canvas, no two controls overlapping at 375. Acceptance is the Board's own look at a before and after.
+- [ ] Logistics folded: Move on inventory rows in Assets and on station holdings, shipments and history under Operations, the tab removed (13 tabs to 12).
 
 ## Demo script
 
