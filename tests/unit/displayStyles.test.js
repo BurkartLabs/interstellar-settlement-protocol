@@ -42,7 +42,7 @@ function selectors(css) {
 
 describe("display styles (AB#4880)", () => {
   it("lists every sheet and has a sheet for every style listed", () => {
-    expect(IDS.length).toBe(16);
+    expect(IDS.length).toBe(17);
     expect(FILES.map((f) => f.replace(/\.css$/, "")).sort()).toEqual([...IDS].sort());
   });
 

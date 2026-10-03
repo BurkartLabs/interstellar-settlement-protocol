@@ -1,0 +1,446 @@
+/* AB#4880: display style "Command Bridge" (the Board's Industrial Interstellar, Grit and Gold). Near-black page
+   with faint horizontal scanlines, stone panels with 1px rules and amber corner brackets, ONE accent (amber) for
+   active / primary / progress, Interstellar Gold for headings and figures, green and red kept for status. Orbitron
+   for headings and big numerals, the game's Inter for everything you read. Navigation is a "station directory"
+   column down the left. Style and structure only. */
+
+:root[data-theme="command-bridge"] {
+  --bg: #0c0a09;
+  --surface-1: #1c1917;
+  --surface-2: #292524;
+  --surface-3: #3a3431;
+  --surface-hover: #302b29;
+  --surface-pressed: #433c38;
+  --border: #4a4440;
+
+  --text: #f5f1ec;
+  --text-soft: #ddd6cf;
+  --muted: #b9b1a9;
+
+  --accent: #f59e0b;
+  --accent-hover: #fbb42f;
+  --accent-pressed: #d97706;
+  --on-accent: #1a1003;
+  --warn: #fbbf24;
+  --warn-hover: #fcd058;
+  --warn-pressed: #e8a912;
+  --on-warn: #1c1303;
+  --danger: #f87171;
+  --danger-hover: #fa9090;
+  --danger-pressed: #ef5a5a;
+  --on-danger: #200606;
+  --success: #4ade80;
+  --success-hover: #6ee89a;
+  --success-pressed: #34c96a;
+  --on-success: #04170a;
+  --station-owned: #fde68a;
+
+  --gold: #fde68a;
+  --amber-dark: #d97706;
+
+  --scrim-hero: linear-gradient(90deg, rgb(12 10 9 / 0.92) 0%, rgb(12 10 9 / 0.8) 55%, rgb(12 10 9 / 0.5) 100%);
+  --scrim-modal: rgb(12 10 9 / 0.8);
+  --scrim-caption: linear-gradient(0deg, rgb(12 10 9 / 0.92) 0%, rgb(12 10 9 / 0.6) 40%, rgb(12 10 9 / 0) 75%);
+
+  --focus-ring: 2px solid var(--gold);
+  --focus-ring-offset: 2px;
+
+  --series-1: #f59e0b;
+  --series-2: #4ade80;
+  --series-3: #fde68a;
+  --series-4: #f87171;
+  --series-5: #b9b1a9;
+
+  --font-display: "Orbitron", "Michroma", "Segoe UI", sans-serif;
+  --font-wordmark: var(--font-display);
+  --font-size-1: 11px;
+  --font-size-2: 13px;
+  --font-size-3: 14px;
+  --font-size-4: 16px;
+  --font-size-5: 20px;
+  --font-size-6: 24px;
+  --font-size-display: clamp(0.95rem, 1.3vw, 1.1rem);
+  --letter-spacing-caps: 0.12em;
+
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  --elevation-overlay: 0 8px 28px rgb(0 0 0 / 0.75);
+}
+
+/* Page: near-black with very faint static scanlines; no stars. */
+[data-theme="command-bridge"] #starfield-canvas { display: none; }
+[data-theme="command-bridge"] .app-bg {
+  animation: none;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.022) 0, rgb(255 255 255 / 0.022) 1px, transparent 1px, transparent 3px),
+    radial-gradient(120% 80% at 50% 0%, rgb(245 158 11 / 0.05), transparent 60%),
+    var(--bg);
+}
+[data-theme="command-bridge"] body { font-size: var(--font-size-2); -webkit-font-smoothing: antialiased; }
+[data-theme="command-bridge"] ::selection { background: rgb(245 158 11 / 0.35); color: var(--text); }
+[data-theme="command-bridge"] ::-webkit-scrollbar { width: 9px; height: 9px; }
+[data-theme="command-bridge"] ::-webkit-scrollbar-track { background: var(--bg); }
+[data-theme="command-bridge"] ::-webkit-scrollbar-thumb { background: var(--surface-3); border: 1px solid var(--border); }
+
+/* Header: a compact dark bar, gold Orbitron title, thin stone rule beneath. */
+[data-theme="command-bridge"] .app-header {
+  align-items: center;
+  padding: 9px 16px;
+  background: #0c0a09;
+  border-bottom: 1px solid var(--surface-2);
+  backdrop-filter: none;
+}
+[data-theme="command-bridge"] .app-header__brand {
+  flex-direction: row-reverse;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+[data-theme="command-bridge"] .app-header__overline {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+[data-theme="command-bridge"] .app-header__title {
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--font-size-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+[data-theme="command-bridge"] .app-header__actions { gap: 6px; }
+[data-theme="command-bridge"] .app-header__style-label { font-size: 10.5px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+[data-theme="command-bridge"] .app-header__style-select { min-width: 9rem; }
+[data-theme="command-bridge"] .app-header .ui-button { min-height: 28px; padding: 0 10px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+[data-theme="command-bridge"] .app-header .ui-select { min-height: 28px; font-size: 12px; }
+[data-theme="command-bridge"] .app-header__panel { border-color: var(--border); }
+
+/* Layout: the station directory down the left (nav, then identity), work area beside it. */
+@media (min-width: 768px) {
+  [data-theme="command-bridge"] .layout-grid {
+    grid-template-columns: minmax(220px, 244px) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "nav main" "side main";
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    min-height: calc(100vh - 56px);
+  }
+  [data-theme="command-bridge"] .app-nav,
+  [data-theme="command-bridge"] .side-panel {
+    background: var(--surface-1);
+    border: 0;
+    border-right: 1px solid var(--surface-2);
+  }
+  [data-theme="command-bridge"] .app-nav { gap: 0; padding: 6px 0 0; }
+  [data-theme="command-bridge"] .side-panel {
+    max-height: none;
+    overflow: visible;
+    gap: 0;
+    align-content: start;
+    border-top: 1px solid var(--surface-2);
+  }
+  [data-theme="command-bridge"] .main-panel { padding: 14px 16px 28px; }
+
+  [data-theme="command-bridge"] .nav-group { gap: 0; padding-bottom: 4px; }
+  [data-theme="command-bridge"] .nav-group__button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 32px;
+    padding: 0 30px 0 18px;
+    color: var(--muted);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  [data-theme="command-bridge"] .nav-group__button:hover:not(:disabled) { color: var(--gold); background: transparent; }
+  [data-theme="command-bridge"] .nav-group:has(.nav-tab.active) > .nav-group__button { color: var(--text-soft); }
+  [data-theme="command-bridge"] .nav-group__button[aria-expanded] { padding-right: 30px; }
+  [data-theme="command-bridge"] .nav-group__button[aria-expanded]::after {
+    content: "";
+    right: 16px;
+    width: 6px;
+    height: 6px;
+    border-right: 1px solid var(--muted);
+    border-bottom: 1px solid var(--muted);
+    background: none;
+    font-size: 0;
+    transform: translateY(-75%) rotate(45deg);
+  }
+  [data-theme="command-bridge"] .nav-group__button[aria-expanded="false"]::after { transform: translateY(-50%) rotate(-45deg); }
+  [data-theme="command-bridge"] .nav-group__tabs { gap: 0; padding-bottom: 2px; }
+  [data-theme="command-bridge"] .nav-tab {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 14px 8px 20px;
+    border: 0;
+    border-left: 3px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-soft);
+    font-size: 13.5px;
+    text-align: left;
+  }
+  [data-theme="command-bridge"] .nav-tab:hover:not(:disabled) { background: rgb(245 158 11 / 0.07); color: var(--text); }
+  [data-theme="command-bridge"] .nav-tab.active {
+    background: rgb(245 158 11 / 0.1);
+    border-left-color: var(--accent);
+    color: var(--gold);
+    font-weight: 600;
+  }
+  [data-theme="command-bridge"] .nav-count {
+    margin-left: auto;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 0;
+    background: rgb(245 158 11 / 0.12);
+    border: 1px solid rgb(245 158 11 / 0.45);
+    color: var(--accent);
+    font-size: 10px;
+  }
+}
+
+/* Phone: the bottom bar, in the same dress. */
+@media (max-width: 767px) {
+  [data-theme="command-bridge"] .app-nav { background: var(--surface-1); border-top: 1px solid var(--accent-pressed); }
+  [data-theme="command-bridge"] .nav-group__button { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  [data-theme="command-bridge"] .nav-group__button.active { background: rgb(245 158 11 / 0.1); color: var(--gold); border-top-color: var(--accent); }
+  [data-theme="command-bridge"] .nav-group.is-open .nav-group__tabs:has(> .nav-tab:not([hidden]) ~ .nav-tab:not([hidden])) { background: var(--surface-1); border-top-color: var(--border); }
+  [data-theme="command-bridge"] .nav-tab { border-radius: 0; font-size: 14px; }
+  [data-theme="command-bridge"] .nav-tab.active { background: rgb(245 158 11 / 0.12); color: var(--gold); border-bottom-color: var(--accent); }
+  [data-theme="command-bridge"] .nav-count { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 0; }
+}
+
+/* Screen frame: no box of its own; the panels inside carry the brackets. */
+[data-theme="command-bridge"] .tab-panel {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  backdrop-filter: none;
+  padding: 0;
+}
+[data-theme="command-bridge"] #market { background: none; border-radius: 0; padding: 0; }
+[data-theme="command-bridge"] #market::before { display: none; }
+[data-theme="command-bridge"] .ui-screen.active { gap: 12px; }
+
+[data-theme="command-bridge"] .ui-screen__header {
+  position: relative;
+  padding: 12px 16px;
+  gap: 4px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-2);
+}
+[data-theme="command-bridge"] .ui-screen__title {
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--font-size-5);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-theme="command-bridge"] .ui-screen__lede { max-width: none; font-size: 13px; line-height: 1.45; color: var(--text-soft); }
+[data-theme="command-bridge"] .ui-screen__meta { font-size: 11.5px; color: var(--muted); }
+[data-theme="command-bridge"] .ui-code { color: var(--accent); font-size: 11px; font-weight: 600; letter-spacing: 0.18em; }
+
+/* Panels and cards: square, 1px rule, amber L-brackets at the top corners. */
+[data-theme="command-bridge"] .ui-panel,
+[data-theme="command-bridge"] .ui-card,
+[data-theme="command-bridge"] .modal-card {
+  border-radius: 0;
+  border: 1px solid var(--surface-2);
+}
+[data-theme="command-bridge"] .ui-panel { position: relative; background: var(--surface-1); }
+[data-theme="command-bridge"] .ui-panel::before,
+[data-theme="command-bridge"] .ui-panel::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  width: 12px;
+  height: 12px;
+  border-top: 2px solid var(--accent);
+  pointer-events: none;
+}
+[data-theme="command-bridge"] .ui-panel::before { left: -1px; border-left: 2px solid var(--accent); }
+[data-theme="command-bridge"] .ui-panel::after { right: -1px; border-right: 2px solid var(--accent); }
+[data-theme="command-bridge"] .ui-card { background: var(--surface-2); padding: 11px 13px; gap: 6px; }
+[data-theme="command-bridge"] .ui-panel__header { padding: 10px 14px; background: transparent; border-bottom: 0; }
+[data-theme="command-bridge"] .ui-panel__title {
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+[data-theme="command-bridge"] .ui-panel__body { padding: 4px 14px 14px; }
+[data-theme="command-bridge"] .ui-card__title { color: var(--text); font-weight: 600; font-size: 14px; }
+[data-theme="command-bridge"] .ui-card--interactive:hover { background: var(--surface-3); border-color: var(--accent-pressed); }
+[data-theme="command-bridge"] .ui-card--interactive.is-selected,
+[data-theme="command-bridge"] .ui-card--interactive[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent), 0 0 12px rgb(245 158 11 / 0.15); }
+[data-theme="command-bridge"] .ui-grid { gap: 12px; }
+[data-theme="command-bridge"] .ui-list li { border-color: rgb(255 255 255 / 0.07); }
+
+/* Side panel: identity and milestones as directory blocks under the nav. */
+[data-theme="command-bridge"] .side-panel__block { border: 0; border-bottom: 1px solid var(--surface-2); background: transparent; }
+[data-theme="command-bridge"] .side-panel__block::before,
+[data-theme="command-bridge"] .side-panel__block::after { display: none; }
+[data-theme="command-bridge"] .side-panel__toggle { min-height: 36px; padding: 8px 18px; }
+[data-theme="command-bridge"] .side-panel__toggle .ui-panel__title { font-family: var(--font-sans); font-size: 10.5px; font-weight: 600; letter-spacing: 0.2em; color: var(--muted); }
+[data-theme="command-bridge"] .side-panel__block .ui-panel__body { padding: 8px 18px 14px; }
+[data-theme="command-bridge"] .side-panel__milestone.is-done { color: var(--success); }
+[data-theme="command-bridge"] .side-panel__actions { gap: 6px; }
+[data-theme="command-bridge"] .side-panel__identity dd { font-size: 12px; overflow-wrap: anywhere; min-width: 0; }
+[data-theme="command-bridge"] .side-panel__identity dd * { font-size: 12px; overflow-wrap: anywhere; min-width: 0; max-width: 100%; }
+
+/* Key figures: dark boxes, small caps label, big Orbitron value in gold. */
+[data-theme="command-bridge"] .kpi-strip { gap: 10px; }
+[data-theme="command-bridge"] .kpi-tile {
+  padding: 11px 14px 12px;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--surface-2);
+  border-radius: 0;
+  overflow: visible;
+}
+[data-theme="command-bridge"] .kpi-tile::before { display: none; }
+[data-theme="command-bridge"] .kpi-tile--primary { background: var(--bg); border-color: var(--accent-pressed); box-shadow: 0 0 14px rgb(245 158 11 / 0.12); }
+[data-theme="command-bridge"] .kpi-tile__label { font-size: 10.5px; letter-spacing: 0.14em; color: var(--muted); }
+[data-theme="command-bridge"] .kpi-tile__value { font-family: var(--font-display); font-size: 21px; font-weight: 500; letter-spacing: 0.02em; color: var(--gold); white-space: nowrap; }
+[data-theme="command-bridge"] .kpi-tile--primary .kpi-tile__value { color: var(--gold); }
+[data-theme="command-bridge"] .kpi-tile__sub,
+[data-theme="command-bridge"] .kpi-tile__trend { font-size: 11.5px; color: var(--muted); }
+[data-theme="command-bridge"] .kpi-tile__value--positive,
+[data-theme="command-bridge"] .overview__figures .kpi-tile__value[data-tone="positive"] { color: var(--success); }
+[data-theme="command-bridge"] .kpi-tile__value--negative,
+[data-theme="command-bridge"] .overview__figures .kpi-tile__value[data-tone="negative"] { color: var(--danger); }
+[data-theme="command-bridge"] .kpi-tile:has(.kpi-tile__value--negative, .kpi-tile__value[data-tone="negative"]) {
+  background: rgb(127 29 29 / 0.28);
+  border-color: var(--danger);
+}
+[data-theme="command-bridge"] .ui-kv dt { color: var(--muted); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+[data-theme="command-bridge"] .ui-kv dd { color: var(--text); }
+
+/* Buttons: primary amber-outlined with tint and gold text; secondary dark with muted border. */
+[data-theme="command-bridge"] .ui-button {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+[data-theme="command-bridge"] .ui-button--primary {
+  background: rgb(245 158 11 / 0.16);
+  border: 1px solid var(--accent);
+  color: var(--gold);
+  box-shadow: 0 0 10px rgb(245 158 11 / 0.14);
+}
+[data-theme="command-bridge"] .ui-button--primary:hover:not(:disabled) { background: rgb(245 158 11 / 0.28); border-color: var(--accent-hover); color: #fff3c4; }
+[data-theme="command-bridge"] .ui-button--primary:active:not(:disabled) { background: rgb(217 119 6 / 0.4); border-color: var(--accent-pressed); }
+[data-theme="command-bridge"] .ui-button--secondary { background: var(--surface-1); border: 1px solid var(--border); color: var(--text-soft); }
+[data-theme="command-bridge"] .ui-button--secondary:hover:not(:disabled) { background: var(--surface-2); border-color: var(--accent-pressed); color: var(--text); }
+[data-theme="command-bridge"] .ui-button--ghost { color: var(--accent); }
+[data-theme="command-bridge"] .ui-button--ghost:hover:not(:disabled) { background: rgb(245 158 11 / 0.1); color: var(--accent-hover); }
+[data-theme="command-bridge"] .ui-button--danger { background: rgb(127 29 29 / 0.35); border: 1px solid var(--danger); color: var(--danger); }
+[data-theme="command-bridge"] .ui-button--danger:hover:not(:disabled) { background: rgb(127 29 29 / 0.6); color: var(--danger-hover); }
+[data-theme="command-bridge"] .ui-button--danger:active:not(:disabled) { background: rgb(127 29 29 / 0.8); color: var(--danger-hover); }
+
+[data-theme="command-bridge"] .ui-input,
+[data-theme="command-bridge"] .ui-select {
+  min-height: 32px;
+  border-radius: 0;
+  background: var(--bg);
+  border-color: var(--border);
+  font-size: 13px;
+}
+[data-theme="command-bridge"] .ui-input:focus-visible,
+[data-theme="command-bridge"] .ui-select:focus-visible { border-color: var(--accent); }
+[data-theme="command-bridge"] .ui-field__label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+/* Sub-tabs: amber underline. */
+[data-theme="command-bridge"] .ui-tabs { gap: 0; border-bottom: 1px solid var(--surface-2); }
+[data-theme="command-bridge"] .ui-tab {
+  min-height: 34px;
+  padding: 0 14px;
+  border-bottom-width: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+[data-theme="command-bridge"] .ui-tab:hover:not(:disabled) { background: rgb(245 158 11 / 0.07); color: var(--text); }
+[data-theme="command-bridge"] .ui-tab[aria-selected="true"] { background: rgb(245 158 11 / 0.1); border-bottom-color: var(--accent); color: var(--gold); }
+
+/* Badges: square chips, the green ACTIVE look. */
+[data-theme="command-bridge"] .ui-badge {
+  min-height: 20px;
+  border-radius: 0;
+  background: transparent;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-theme="command-bridge"] .ui-badge--accent { background: rgb(245 158 11 / 0.12); }
+[data-theme="command-bridge"] .ui-badge--success { background: rgb(74 222 128 / 0.1); }
+[data-theme="command-bridge"] .ui-badge--warn { background: rgb(251 191 36 / 0.1); }
+[data-theme="command-bridge"] .ui-badge--danger { background: rgb(248 113 113 / 0.1); }
+
+/* Tables. */
+[data-theme="command-bridge"] .ui-table { font-size: 13px; }
+[data-theme="command-bridge"] .ui-table th {
+  padding: 8px 10px;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--accent-pressed);
+}
+[data-theme="command-bridge"] .ui-table td { padding: 8px 10px; border-bottom: 1px solid rgb(255 255 255 / 0.07); }
+[data-theme="command-bridge"] .ui-table tbody tr:hover { background: rgb(245 158 11 / 0.06); }
+@media (max-width: 767px) {
+  [data-theme="command-bridge"] .ui-table tbody tr { border-radius: 0; background: var(--surface-2); padding: 10px 12px; }
+}
+
+/* Progress: thin amber on a dark track. */
+[data-theme="command-bridge"] .progress-wrap { height: 5px; border-radius: 0; background: var(--bg); border: 1px solid var(--surface-2); }
+[data-theme="command-bridge"] .progress-bar { background: var(--accent); box-shadow: 0 0 8px rgb(245 158 11 / 0.4); }
+
+[data-theme="command-bridge"] .ui-tooltip { border-radius: 0; }
+
+/* Before play. */
+[data-theme="command-bridge"] .auth-page__card { padding: 24px 22px; border-top: 2px solid var(--accent); }
+[data-theme="command-bridge"] .auth-page__title,
+[data-theme="command-bridge"] .landing__title {
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-theme="command-bridge"] .auth-page__overline,
+[data-theme="command-bridge"] .landing__overline { color: var(--muted); font-size: 11px; letter-spacing: 0.2em; }
+[data-theme="command-bridge"] .landing__hero,
+[data-theme="command-bridge"] .landing__intro { border-bottom-color: var(--accent-pressed); }
+[data-theme="command-bridge"] .landing img { border-radius: 0; }
+
+/* Phone: the game's own floor, 14px text and 44px controls. */
+@media (max-width: 600px) {
+  [data-theme="command-bridge"] :is(.ui-code, .ui-screen__meta, .ui-panel__title, .side-panel__toggle .ui-panel__title, .ui-kv dt, .ui-kv dd, .side-panel__identity dd, .ui-badge, .kpi-tile__label, .kpi-tile__sub, .kpi-tile__trend, .ui-table th, .ui-field__label, .ui-input, .ui-select, .ui-button, .app-header .ui-button, .app-header .ui-select, .app-header__style-label, .app-header__overline, .ui-tab, .ui-card__title, .ui-screen__lede, .ui-table) {
+    font-size: 14px;
+  }
+  [data-theme="command-bridge"] :is(.ui-button, .ui-input, .ui-select, .ui-tab, .app-header .ui-button, .app-header .ui-select) {
+    min-height: 44px;
+  }
+}
