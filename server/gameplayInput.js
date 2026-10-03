@@ -65,6 +65,10 @@ export const GAMEPLAY_INPUT = {
   "POST /purchase-lease": { body: { body: id("leaseBodies", "a celestial body the ISA leases") } },
   "POST /transfer-resources": { custom: "transfer" },
   "GET /shipments": NOTHING,
+  // AB#4689: the Desk. The answer itself is a packet's own shape; the graders read it and fail closed on anything else.
+  "GET /desk": NOTHING,
+  "POST /desk/answer": { body: { draw: int(1, 1_000_000_000, "a packet on the Desk"), fingerprint: ref("the packet you answered") } },
+  "POST /desk/decline": { body: { draw: int(1, 1_000_000_000, "a packet on the Desk") } },
   "GET /shipments/:shipmentId": { params: { shipmentId: ref("a shipment") } },
   "POST /travel": { oneOf: { toSystemId: id("systems", "a star system"), toStationId: id("stations", "a station") } },
   "POST /lease/:leaseId/build-extractor": { params: { leaseId: id("ownLeases", "one of your mining leases") } },

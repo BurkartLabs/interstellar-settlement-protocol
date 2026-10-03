@@ -74,6 +74,7 @@ import { registerConstructionRoutes } from "./routes/construction.js"; // ISP-94
 import { registerUpgradeRoutes } from "./routes/upgrades.js"; // ISP-101 (AB#793)
 import { PLAYER_BUILDING_CATALOGUE } from "./playerBuildings.js";
 import { registerMissionRoutes } from "./routes/missions.js";
+import { registerDeskRoutes } from "./routes/desk.js"; // AB#4689
 import { registerResearchRoutes } from "./routes/research.js";
 import { registerMessagingRoutes } from "./routes/messaging.js";
 import { registerConversationRoutes } from "./routes/conversations.js"; // AB#910
@@ -266,6 +267,7 @@ registerConstructionRoutes(app);
 registerUpgradeRoutes(app);
 
 registerMissionRoutes(app);
+registerDeskRoutes(app);
 
 registerResearchRoutes(app);
 
