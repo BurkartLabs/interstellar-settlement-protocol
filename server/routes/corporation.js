@@ -21,6 +21,11 @@ import { hireReceipt, rentOfficeReceipt, renewOfficeReceipt, purchaseLeaseReceip
 import { memberOfficeCost } from "../../public/scripts/memberRates.js"; // ISP-212 (AB#907)
 import { memberStation } from "../game/stationGovernance.js";
 import { leaseCostFor, payConcessionShare } from "../concessions.js"; // ISP-228 (AB#923)
+import { REPUTATION_TIERS_DATA } from "../gameState.js";
+import { bureauPoints, priorityPrice } from "../../public/scripts/bureauStanding.js"; // AB#4689 slice 8
+
+/** AB#4689: priority processing, priorityProcessingPct off an ISA fee from the grade Valued (design section 4). */
+const priority = (price, corp) => priorityPrice(price, bureauPoints(corp, ECONOMY.desk.reputationThresholdMultiplier), REPUTATION_TIERS_DATA, ECONOMY.desk.priorityProcessingPct);
 
 export function registerCorporationRoutes(app) {
   app.post("/api/accounts/:accountId/gameplay/hire", (req, res) => {
@@ -134,6 +139,7 @@ export function registerCorporationRoutes(app) {
       }
       // ISP-212 (AB#907): the member rate at the corporation's own conglomerate's station, membership read now
       officeCost = memberOfficeCost(officeCost, memberStation(corp), station.id);
+      officeCost = priority(officeCost, corp);
 
       if (corp.finances.credits < officeCost) {
         outcome = "insufficient-credits";
@@ -218,6 +224,7 @@ export function registerCorporationRoutes(app) {
       }
       renewalCost = officeRenewalCost(corp.completedInsights, durationDays);
       renewalCost = memberOfficeCost(renewalCost, memberStation(corp), station.id); // ISP-212 (AB#907)
+      renewalCost = priority(renewalCost, corp);
       if (corp.finances.credits < renewalCost) {
         outcome = "insufficient-credits";
         return;
@@ -267,6 +274,7 @@ export function registerCorporationRoutes(app) {
     // from here on only the catalog's own name is used: in the lease, the error messages and the notification.
     let requestedBody = null;
     let leaseCost = 0;
+    let concessionBase = 0; // AB#4689: the lease price before priority processing, what a concession holder's share is of
     let leaseSystemId = null; // ISP-228 (AB#923): a concession holder's share of the fee, paid once this lease is saved
     let bodyError = null;
     let outcome = "ok";
@@ -285,6 +293,9 @@ export function registerCorporationRoutes(app) {
       requestedBody = resolved.body;
       // ISP-228 (AB#923): a held system's lease discount (the holder's own 25%, or its everyone-discount after notice)
       leaseCost = leaseCostFor(resolved.systemId, corp, resolved.cost).cost;
+      // The concession holder's share is of the price before priority processing: the ISA absorbs the perk, not the holder.
+      concessionBase = leaseCost;
+      leaseCost = priority(leaseCost, corp);
       leaseSystemId = resolved.systemId;
 
       // AB#1061: filed at the station that orbits the body, as the claims office offers it; in transit, nowhere.
@@ -342,7 +353,7 @@ export function registerCorporationRoutes(app) {
       res.status(404).json({ error: "Account not found." });
       return;
     }
-    if (outcome === "ok") payConcessionShare(leaseSystemId, leaseCost, account.state.corp, Date.now(), "lease"); // AB#923
+    if (outcome === "ok") payConcessionShare(leaseSystemId, concessionBase, account.state.corp, Date.now(), "lease"); // AB#923
 
     if (outcome !== "ok") {
       const corp = account.state.corp;

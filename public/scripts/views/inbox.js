@@ -460,7 +460,7 @@ export function showComposeCandidates(candidates) {
   if (!box) return;
   box.innerHTML = `<p class="ui-field__hint">Choose which corporation you mean, then press Send:</p>` + candidates
     .map((c) => `<button type="button" class="ui-button ui-button--secondary inbox__candidate" aria-pressed="false" data-corp-id="${escapeHtml(c.publicId)}" data-corp-name="${escapeHtml(c.corporationName)}">`
-      + `${escapeHtml(c.corporationName)} · CEO ${escapeHtml(c.ceo || "unknown")} · ${escapeHtml(c.location || "unknown")}</button>`)
+      + `${escapeHtml(c.corporationName)} · CEO ${escapeHtml(c.ceo || "unknown")} · ${escapeHtml(c.location || "unknown")}${c.grade ? ` · ${escapeHtml(c.grade)}` : ""}</button>`) // AB#4689: the Bureau grade
     .join("");
   box.hidden = false;
   box.querySelectorAll("[data-corp-id]").forEach((btn) => {

@@ -7,6 +7,7 @@
 //   { action, title, summary, cost, grants: [{ label, value }], next }
 // `cost` is the display text of what was charged ("12,500 credits"), `costCredits` the number, for tests. Every
 // string is in the ISA's register: no exclamation marks, no congratulations (CONTRIBUTING.md, "Tone Note").
+import { gradeOf } from "../public/scripts/bureauStanding.js"; // AB#4689
 import { employeesForNextLease } from "../public/scripts/leaseStaffing.js";
 import { utcTime } from "../public/scripts/timeFormat.js"; // ISP-249 (AB#945): one format for every timestamp
 
@@ -559,12 +560,7 @@ export function acceptMissionReceipt({ title, quota, hoursRequired, reward }) {
  * and titles the Assignments page reads (views/assignments.js getAgentRepLevel).
  */
 export function standingFor(count, tiers) {
-  const thresholds = tiers?.thresholds || [0];
-  let level = 0;
-  for (let i = thresholds.length - 1; i >= 0; i -= 1) {
-    if (count >= thresholds[i]) { level = i; break; }
-  }
-  return { level, title: (tiers?.titles || [])[level] || "Unknown" };
+  return gradeOf(count, tiers); // AB#4689 slice 8: the one copy of the rule, shared with the page
 }
 
 export function completeMissionReceipt({ title, delivered, rewardCredits, standing }) {

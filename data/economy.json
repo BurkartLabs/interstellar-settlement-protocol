@@ -111,7 +111,8 @@
     "auditTwoClauseSharePct": 50,
     "dispatchTolerancePct": 5,
     "contractPoints": 10,
-    "reputationThresholdMultiplier": 10
+    "reputationThresholdMultiplier": 10,
+    "priorityProcessingPct": 5
   },
   "salvage": {
     "creditsThreshold": 3000,

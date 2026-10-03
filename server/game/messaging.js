@@ -2,6 +2,9 @@
 
 import { SYSTEM_SENDERS, CORPORATION_NAME_MAX_LENGTH } from "../corporationName.js";
 import { createId } from "./catalog.js";
+import { ECONOMY } from "../economy.js";
+import { REPUTATION_TIERS_DATA } from "./corporation.js";
+import { bureauPoints, gradeOf } from "../../public/scripts/bureauStanding.js"; // AB#4689 slice 8
 import { accountsStore, backfillCorpPublicIds, pushSystemMessage, scheduleAccountsSave } from "./store.js";
 
 // ─── Messaging ───────────────────────────────────────────────────────────────
@@ -41,7 +44,9 @@ export const draftRecipientName = (value) => String(value || "").replace(CONTROL
 
 export const corpCard = (account) => {
   const corp = account.state.corp;
-  return { publicId: corp.publicId, corporationName: corp.corporationName || "", ceo: corp.ceo || "", location: corp.location || "" };
+  // AB#4689: the Bureau grade is honest social proof on the public card (design section 4); 0 points is Unknown.
+  const grade = gradeOf(bureauPoints(corp, ECONOMY.desk.reputationThresholdMultiplier), REPUTATION_TIERS_DATA).title;
+  return { publicId: corp.publicId, corporationName: corp.corporationName || "", ceo: corp.ceo || "", location: corp.location || "", grade };
 };
 
 /** Up to `limit` corporations whose name contains `query` (case-insensitive), described without anything private. */

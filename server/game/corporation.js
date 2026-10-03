@@ -8,7 +8,7 @@ import { ECONOMY } from "../economy.js";
 import { ensureBuildingIds } from "./buildingIds.js";
 import { ensureCorpMilitary } from "./units.js";
 import { newShareRegistry } from "../shareRegistry.js"; // ISP-157 (AB#851)
-import { tiersInPoints } from "../../public/scripts/bureauStanding.js"; // AB#4689
+import { bureauPoints, contractRefreshMsFor, contractsOfferedFor, tiersInPoints } from "../../public/scripts/bureauStanding.js"; // AB#4689
 
 /* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 export function createStarterCorporationState(baseState, ceoName, corpName) {
@@ -130,7 +130,8 @@ export const MISSION_AGENTS_DATA = MISSIONS_DATA.agents;
 export const REPUTATION_TIERS_DATA = Object.freeze({
   ...tiersInPoints(MISSIONS_DATA.reputationTiers, ECONOMY.desk.reputationThresholdMultiplier),
   contractPoints: ECONOMY.desk.contractPoints,
-  multiplier: ECONOMY.desk.reputationThresholdMultiplier
+  multiplier: ECONOMY.desk.reputationThresholdMultiplier,
+  priorityProcessingPct: ECONOMY.desk.priorityProcessingPct // slice 8: the page quotes the price the server charges
 });
 
 /** A whole multiple of `step` in [min, max], min when the range is empty or inverted. */
@@ -232,8 +233,10 @@ export function refreshContractOfferings(corpState) {
     const neverContracted = !completedMissions.length && !activeIds.size;
     const promised = neverContracted ? shuffled.find((t) => t.id === FIRST_CONTRACT_ID) : null;
     const picked = promised ? [promised, ...shuffled.filter((t) => t !== promised)] : shuffled;
-    offerings.missions = picked.slice(0, CONTRACTS_PER_AGENT).map(materializeOffer);
-    offerings.nextRefreshAt = now + CONTRACT_REFRESH_MS;
+    // AB#4689 slice 8: a third contract at Recognized, a fourth at Distinguished; the board refreshes hourly from Trusted.
+    const points = bureauPoints(corpState, ECONOMY.desk.reputationThresholdMultiplier);
+    offerings.missions = picked.slice(0, contractsOfferedFor(points, REPUTATION_TIERS_DATA, CONTRACTS_PER_AGENT)).map(materializeOffer);
+    offerings.nextRefreshAt = now + contractRefreshMsFor(points, REPUTATION_TIERS_DATA, CONTRACT_REFRESH_MS);
   }
 
   // The Salvage Assignment is not part of the random rotation above: it is evaluated fresh on every call, so a

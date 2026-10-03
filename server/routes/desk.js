@@ -7,7 +7,7 @@ import { applyCredits, utcDayStart } from "../finances.js";
 import { bodyCount } from "../bodyNumber.js";
 import { getState, mutateAccountState, peekCorp, REPUTATION_TIERS_DATA } from "../gameState.js";
 import { bumpStat } from "../game/progression.js";
-import { applySurveyPayoff, deskPay, deskState, drawEntry, gradeDeskAnswer, openPacket } from "../game/deskDraws.js";
+import { applySurveyPayoff, deskPay, deskState, drawEntry, gradeDeskAnswer, openPacket, openTiersOf } from "../game/deskDraws.js";
 import { standingFor } from "../receipts.js";
 import { hasActiveOffice } from "../../public/scripts/officeStatus.js";
 import { ASSIGNED_COORDINATOR } from "../../public/scripts/liaison.js";
@@ -89,7 +89,7 @@ export function registerDeskRoutes(app) {
       // Right or wrong, the packet is spent and the next is drawn: always openPackets open.
       corp.desk = {
         next: desk.next + 1,
-        open: desk.open.map((e) => (e.draw === draw ? drawEntry(accountId, desk.next) : e)),
+        open: desk.open.map((e) => (e.draw === draw ? drawEntry(accountId, desk.next, undefined, openTiersOf(corp)) : e)),
         paidDay: day,
         paidToday: paidToday + (graded.correct ? 1 : 0)
       };
@@ -115,7 +115,7 @@ export function registerDeskRoutes(app) {
       try { desk = deskState(corp, accountId); } catch { outcome = "no-seed"; return; }
       if (!desk.open.some((e) => e.draw === draw)) { outcome = "not-open"; return; }
       try {
-        corp.desk = { ...desk, next: desk.next + 1, open: desk.open.map((e) => (e.draw === draw ? drawEntry(accountId, desk.next) : e)) };
+        corp.desk = { ...desk, next: desk.next + 1, open: desk.open.map((e) => (e.draw === draw ? drawEntry(accountId, desk.next, undefined, openTiersOf(corp)) : e)) };
       } catch { outcome = "no-seed"; }
     });
     if (!account) return res.status(404).json({ error: "Account not found." });
