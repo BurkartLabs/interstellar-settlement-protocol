@@ -7,7 +7,7 @@ import { applyCredits, utcDayStart } from "../finances.js";
 import { bodyCount } from "../bodyNumber.js";
 import { getState, mutateAccountState, peekCorp, REPUTATION_TIERS_DATA } from "../gameState.js";
 import { bumpStat } from "../game/progression.js";
-import { deskPay, deskState, drawEntry, gradeDeskAnswer, openPacket } from "../game/deskDraws.js";
+import { applySurveyPayoff, deskPay, deskState, drawEntry, gradeDeskAnswer, openPacket } from "../game/deskDraws.js";
 import { standingFor } from "../receipts.js";
 import { hasActiveOffice } from "../../public/scripts/officeStatus.js";
 import { ASSIGNED_COORDINATOR } from "../../public/scripts/liaison.js";
@@ -73,8 +73,10 @@ export function registerDeskRoutes(app) {
       const graded = gradeDeskAnswer(open.key, answer);
       const day = utcDayStart(now);
       const paidToday = paidTodayOf(desk, now);
-      let paid = 0, points = 0;
+      let paid = 0, points = 0, published = null;
       if (graded.correct) {
+        // Slice 6: what a correct Survey learned is this corporation's (a belt scouted, a body's profile). A wrong one publishes nothing.
+        published = applySurveyPayoff(corp, open.key, getState().belts, now);
         paid = deskPay(open.key.tier, paidToday);
         applyCredits(corp, paid, "desk", now);
         const rep = migrateStanding(corp.agentReputation?.[ASSIGNED_COORDINATOR.id], ECONOMY.desk.reputationThresholdMultiplier);
@@ -92,7 +94,7 @@ export function registerDeskRoutes(app) {
         paidToday: paidToday + (graded.correct ? 1 : 0)
       };
       const total = migrateStanding(corp.agentReputation?.[ASSIGNED_COORDINATOR.id], ECONOMY.desk.reputationThresholdMultiplier).points;
-      result = { correct: graded.correct, explanation: graded.explanation, paid, points, kind: open.key.kind, standing: { points: total, ...standingFor(total, REPUTATION_TIERS_DATA) } };
+      result = { correct: graded.correct, explanation: graded.explanation, paid, points, kind: open.key.kind, published, standing: { points: total, ...standingFor(total, REPUTATION_TIERS_DATA) } };
     });
     if (!account) return res.status(404).json({ error: "Account not found." });
     if (outcome === "no-office") return res.status(400).json({ error: NO_OFFICE, code: "no-office" });
