@@ -85,17 +85,21 @@ test.describe("at 1280x800", () => {
 test.describe("at 375x812", () => {
   test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
 
-  test("the groups are the bar and open their tabs; the blocks start collapsed, and one opened stays open across tabs", async ({ page }) => {
+  test("the groups are the bar and open their tabs; the blocks are a sheet from the pinned bar, and the column's choices are untouched", async ({ page }) => {
     await register(page);
     expect(Object.values(await groupStates(page)).every((v) => v === null), "no toggle state on the bar").toBe(true);
+    // AB#2468 slice 2: the column is not on the page; Profile, Milestones and Quick Actions are pinned along the bottom
+    await expect(page.locator(".side-panel")).toBeHidden();
     for (const id of ["identity", "milestones", "actions"]) expect(await expanded(block(page, id))).toBe(false);
     await page.screenshot({ path: path.join(SHOT_DIR, "default-375x812.png") });
-    await block(page, "identity").click();
+    await page.locator('.pinned-bar__button[data-panel="sidebar-identity"]').click();
     await expect(page.locator("#sidebar-identity")).toBeVisible();
-    await group(page, "market").click(); // on a phone the group's button opens its tab
-    await expect(page.locator("#market")).toBeVisible();
-    expect(await expanded(block(page, "identity"))).toBe(true);
+    await expect(block(page, "identity")).toBeHidden(); // the sheet's block has no toggle: the bar's button names it
+    expect(await expanded(block(page, "identity")), "the sheet leaves the column's remembered choice alone").toBe(false);
     await page.evaluate(() => scrollTo(0, 0));
     await page.screenshot({ path: path.join(SHOT_DIR, "identity-open-375x812.png") });
+    await group(page, "market").click(); // on a phone the group's button opens its tab, and a tap outside closes the sheet
+    await expect(page.locator("#market")).toBeVisible();
+    await expect(page.locator("#sidebar-identity")).toBeHidden();
   });
 });

@@ -10,7 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { gameDrawn } from "./nav.mjs"; // AB#2468: the header is a sheet on a phone
+import { gameDrawn, openSidePanel } from "./nav.mjs"; // AB#2468: the header is a sheet on a phone
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(REPO_ROOT, "e2e", "screenshots", "bug-4856");
@@ -46,8 +46,7 @@ for (const [width, height] of [[1280, 800], [375, 812]]) {
     await page.click("#credential-login-btn");
     await gameDrawn(page);
 
-    const toggle = page.locator('.side-panel__toggle[aria-controls="sidebar-identity"]');
-    if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+    await openSidePanel(page, "sidebar-identity"); // Profile in the pinned bar on a phone (AB#2468)
     const identity = page.locator("#sidebar-identity");
     await expect(identity).toBeVisible();
     await expect(identity).toContainText("Location");

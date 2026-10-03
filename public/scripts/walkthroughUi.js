@@ -171,7 +171,7 @@ function scrollWalkthroughTargetIntoView(target) {
   const card = walkthroughModal.querySelector(".modal-card");
   const header = document.querySelector(".app-header");
   const deltaNow = () => {
-    const barTops = [...document.querySelectorAll(".app-nav, .nav-group__tabs")]
+    const barTops = [...document.querySelectorAll(".app-nav, .nav-group__tabs, .pinned-bar")]
       .filter((bar) => bar.getClientRects().length && getComputedStyle(bar).position === "fixed")
       .map((bar) => bar.getBoundingClientRect().top);
     return walkthroughScrollDelta({

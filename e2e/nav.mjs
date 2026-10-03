@@ -80,3 +80,22 @@ export async function toggleNotifications(page) {
   await page.click("#notification-toggle");
   if (wasOpen) await closeHeaderSheet(page);
 }
+
+// AB#2468 slice 2: on a phone Corporation Identity, Milestones and Quick Actions are not on the page; the bar pinned
+// along the bottom (Profile, Milestones, Quick Actions) opens one at a time as a sheet above it.
+
+/** Show one of the sidebar's blocks (sidebar-identity, sidebar-milestones, sidebar-actions) as a player would: its
+ * button in the pinned bar on a phone, its title in the column on a desktop if it is collapsed. */
+export async function openSidePanel(page, id) {
+  await gameDrawn(page);
+  const pinned = page.locator(`.pinned-bar__button[data-panel="${id}"]`);
+  const button = (await pinned.isVisible()) ? pinned : page.locator(`.side-panel__toggle[aria-controls="${id}"]`);
+  if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+  await page.locator(`#${id}`).waitFor({ state: "visible" });
+}
+
+/** Close the open sheet from the pinned bar; nothing on a desktop, where the column's blocks are on the page. */
+export async function closeSidePanel(page) {
+  const open = page.locator('.pinned-bar__button[aria-expanded="true"]');
+  if (await open.count()) await open.click();
+}

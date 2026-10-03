@@ -152,6 +152,8 @@
      screen's top inset: the height of what is fixed along a phone's top. Used only in the app shell's phone query. */
   --phone-nav-row: calc(44px + 2 * var(--space-1) + 1px);
   --phone-nav-height: calc(2 * var(--phone-nav-row) + env(safe-area-inset-top));
+  /* AB#2468 slice 2: the bar pinned along a phone's bottom (Profile, Milestones, Quick Actions), with the bottom inset. */
+  --pinned-bar-height: calc(var(--phone-nav-row) + env(safe-area-inset-bottom));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1716,6 +1718,10 @@ body.walkthrough--open .layout-grid {
 .app-nav__menu {
   display: none;
 }
+/* AB#2468 slice 2: the bar pinned along a phone's bottom (below). A desktop shows the sidebar's column and never this. */
+.pinned-bar {
+  display: none;
+}
 /* What a closed group is holding, such as unread mail (Bug #1130), as a number on its button. */
 .nav-count {
   display: inline-flex;
@@ -1741,6 +1747,7 @@ body.walkthrough--open .layout-grid {
      below the two rows, not under them. */
   html {
     scroll-padding-top: calc(var(--phone-nav-height) + var(--space-4));
+    scroll-padding-bottom: calc(var(--pinned-bar-height) + var(--space-4));
   }
   /* Bug #4846: the screen first, then the sidebar's panels. Stacked above it, the three panels (collapsed on a phone,
      AB#1056) put every screen's own title a third of the way down the first screenful; after it, they are one scroll
@@ -1749,10 +1756,77 @@ body.walkthrough--open .layout-grid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "main" "side";
     padding-top: calc(var(--phone-nav-height) + var(--space-3));
-    padding-bottom: var(--space-4);
+    padding-bottom: calc(var(--pinned-bar-height) + var(--space-4));
   }
+  /* AB#2468 slice 2: the sidebar's three blocks are not on the page; the bar pinned along the bottom opens each as a
+     sheet above it (app.js sets #game-shell's data-pinned to the block's id). The page scrolls its last control clear
+     of the bar (the grid's padding and the html's scroll padding above). */
   .side-panel {
+    display: none;
     max-height: none;
+  }
+  #game-shell[data-pinned] .side-panel {
+    display: grid;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--pinned-bar-height);
+    z-index: var(--z-dropdown);
+    max-height: calc(100dvh - var(--phone-nav-height) - var(--pinned-bar-height));
+    overflow-y: auto;
+    padding: var(--space-3);
+    background: var(--surface-1);
+    border-top: 1px solid var(--border);
+    box-shadow: var(--elevation-overlay);
+  }
+  #game-shell[data-pinned] .side-panel > .ui-panel {
+    display: none;
+  }
+  #game-shell[data-pinned="sidebar-identity"] .side-panel > .ui-panel:has(> #sidebar-identity),
+  #game-shell[data-pinned="sidebar-milestones"] .side-panel > .ui-panel:has(> #sidebar-milestones),
+  #game-shell[data-pinned="sidebar-actions"] .side-panel > .ui-panel:has(> #sidebar-actions) {
+    display: block;
+  }
+  /* In the sheet the block is open, whatever the column remembers (sidebarState.js keeps one choice for both sizes, so
+     the sheet never touches it), and its title is not a toggle: the pressed button in the bar names it. */
+  #game-shell[data-pinned] .side-panel .ui-panel__body[hidden] {
+    display: block !important;
+  }
+  #game-shell[data-pinned] .side-panel .side-panel__actions[hidden] {
+    display: grid !important;
+  }
+  #game-shell[data-pinned] .side-panel .side-panel__toggle {
+    display: none;
+  }
+  .pinned-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-sticky);
+    display: flex;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-1) calc(var(--space-1) + env(safe-area-inset-bottom));
+    background: var(--surface-1);
+    border-top: 1px solid var(--border);
+  }
+  .pinned-bar__button {
+    flex: 1 1 0;
+    min-height: 44px;
+    padding: 0 var(--space-1);
+    border: 0;
+    border-top: 2px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-soft);
+    font-family: var(--font-sans);
+    font-size: var(--font-size-3);
+    cursor: pointer;
+  }
+  .pinned-bar__button[aria-expanded="true"] {
+    border-top-color: var(--accent);
+    background: var(--surface-3);
+    color: var(--text);
   }
   /* AB#2495 on a phone (AB#2468): the Travel panel fills the first screen under the navigation's rows, so its card sits
      in the middle of what a player sees. As tall as its card, it ended wherever the card did, and the sidebar's panels
@@ -1935,9 +2009,10 @@ body.walkthrough--open .layout-grid {
      is never under it, and the page can scroll its end clear of the card. */
   #walkthrough-modal {
     padding-top: var(--phone-nav-height);
+    padding-bottom: var(--pinned-bar-height);
   }
   body.walkthrough--open .layout-grid {
-    padding-bottom: calc(var(--space-4) + var(--walkthrough-card-height, var(--space-16)));
+    padding-bottom: calc(var(--pinned-bar-height) + var(--space-4) + var(--walkthrough-card-height, var(--space-16)));
   }
 }
 

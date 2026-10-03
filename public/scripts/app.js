@@ -113,6 +113,46 @@ function bindPhoneMenu() {
   sync();
 }
 
+/**
+ * AB#2468 slice 2: on a phone Corporation Identity, Milestones and Quick Actions are not on the page; the bar pinned
+ * along the bottom opens one of them at a time as a sheet above it (styles.css shows the block named by #game-shell's
+ * data-pinned). Pressing the open one again, Escape, a tap outside, or a Quick Action closes it. It and the ☰ sheet
+ * never show together: each closes on a tap outside it, and the other's button is outside it. On a desktop the bar is
+ * not shown and nothing here runs.
+ */
+function bindPinnedPanels() {
+  const shell = document.getElementById("game-shell");
+  const panel = document.getElementById("side-panel");
+  const bar = document.querySelector(".pinned-bar");
+  if (!shell || !panel || !bar) return;
+  const buttons = [...bar.querySelectorAll(".pinned-bar__button")];
+  const open = () => shell.dataset.pinned || "";
+  const setOpen = (id) => {
+    if (id) shell.dataset.pinned = id;
+    else delete shell.dataset.pinned;
+    for (const button of buttons) button.setAttribute("aria-expanded", String(button.dataset.panel === id));
+    const pressed = buttons.find((button) => button.dataset.panel === id);
+    if (pressed) panel.setAttribute("aria-label", pressed.textContent.trim());
+    else panel.removeAttribute("aria-label");
+  };
+  bar.addEventListener("click", (event) => {
+    const button = event.target.closest(".pinned-bar__button");
+    if (button) setOpen(open() === button.dataset.panel ? "" : button.dataset.panel);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !open()) return;
+    const pressed = buttons.find((button) => button.dataset.panel === open());
+    setOpen("");
+    pressed?.focus();
+  });
+  document.addEventListener("click", (event) => {
+    if (open() && !panel.contains(event.target) && !bar.contains(event.target)) setOpen("");
+  });
+  panel.addEventListener("click", (event) => {
+    if (open() && event.target.closest("[data-jump]")) setOpen("");
+  });
+}
+
 function isPlayerInSpace(data) {
   return !data?.corp?.currentStationId && !isPlayerTraveling(data);
 }
@@ -823,6 +863,7 @@ async function boot() {
   bindForms();
   bindGlobalControls();
   bindPhoneMenu();
+  bindPinnedPanels();
   bindBuildingActions();
   bindOperations(); // AB#2471: the Station's and Operations' subpages
   bindInboxControls();

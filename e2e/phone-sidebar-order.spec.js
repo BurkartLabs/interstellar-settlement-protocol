@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { openSidePanel, openTab } from "./nav.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(REPO_ROOT, "e2e", "screenshots", "ab-4846");
@@ -58,20 +58,22 @@ for (const [width, height, mobile] of [[375, 812, true], [1280, 800, false]]) {
         await page.waitForTimeout(150);
         await page.screenshot({ path: path.join(SHOT_DIR, `${tab}-${width}.png`) });
         const titleTop = await top(page, title);
-        const sideTop = await top(page, ".side-panel");
         const side = await page.locator(".side-panel").evaluate((el) => ({ left: el.getBoundingClientRect().left, shown: el.getClientRects().length > 0 }));
         const main = await page.locator(".main-panel").evaluate((el) => el.getBoundingClientRect().left);
-        expect(side.shown, "the sidebar's panels are still on the page").toBe(true);
         if (mobile) {
-          expect.soft(titleTop, `${tab}: the screen's title comes before the sidebar's panels`).toBeLessThan(sideTop);
-          // the screen itself starts in the first quarter, right under the header (the Station's title then follows its own art)
+          // AB#2468 slice 2: the panels are not on the page at all now; the bar pinned along the bottom opens each
+          expect(side.shown, "on a phone the sidebar's panels are behind the pinned bar, not on the page").toBe(false);
+          await expect(page.locator(".pinned-bar")).toBeVisible();
+          expect.soft(titleTop, `${tab}: the screen's title is in the first screenful`).toBeLessThan(height / 2);
+          // the screen itself starts in the first quarter, right under the navigation (the Station's title then follows its own art)
           expect.soft(await top(page, `#${tab}`), `${tab}: the screen starts in the first quarter of the first screenful`).toBeLessThan(height / 4);
         } else {
+          expect(side.shown, "the sidebar's panels are still on the page").toBe(true);
           expect(side.left, "on a desktop the sidebar stays in its column, left of the content").toBeLessThan(main);
         }
       }
-      if (mobile) { // the panels are one scroll away, after the screen
-        await page.locator(".side-panel").evaluate((el) => el.scrollIntoView({ block: "center" }));
+      if (mobile) { // the panels are one tap away, in the pinned bar
+        await openSidePanel(page, "sidebar-identity");
         await page.waitForTimeout(150);
         await page.screenshot({ path: path.join(SHOT_DIR, `sidebar-after-screen-${width}.png`) });
       }

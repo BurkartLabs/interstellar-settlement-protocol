@@ -32,9 +32,9 @@ describe("the app shell (ISP-74)", () => {
     expect(grid).toBeGreaterThan(-1);
     expect(nav).toBeGreaterThan(grid);
     expect(HTML.slice(grid, nav).replace(/<!--[\s\S]*?-->/g, "").trim()).toBe('<div class="layout-grid">');
-    expect(nav).toBeLessThan(HTML.indexOf('<aside class="side-panel">'));
+    expect(nav).toBeLessThan(HTML.indexOf('<aside class="side-panel"'));
     // <main> is the content alone: the bar is fixed to the screen, and nothing fixed may sit in <main> (Bug AB#1832).
-    expect(HTML.indexOf('<main class="main-panel">')).toBeGreaterThan(HTML.indexOf('<aside class="side-panel">'));
+    expect(HTML.indexOf('<main class="main-panel">')).toBeGreaterThan(HTML.indexOf('<aside class="side-panel"'));
     expect(HTML.slice(HTML.indexOf('<main class="main-panel">'))).not.toContain('class="app-nav');
   });
 
@@ -79,6 +79,28 @@ describe("the app shell (ISP-74)", () => {
       expect(at, id).toBeGreaterThan(HTML.indexOf('<header class="app-header"'));
       expect(at, id).toBeLessThan(HTML.indexOf('<div class="layout-grid">')); // the header ends where the grid begins
     }
+  });
+
+  // AB#2468 slice 2: on a phone the sidebar's blocks are not on the page; a bar pinned along the bottom opens each as a
+  // sheet above it, and the page keeps its last control clear of the bar. A desktop never shows the bar.
+  it("on a phone Profile, Milestones and Quick Actions are pinned along the bottom and open their block as a sheet", () => {
+    const phone = mediaBlocks().find((b) => b.query === `(max-width: ${NARROW_MAX_WIDTH}px)` && /\.app-nav \{/.test(b.body)).body;
+    const bar = HTML.slice(HTML.indexOf('<nav class="pinned-bar"'), HTML.indexOf("</nav>", HTML.indexOf('<nav class="pinned-bar"')));
+    const buttons = [...bar.matchAll(/<button class="pinned-bar__button" type="button" data-panel="([\w-]+)" aria-expanded="false" aria-controls="side-panel">([^<]+)<\/button>/g)];
+    expect(buttons.map((m) => m[2])).toEqual(["Profile", "Milestones", "Quick Actions"]);
+    for (const [, id] of buttons) expect(HTML, id).toContain(`id="${id}"`);
+    // after the navigation and before the sidebar, so the keyboard goes from the bar into the open sheet
+    expect(HTML.indexOf('<nav class="pinned-bar"')).toBeGreaterThan(HTML.indexOf('<nav class="app-nav"'));
+    expect(HTML.indexOf('<nav class="pinned-bar"')).toBeLessThan(HTML.indexOf('<aside class="side-panel" id="side-panel">'));
+    expect(CSS).toMatch(/^\.pinned-bar {\s*display: none;\s*}/m); // outside any query: a desktop never shows it
+    expect(phone).toMatch(/\.pinned-bar {[^}]*position: fixed;[^}]*bottom: 0;/);
+    expect(phone).toMatch(/\.pinned-bar__button {[^}]*min-height: 44px;/);
+    expect(phone).toMatch(/\.side-panel {\s*display: none;/);
+    expect(phone).toMatch(/#game-shell\[data-pinned\] \.side-panel {[^}]*position: fixed;[^}]*bottom: var\(--pinned-bar-height\);/);
+    // the page scrolls clear of the bar: room under the content and the briefing card, and scrolled-to controls stop above it
+    expect(phone).toMatch(/\.layout-grid {[^}]*padding-bottom: calc\(var\(--pinned-bar-height\)/);
+    expect(phone).toMatch(/html {[^}]*scroll-padding-bottom: calc\(var\(--pinned-bar-height\)/);
+    expect(phone).toMatch(/#walkthrough-modal {[^}]*padding-bottom: var\(--pinned-bar-height\);/);
   });
 
   it("the bar sits under every dialog and the briefing, never over them", () => {

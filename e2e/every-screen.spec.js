@@ -15,7 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { gameDrawn, openTab, toggleNotifications } from "./nav.mjs";
+import { closeSidePanel, gameDrawn, openSidePanel, openTab, toggleNotifications } from "./nav.mjs";
 import { findings } from "./screenFindings.mjs"; // ISP-250 (AB#946): shared with the Company and Station audit
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -100,12 +100,14 @@ for (const [width, height] of SIZES) {
         await shot(page, tab, width, height);
       }
 
-      // The shell's own parts no tab shows by itself: the sidebar's blocks opened (a phone starts them closed), and the
-      // notification panel.
-      const closed = page.locator(".side-panel__toggle[aria-expanded='false']");
-      while (await closed.count()) await closed.first().click();
-      found.push(...await findings(page, "sidebar", width, ".side-panel"));
-      await shot(page, "sidebar", width, height);
+      // The shell's own parts no tab shows by itself: the sidebar's blocks opened (on a phone each is a sheet from the
+      // pinned bar, one at a time, AB#2468), and the notification panel.
+      for (const id of ["sidebar-identity", "sidebar-milestones", "sidebar-actions"]) {
+        await openSidePanel(page, id);
+        found.push(...await findings(page, id, width, ".side-panel, .pinned-bar"));
+        await shot(page, id, width, height);
+      }
+      await closeSidePanel(page);
       await toggleNotifications(page);
       await expect(page.locator("#notification-panel")).toBeVisible();
       found.push(...await findings(page, "notifications", width, "#notification-panel"));
