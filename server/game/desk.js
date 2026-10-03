@@ -5,14 +5,24 @@
 // against the stored key and nothing else. The numbers are data/economy.json's `desk`.
 //
 // Slice 1 is the Survey (ISA Mineral Survey Division, section 5): readings of a body's resource profile or a live belt's
-// composition, with seeded noise and, from tier 2, resources that are not there at all. Audit and Dispatch follow.
+// composition, with seeded noise and, from tier 2, resources that are not there at all. Slice 2 is the Audit (ISA Claims
+// & Leases Division): a filing in which one clause, two, or none breaks a rule the server enforces. Dispatch follows.
 
 import crypto from "node:crypto";
 import { ECONOMY } from "../economy.js";
+import { WARFARE_CATALOG } from "../warfare.js";
+import { CONGLOMERATE_CATALOG } from "../conglomerates.js";
+import { NPC_CATALOG } from "../npcCorporations.js";
 import { navigationFor } from "../../public/scripts/navigation.js";
+import { employeesForNextLease } from "../../public/scripts/leaseStaffing.js";
+import { activeOfficeAt } from "../../public/scripts/officeStatus.js";
+import { leaseHasRoom } from "../../public/scripts/leaseSlots.js";
+import { taxBreakdown } from "../../public/scripts/exchangeTax.js";
+import { nextYardPrice } from "../../public/scripts/yardPrice.js";
 import { SYSTEMS_DATA } from "./catalog.js";
 import { BELT_TIERS } from "./beltRules.js";
 import { TIER_TEMPLATES, isBeltPresent } from "./belts.js";
+import { bidQuotaFor } from "./world.js";
 
 /** The tiers a packet is drawn at. Tier 2 opens at Recognized and tier 3 at Trusted (section 4); the routes check that. */
 export const DESK_TIERS = Object.freeze([1, 2, 3]);
@@ -245,4 +255,245 @@ export function gradeSurvey(key, answer) {
   if (typeof reserve !== "number" || !Number.isFinite(reserve)) return result(false);
   // A hair of slack, so an estimate exactly at the tolerance is not lost to floating-point rounding.
   return result(Math.abs(reserve - key.remaining) <= (key.remaining * key.reserveTolerancePct) / 100 + 1e-9);
+}
+
+// ─── Audit (ISA Claims & Leases Division, section 5) ─────────────────────────────────────────────────────────────────
+//
+// A filing is a set of clauses, each a situation one of the server's rules decides. Every clause's verdict and corrected
+// figure come from that rule's own code (the helper the route calls, or the catalog it reads), never a number restated
+// here; the generator only chooses situations, and a clause it meant to break that the rule passes is a bug it throws on.
+
+const AUDIT_DIVISION = "ISA Claims & Leases Division";
+const int = (rng, lo, hi) => lo + Math.floor(rng() * (hi - lo + 1));
+const round2 = (v) => Math.round(v * 100) / 100;
+const ordinal = (n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th"}`;
+
+/** A lease's building slots, read off the rule itself (leaseHasRoom), so the number lives in one place. */
+const LEASE_SLOTS = (() => {
+  let k = 0;
+  while (k < 100 && leaseHasRoom({ extractorIds: Array(k).fill("yard") })) k += 1;
+  return k;
+})();
+/** Every body the registry leases, with its price (purchase-lease charges data/systems.json's leaseCost). */
+const LEASE_BODIES = SYSTEMS_DATA.flatMap((s) => (s.bodies || []).filter((b) => Number(b.leaseCost) > 0).map((b) => ({ system: s.name, body: b.name, cost: b.leaseCost })));
+const leaseCostOf = (f) => LEASE_BODIES.find((b) => b.body === f.body && b.system === f.system)?.cost;
+const taxFor = (leasesHeld) => taxBreakdown({ basePct: ECONOMY.exchange.salesTaxPct, leasesHeld, royaltyPointsByLeasesHeld: ECONOMY.leases.royaltyPointsByLeasesHeld });
+const conglomerateCap = (level) => CONGLOMERATE_CATALOG.levels[level - 1].maxMembers;
+const BID_ITEMS = ECONOMY.npcBuyers.map((b) => ({ item: b.item, price: b.unitPrice }));
+
+/**
+ * Each clause: the tier it joins at, whether it has a near miss (compliant, right at the line), how a situation is drawn
+ * for a role ("broken", "near" or "clean"), what the rule says of a situation ({ compliant, figure }: figure is what the
+ * rule requires, null where it is a yes or no) and the rule in one sentence with its number. The order is the order a
+ * filing lists them in, so a clause's place says nothing about whether it is broken.
+ */
+export const AUDIT_CLAUSES = Object.freeze({
+  "lease-headcount": {
+    tier: 1, near: true,
+    draw: (rng, role) => {
+      const leasesHeld = int(rng, 0, 4);
+      const need = employeesForNextLease(leasesHeld);
+      const employees = role === "broken" ? int(rng, Math.max(0, need - 5), need - 1) : role === "near" ? need : need + int(rng, 1, 8);
+      return { leasesHeld, employees };
+    },
+    judge: (f) => { const need = employeesForNextLease(f.leasesHeld); return { compliant: f.employees >= need, figure: need }; },
+    rule: (f) => { const need = employeesForNextLease(f.leasesHeld); return `A corporation filing its ${ordinal(f.leasesHeld + 1)} lease must employ at least ${need} people, ${need / (f.leasesHeld + 1)} for each lease it will hold.`; }
+  },
+  "office-before-lease": {
+    tier: 1, near: false,
+    draw: (rng, role) => ({ office: role === "broken" ? pick(["lapsed", "none"], rng) : "active" }),
+    judge: (f) => {
+      const corp = { offices: f.office === "none" ? [] : [{ stationId: "filing-station", rentedUntil: f.office === "active" ? 2 : 0 }] };
+      return { compliant: Boolean(activeOfficeAt(corp, "filing-station", 1)), figure: null };
+    },
+    rule: () => "A lease may be filed only by a corporation with an active registered office at the station where it files; a lapsed office does not count."
+  },
+  "lease-slots": {
+    tier: 1, near: true,
+    draw: (rng, role) => ({ buildingsOnLease: role === "broken" ? LEASE_SLOTS + int(rng, 0, 1) : role === "near" ? LEASE_SLOTS - 1 : int(rng, 0, Math.max(0, LEASE_SLOTS - 2)) }),
+    judge: (f) => ({ compliant: leaseHasRoom({ extractorIds: Array(f.buildingsOnLease).fill("yard") }), figure: LEASE_SLOTS }),
+    rule: (f) => `A lease has ${LEASE_SLOTS} building slots, and this one already holds ${f.buildingsOnLease}.`
+  },
+  "lease-price": {
+    tier: 1, near: false,
+    draw: (rng, role) => {
+      const b = pick(LEASE_BODIES, rng);
+      const off = 5000 * int(rng, 1, 3);
+      const declaredPrice = role === "broken" ? (b.cost > off && rng() < 0.5 ? b.cost - off : b.cost + off) : b.cost;
+      return { body: b.body, system: b.system, declaredPrice };
+    },
+    judge: (f) => { const cost = leaseCostOf(f); return { compliant: f.declaredPrice === cost, figure: cost }; },
+    rule: (f) => `The registry prices a lease on ${f.body} at ${leaseCostOf(f)} credits.`
+  },
+  "itc-line": {
+    tier: 2, near: true,
+    draw: (rng, role) => {
+      const { item, price } = pick(BID_ITEMS, rng);
+      const normalValue = Math.max(2, Math.round(price * (0.9 + rng() * 0.4)));
+      const line = (normalValue * WARFARE_CATALOG.dumping.priceThresholdPct) / 100;
+      let unitPrice;
+      if (role === "broken") unitPrice = Math.min(round2(line * (0.6 + rng() * 0.35)), Math.floor(line * 100 - 1) / 100);
+      else if (role === "near") unitPrice = Math.ceil(line * 100) / 100;
+      else unitPrice = round2(normalValue * (0.95 + rng() * 0.3));
+      return { item, normalValue, unitPrice };
+    },
+    judge: (f) => { const line = (f.normalValue * WARFARE_CATALOG.dumping.priceThresholdPct) / 100; return { compliant: f.unitPrice >= line - 1e-9, figure: round2(line) }; },
+    rule: (f) => `The ITC line is ${WARFARE_CATALOG.dumping.priceThresholdPct}% of normal value: at a normal value of ${f.normalValue} a unit, a sale below ${round2((f.normalValue * WARFARE_CATALOG.dumping.priceThresholdPct) / 100)} counts toward a dumping finding.`
+  },
+  "lease-royalty": {
+    tier: 2, near: false,
+    draw: (rng, role) => {
+      let leasesHeld = int(rng, 0, 6);
+      while (role === "broken" && !(taxFor(leasesHeld).royaltyPoints > 0)) leasesHeld = int(rng, 1, 6);
+      const gross = int(rng, 20, 400) * 100;
+      const pct = role === "broken" ? taxFor(leasesHeld).basePct : taxFor(leasesHeld).ratePct;
+      return { leasesHeld, gross, declaredTax: Math.round((gross * pct) / 100) };
+    },
+    judge: (f) => { const tax = Math.round((f.gross * taxFor(f.leasesHeld).ratePct) / 100); return { compliant: f.declaredTax === tax, figure: tax }; },
+    rule: (f) => {
+      const t = taxFor(f.leasesHeld);
+      return `Exchange tax is the ${t.basePct}% sales tax plus the lease royalty, ${t.royaltyPoints} points for ${f.leasesHeld} leases held: ${t.ratePct}% of ${f.gross} is ${Math.round((f.gross * t.ratePct) / 100)} credits.`;
+    }
+  },
+  "order-quota": {
+    tier: 2, near: true,
+    draw: (rng, role) => {
+      const { item } = pick(BID_ITEMS, rng);
+      const dailyQuota = bidQuotaFor(item);
+      const soldToday = Math.floor(dailyQuota * rng() * 0.9);
+      const room = dailyQuota - soldToday;
+      const units = role === "broken" ? room + int(rng, 1, Math.max(1, Math.floor(dailyQuota / 10))) : role === "near" ? room : int(rng, 1, Math.max(1, room - 1));
+      return { item, dailyQuota, soldToday, units };
+    },
+    judge: (f) => { const room = bidQuotaFor(f.item) - f.soldToday; return { compliant: f.units <= room, figure: room }; },
+    rule: (f) => `A standing order for ${f.item} buys at most ${bidQuotaFor(f.item)} units a day; with ${f.soldToday} sold today, ${bidQuotaFor(f.item) - f.soldToday} more may be filed.`
+  },
+  "yard-price": {
+    tier: 3, near: true,
+    draw: (rng, role) => {
+      const kit = ECONOMY.buildings.extractorYardsInStartingKit;
+      const yardsOwned = role === "broken" ? int(rng, kit, kit + 5) : role === "near" ? Math.max(0, kit - 1) : int(rng, 0, kit + 5);
+      const declaredPrice = role === "broken" ? ECONOMY.buildings.extractorYardCost : nextYardPrice(yardsOwned, ECONOMY.buildings);
+      return { yardsOwned, declaredPrice };
+    },
+    judge: (f) => { const price = nextYardPrice(f.yardsOwned, ECONOMY.buildings); return { compliant: f.declaredPrice === price, figure: price }; },
+    rule: (f) => {
+      const b = ECONOMY.buildings;
+      return `An extractor yard costs ${b.extractorYardCost} for each of the first ${b.extractorYardsInStartingKit}, and each after that ${b.extractorYardPriceGrowth} times the one before, to the nearest thousand: the ${ordinal(f.yardsOwned + 1)} costs ${nextYardPrice(f.yardsOwned, b)}.`;
+    }
+  },
+  "upgrade-tier": {
+    tier: 3, near: true,
+    draw: (rng, role) => {
+      // The ladder raises maxUpgradeTier from 1 to 7 (data/milestones.json); a request is for tier 2 or above.
+      const maxUpgradeTier = role === "broken" ? int(rng, 1, 7) : role === "near" ? int(rng, 2, 7) : int(rng, 3, 7);
+      const requestedTier = role === "broken" ? maxUpgradeTier + int(rng, 1, 2) : role === "near" ? maxUpgradeTier : int(rng, 2, maxUpgradeTier - 1);
+      return { maxUpgradeTier, requestedTier };
+    },
+    judge: (f) => ({ compliant: f.requestedTier <= f.maxUpgradeTier, figure: f.maxUpgradeTier }),
+    rule: (f) => `A corporation may upgrade a building only as far as its level allows, here to tier ${f.maxUpgradeTier}.`
+  },
+  deployments: {
+    tier: 3, near: true,
+    draw: (rng, role) => {
+      // The ladder raises maxDeployments from 1 to 3 (data/milestones.json).
+      const maxDeployments = role === "clean" ? int(rng, 2, 3) : int(rng, 1, 3);
+      const activeExpeditions = role === "broken" ? maxDeployments : role === "near" ? maxDeployments - 1 : int(rng, 0, maxDeployments - 2);
+      return { maxDeployments, activeExpeditions };
+    },
+    judge: (f) => ({ compliant: f.activeExpeditions < f.maxDeployments, figure: f.maxDeployments }),
+    rule: (f) => `A corporation may run at most ${f.maxDeployments} expeditions at once, and this one already runs ${f.activeExpeditions}.`
+  },
+  "conglomerate-cap": {
+    tier: 3, near: true,
+    draw: (rng, role) => {
+      const level = int(rng, 1, CONGLOMERATE_CATALOG.levels.length);
+      const cap = conglomerateCap(level);
+      const members = role === "broken" ? cap : role === "near" ? cap - 1 : int(rng, 1, cap - 2);
+      return { level, members };
+    },
+    judge: (f) => ({ compliant: f.members < conglomerateCap(f.level), figure: conglomerateCap(f.level) }),
+    rule: (f) => `A level-${f.level} conglomerate holds at most ${conglomerateCap(f.level)} members, and this one already has ${f.members}.`
+  }
+});
+
+const AUDIT_KINDS = Object.keys(AUDIT_CLAUSES);
+/** How many clauses a filing at each tier lists, how many of them are near misses, and whether figures are asked. */
+const AUDIT_SHAPE = Object.freeze({
+  1: { question: "clause", fields: 3, near: 0, figures: false, maxBroken: 1 },
+  2: { question: "clause-and-figure", fields: 6, near: 1, figures: true, maxBroken: 1 },
+  3: { question: "clauses-and-figures", fields: 10, near: 2, figures: true, maxBroken: 2 }
+});
+const APPLICANTS = (NPC_CATALOG?.corporations || []).map((c) => c.name);
+
+function shuffled(list, rng) {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/**
+ * An Audit packet at `tier` from `seed`: { packet, key }. In auditCleanSharePct of filings no clause is broken; at tier 3
+ * auditTwoClauseSharePct of the rest break two. Pure: the same seed and tier give the same packet.
+ */
+export function generateAudit({ seed, tier, rules = ECONOMY.desk } = {}) {
+  const shape = AUDIT_SHAPE[tier];
+  if (!shape) return null;
+  const rng = deskRng(`audit:${tier}:${seed}`);
+  const brokenCount = rng() * 100 < rules.auditCleanSharePct ? 0 : shape.maxBroken > 1 && rng() * 100 < rules.auditTwoClauseSharePct ? 2 : 1;
+  const kinds = shuffled(AUDIT_KINDS.filter((k) => AUDIT_CLAUSES[k].tier <= tier), rng);
+  const near = kinds.filter((k) => AUDIT_CLAUSES[k].near).slice(0, shape.near);
+  const rest = kinds.filter((k) => !near.includes(k));
+  const roles = Object.fromEntries([
+    ...near.map((k) => [k, "near"]),
+    ...rest.slice(0, brokenCount).map((k) => [k, "broken"]),
+    ...rest.slice(brokenCount, shape.fields - shape.near).map((k) => [k, "clean"])
+  ]);
+  const fields = AUDIT_KINDS.filter((k) => roles[k]).map((clause) => {
+    const facts = AUDIT_CLAUSES[clause].draw(rng, roles[clause]);
+    if (AUDIT_CLAUSES[clause].judge(facts).compliant !== (roles[clause] !== "broken")) throw new Error(`desk audit: a ${roles[clause]} ${clause} clause drew ${JSON.stringify(facts)}, which its rule does not agree with`);
+    return { clause, facts };
+  });
+  const applicant = APPLICANTS.length ? pick(APPLICANTS, rng) : "An applicant";
+  const ref = `CLD-${String(Math.floor(rng() * 1_000_000)).padStart(6, "0")}`;
+  const packet = {
+    kind: "audit", tier, ref, division: AUDIT_DIVISION, question: shape.question,
+    fee: rules.payByTier[tier - 1], points: rules.pointsByTier[tier - 1],
+    applicant, fields, options: fields.map((f) => f.clause)
+  };
+  const broken = fields.filter((f) => roles[f.clause] === "broken").map((f) => ({ clause: f.clause, figure: AUDIT_CLAUSES[f.clause].judge(f.facts).figure, rule: AUDIT_CLAUSES[f.clause].rule(f.facts) }));
+  const ruleOf = Object.fromEntries(fields.map((f) => [f.clause, AUDIT_CLAUSES[f.clause].rule(f.facts)]));
+  const key = { kind: "audit", tier, ref, applicant, figures: shape.figures, broken, rules: ruleOf };
+  return { packet, key };
+}
+
+/**
+ * Grade an answer to an Audit against its stored key: { correct, explanation }. An answer certifies the filing
+ * ({ compliant: true }) or names the broken clauses ({ clauses: [...] }), with, from tier 2, the figure each rule requires
+ * ({ figures: { <clause>: number } }; none for a clause that is a yes or no). Anything malformed is incorrect.
+ */
+export function gradeAudit(key, answer) {
+  if (!key || key.kind !== "audit" || !Array.isArray(key.broken)) return { correct: false, explanation: "" };
+  // The broken clauses' rules, then the rule of any clause the answer named that meets it: a wrong call is answered by
+  // the rule it misread, not by a penalty.
+  const misread = (Array.isArray(answer?.clauses) ? answer.clauses : []).filter((c) => typeof c === "string" && key.rules?.[c] && !key.broken.some((b) => b.clause === c));
+  const explanation = [
+    key.broken.length ? key.broken.map((b) => b.rule).join(" ") : "The filing is compliant: every clause meets its rule.",
+    ...[...new Set(misread)].map((c) => `${key.rules[c]} That clause meets it.`)
+  ].join(" ");
+  const result = (correct) => ({ correct, explanation });
+  if (!answer || typeof answer !== "object") return result(false);
+  if (answer.compliant === true) return result(key.broken.length === 0 && (answer.clauses === undefined || (Array.isArray(answer.clauses) && answer.clauses.length === 0)));
+  const named = answer.clauses;
+  if (!Array.isArray(named) || !named.length || !named.every((c) => typeof c === "string") || new Set(named).size !== named.length) return result(false);
+  if (named.length !== key.broken.length || !key.broken.every((b) => named.includes(b.clause))) return result(false);
+  if (!key.figures) return result(true);
+  return result(key.broken.every((b) => {
+    if (b.figure === null) return true;
+    const v = answer.figures?.[b.clause];
+    return typeof v === "number" && Number.isFinite(v) && Math.abs(v - b.figure) < 0.005;
+  }));
 }
