@@ -4,6 +4,7 @@
 // (server/game/deskDraws.js), so nothing in a request or in the state the client holds can set the truth or the grade.
 import { ECONOMY } from "../economy.js";
 import { applyCredits, utcDayStart } from "../finances.js";
+import { bodyCount } from "../bodyNumber.js";
 import { getState, mutateAccountState, peekCorp, REPUTATION_TIERS_DATA } from "../gameState.js";
 import { bumpStat } from "../game/progression.js";
 import { deskPay, deskState, drawEntry, gradeDeskAnswer, openPacket } from "../game/deskDraws.js";
@@ -48,7 +49,7 @@ export function registerDeskRoutes(app) {
 
   app.post("/api/accounts/:accountId/gameplay/desk/answer", (req, res) => {
     const { accountId } = req.params;
-    const draw = Number(req.body?.draw);
+    const draw = bodyCount(req.body?.draw); // Bug #1014: a whole draw number, or null (no packet)
     const fingerprint = String(req.body?.fingerprint || "");
     const answer = req.body?.answer;
     if (!answer || typeof answer !== "object" || Array.isArray(answer) || JSON.stringify(answer).length > MAX_ANSWER_LENGTH) {
@@ -103,7 +104,7 @@ export function registerDeskRoutes(app) {
 
   app.post("/api/accounts/:accountId/gameplay/desk/decline", (req, res) => {
     const { accountId } = req.params;
-    const draw = Number(req.body?.draw);
+    const draw = bodyCount(req.body?.draw); // Bug #1014: a whole draw number, or null (no packet)
     let outcome = "ok";
     const account = mutateAccountState(accountId, (state) => {
       const corp = state.corp;
