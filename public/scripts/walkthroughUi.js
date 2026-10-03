@@ -8,7 +8,7 @@ import { appState, STORAGE_KEYS } from "./state.js";
 import { ASSIGNED_COORDINATOR, COORDINATOR_BYLINE } from "./liaison.js";
 import { showDialogue, closeDialogue } from "./dialogue.js";
 import { apiFetch, parseJsonResponse } from "./apiClient.js";
-import { deepClone } from "./helpers.js";
+import { deepClone, fixedBarEdges, fixedBarRects } from "./helpers.js";
 import { noteFunnelStep } from "./telemetry.js"; // ISP-256 (AB#952)
 
 // Finishing or resetting the walkthrough redraws the page and moves between tabs, which app.js owns; it hands those
@@ -176,7 +176,8 @@ function scrollWalkthroughTargetIntoView(target) {
       .map((bar) => bar.getBoundingClientRect().top);
     return walkthroughScrollDelta({
       viewportHeight: clearAreaBottom(barTops, window.innerHeight),
-      headerBottom: header ? header.getBoundingClientRect().bottom : 0,
+      // AB#2468: on a phone the navigation's rows are fixed along the top and the header is not shown
+      headerBottom: Math.max(header ? header.getBoundingClientRect().bottom : 0, fixedBarEdges(fixedBarRects(), window.innerHeight).top),
       card: card ? card.getBoundingClientRect() : null,
       target: target.getBoundingClientRect()
     });

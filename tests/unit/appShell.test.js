@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { NARROW_MAX_WIDTH } from "../../public/scripts/firstAction.js";
 
-// ISP-74 (AB#763): the app shell. At 1280 the navigation is a column beside the content; at 375 it is a bar along the
-// bottom of the screen and the content is full width. One media query decides it, at the width the scripts already
+// ISP-74 (AB#763): the app shell. At 1280 the navigation is a column beside the content; at 375 it is two rows along
+// the top of the screen (AB#2468; it was a bar along the bottom) and the content is full width. One media query decides it, at the width the scripts already
 // call a phone (NARROW_MAX_WIDTH), and no other query reaches the shell. Where the bar sits, and that nothing hides
 // under it, is measured in a browser by e2e/app-shell.spec.js; this holds the markup and the stylesheet to the shape.
 const read = (file) => readFileSync(new URL(`../../${file}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
@@ -44,23 +44,41 @@ describe("the app shell (ISP-74)", () => {
     expect(CSS).toMatch(/\.app-nav {[^}]*grid-area: nav;[^}]*flex-direction: column;/);
   });
 
-  it("on a phone, one query makes the navigation a bar along the bottom and the content full width", () => {
+  it("on a phone, one query makes the navigation two rows along the top and the content full width", () => {
     const shell = mediaBlocks().filter((b) => SHELL.test(b.body));
     expect(shell.map((b) => b.query)).toEqual([`(max-width: ${NARROW_MAX_WIDTH}px)`]);
     const phone = shell[0].body;
     expect(phone).toMatch(/\.layout-grid {[^}]*grid-template-areas:\s*"main"\s*"side";/); // Bug #4846: the screen first, the sidebar's panels after it
-    expect(phone).toMatch(/\.app-nav {[^}]*position: fixed;[^}]*bottom: 0;/);
+    expect(phone).toMatch(/\.app-nav {[^}]*position: fixed;[^}]*top: 0;/); // AB#2468: along the top
     // ISP-75: the six group buttons are the bar and never scroll; each group button and each tab is 44px.
     expect(phone).toMatch(/\.app-nav {[^}]*display: flex;[^}]*flex-direction: row;/);
     expect(phone).not.toMatch(/\.app-nav {[^}]*overflow-x/);
     expect(phone).toMatch(/\.nav-group__button {[^}]*min-height: 44px;/);
     expect(phone).toMatch(/\.nav-tab {[^}]*min-height: 44px;/);
-    // Room under the content and under the briefing card for the bar, so neither ends up beneath it.
-    expect(phone).toMatch(/\.layout-grid {[^}]*padding-bottom: calc\(/);
-    expect(phone).toMatch(/#walkthrough-modal {[^}]*padding-bottom: calc\(/);
-    // And whatever the browser scrolls into view (keyboard focus, scrollIntoView) stops above the bar, not under it:
-    // without this, Hire Personnel was scrolled to the bottom edge and the bar took the tap (e2e/action-receipt.spec.js).
-    expect(phone).toMatch(/html {[^}]*scroll-padding-bottom: calc\(/);
+    // Room over the content and the briefing card for the two rows, so neither starts beneath them (AB#2468).
+    expect(phone).toMatch(/\.layout-grid {[^}]*padding-top: calc\(var\(--phone-nav-height\)/);
+    expect(phone).toMatch(/#walkthrough-modal {[^}]*padding-top: var\(--phone-nav-height\);/);
+    // And whatever the browser scrolls into view (keyboard focus, scrollIntoView) stops below the rows, not under them:
+    // without this, Hire Personnel was scrolled under the bar and the bar took the tap (e2e/action-receipt.spec.js).
+    expect(phone).toMatch(/html {[^}]*scroll-padding-top: calc\(var\(--phone-nav-height\)/);
+  });
+
+  // AB#2468: on a phone the header is not shown. Its controls (Notifications, Replay Onboarding, Log Out and the rest)
+  // are a sheet the ☰ opens; the ☰ is in the navigation, names what it controls, and a desktop never shows it.
+  it("on a phone the header is a sheet the ☰ in the navigation opens; a desktop shows the header and no ☰", () => {
+    const phone = mediaBlocks().find((b) => b.query === `(max-width: ${NARROW_MAX_WIDTH}px)` && /\.app-nav \{/.test(b.body)).body;
+    expect(phone).toMatch(/\.app-header {[^}]*display: none;/);
+    expect(phone).toMatch(/#game-shell\.is-menu-open \.app-header {[^}]*display: flex;[^}]*position: fixed;/);
+    expect(phone).toMatch(/\.app-nav__menu {[^}]*min-width: 44px;[^}]*min-height: 44px;/);
+    expect(CSS).toMatch(/^\.app-nav__menu {\s*display: none;\s*}/m); // outside any query: a desktop never shows it
+    const nav = HTML.slice(HTML.indexOf('<nav class="app-nav"'), HTML.indexOf("</nav>", HTML.indexOf('<nav class="app-nav"')));
+    expect(nav).toMatch(/<button id="phone-menu-toggle" class="app-nav__menu" type="button" aria-expanded="false" aria-controls="app-header"/);
+    expect(HTML).toContain('<header class="app-header" id="app-header">');
+    for (const id of ["notification-toggle", "replay-onboarding-btn", "logout-btn"]) {
+      const at = HTML.indexOf(`id="${id}"`);
+      expect(at, id).toBeGreaterThan(HTML.indexOf('<header class="app-header"'));
+      expect(at, id).toBeLessThan(HTML.indexOf('<div class="layout-grid">')); // the header ends where the grid begins
+    }
   });
 
   it("the bar sits under every dialog and the briefing, never over them", () => {

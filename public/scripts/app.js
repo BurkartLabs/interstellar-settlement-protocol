@@ -73,6 +73,46 @@ onConglomerateChange(() => {
   renderStation(appState.data);
 });
 
+/**
+ * AB#2468: on a phone the header is not shown (styles.css, "App shell"); the ☰ at the right of the navigation's second
+ * row opens it as a sheet, and a tap outside it, Escape, or one of its actions that opens a popup closes it again. The
+ * unread notifications ride on the ☰ as a dot, and in its name for a screen reader. On a desktop the ☰ is not shown
+ * and the class does nothing.
+ */
+function bindPhoneMenu() {
+  const shell = document.getElementById("game-shell");
+  const toggle = document.getElementById("phone-menu-toggle");
+  const header = document.getElementById("app-header");
+  if (!shell || !toggle || !header) return;
+  const isOpen = () => shell.classList.contains("is-menu-open");
+  const setOpen = (open) => {
+    shell.classList.toggle("is-menu-open", open);
+    toggle.setAttribute("aria-expanded", String(open));
+  };
+  toggle.addEventListener("click", () => setOpen(!isOpen()));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && isOpen()) {
+      setOpen(false);
+      toggle.focus();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (isOpen() && !header.contains(event.target) && !toggle.contains(event.target)) setOpen(false);
+  });
+  header.addEventListener("click", (event) => {
+    if (event.target.closest("#replay-onboarding-btn, #account-data-btn, #logout-btn")) setOpen(false);
+  });
+  const count = document.getElementById("notification-count");
+  const dot = document.getElementById("phone-menu-count");
+  const sync = () => {
+    const unread = Number(count?.textContent) || 0;
+    if (dot) dot.hidden = unread === 0;
+    toggle.setAttribute("aria-label", unread ? `Menu, ${unread} unread notification${unread === 1 ? "" : "s"}` : "Menu");
+  };
+  if (count) new MutationObserver(sync).observe(count, { childList: true, characterData: true, subtree: true });
+  sync();
+}
+
 function isPlayerInSpace(data) {
   return !data?.corp?.currentStationId && !isPlayerTraveling(data);
 }
@@ -782,6 +822,7 @@ async function boot() {
   bindTabs();
   bindForms();
   bindGlobalControls();
+  bindPhoneMenu();
   bindBuildingActions();
   bindOperations(); // AB#2471: the Station's and Operations' subpages
   bindInboxControls();
