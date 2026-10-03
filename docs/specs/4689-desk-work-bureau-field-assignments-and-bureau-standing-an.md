@@ -58,12 +58,12 @@ Was Requirement AB#4696. Design section 4. `agentReputation[agent].completedCoun
 
 Was Requirement AB#4697. Design section 3, rules 1 to 4, 6 and 7. `GET .../desk` returns three open packets (drawn on demand, seeded per corporation), the grade, the points and today's paid count; `POST .../desk/answer` grades on the server and pays through applyCredits under a new ledger category `desk`; `POST .../desk/decline` is free. Rate limits as the other gameplay routes have them.
 
-- [ ] A corporation with an office and 0 credits can open, answer and be paid for a packet; one without an office gets the section-coded refusal.
-- [ ] A wrong answer pays 0 and costs 0; the packet is spent and replaced; there are always exactly three open.
-- [ ] The 21st correct answer of a UTC day pays 25 percent of its tier fee; the 21st still adds full points.
-- [ ] Payments appear in the ledger under desk and in the receipts feed; integration tests cover answer, decline, cap rollover at midnight UTC and the no-office case.
-- [ ] The request body can set neither the packet truth nor the grade (T-019 test: a tampered answer payload is graded against the stored key), and an answer to a spent or unknown packet pays nothing.
-- [ ] Completing ten desk packets leaves completedMissions and missionsCompletedTotal unchanged, and increments stat:deskCompleted and stat:deskCompleted:<kind> (integration test).
+- [x] A corporation with an office and 0 credits can open, answer and be paid for a packet; one without an office gets the section-coded refusal.
+- [x] A wrong answer pays 0 and costs 0; the packet is spent and replaced; there are always exactly three open.
+- [x] The 21st correct answer of a UTC day pays 25 percent of its tier fee; the 21st still adds full points.
+- [x] Payments appear in the ledger under desk and in the receipts feed; integration tests cover answer, decline, cap rollover at midnight UTC and the no-office case.
+- [x] The request body can set neither the packet truth nor the grade (T-019 test: a tampered answer payload is graded against the stored key), and an answer to a spent or unknown packet pays nothing.
+- [x] Completing ten desk packets leaves completedMissions and missionsCompletedTotal unchanged, and increments stat:deskCompleted and stat:deskCompleted:<kind> (integration test).
 
 ### Slice 6: Survey payoffs on the server: a correct survey scouts a belt (lane: interstellar-settlement-protocol/economy)
 
