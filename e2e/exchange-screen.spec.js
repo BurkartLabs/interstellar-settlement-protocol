@@ -5,7 +5,7 @@
 // Screenshots to e2e/screenshots/ab-769/ (gitignored; the pull request's are copied to docs/ab-769/). AB#2472: the
 // Exchange is five subpages; each check runs on the page that holds it, and every page is measured and photographed.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { gameDrawn, openTab } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -181,7 +181,7 @@ for (const [width, height] of SIZES) {
 
       // The page is remembered: a reload opens the one last chosen.
       await page.reload();
-      await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 }); // the game has drawn
+      await gameDrawn(page); // the game has drawn
       await openTab(page, "market");
       await expect(page.locator("#exchange-tab-history")).toHaveAttribute("aria-selected", "true");
       await expect(page.locator("#exchange-history-section")).toBeVisible();

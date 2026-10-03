@@ -4,7 +4,7 @@
 //
 // Run: npx playwright test e2e/belt-depletion.spec.js (no server needed).
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, toggleNotifications } from "./nav.mjs";
 import { beltCentre, openSystem, recordCanvas } from "./starmapCanvas.mjs"; // AB#2331
 import fs from "node:fs";
 import os from "node:os";
@@ -57,13 +57,13 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
       await page.waitForURL(/\/\?account=/);
 
       // The expedition tick runs every 10 seconds: the notification says the probe came home early, and why.
-      await page.click("#notification-toggle");
+      await toggleNotifications(page);
       const item = page.locator("#notification-list li", { hasText: "Expedition Ended Early" }).first();
       await expect(item).toBeVisible({ timeout: 30_000 });
       await expect(item).toContainText(/The belt was mined out, so the probe came home \d+ minutes early\. The launch fee is not refunded\./);
       await page.screenshot({ path: path.join(SCREEN_DIR, `ab2330-ended-early-${vp.label}.png`) });
       await test.info().attach(`ended-early-${vp.label}`, { body: await page.screenshot(), contentType: "image/png" });
-      await page.click("#notification-toggle");
+      await toggleNotifications(page);
 
       // The ring on the Starmap: no belt, no Scout, and when the next chance is (AB#2331).
       const systems = (await (await request.get(`${url}/api/bootstrap`)).json()).world.systems;

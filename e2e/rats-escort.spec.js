@@ -10,7 +10,7 @@
 // the report says is the tick's: the fight, the losses and the haul taken. At 1440x900 and 390x844; screenshots go to
 // e2e/screenshots/ab-821/.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, toggleNotifications } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -150,14 +150,14 @@ for (const viewport of VIEWPORTS) {
     session = await signIn(browser, server.url, viewport, email);
     try {
       const { page } = session;
-      await page.click("#notification-toggle");
+      await toggleNotifications(page);
       const item = page.locator("#notification-list li", { hasText: "Expedition Complete" }).first();
       await expect(item).toBeVisible({ timeout: 45_000 });
       await expect(item).toContainText(/Met Rats (once|twice|\d+ times)\. The escort (held|was beaten)/);
       await expect(item).toContainText(/The haul is intact\.|Rats took [\d,]+ units of the haul\./);
       await item.scrollIntoViewIfNeeded();
       await page.screenshot({ path: path.join(SHOT_DIR, `report-notification-${viewport.label}.png`) });
-      await page.click("#notification-toggle"); // closes the list (Escape does not on a phone)
+      await toggleNotifications(page); // closes the list (Escape does not on a phone)
       await openTab(page, "inbox");
       await page.locator("#inbox-message-list .inbox__message", { hasText: "Mining Probe Return" }).first().click();
       const detail = page.locator("#inbox-detail-view");

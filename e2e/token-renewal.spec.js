@@ -11,6 +11,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { verificationToken } from "./verification.mjs";
+import { gameDrawn } from "./nav.mjs"; // AB#2468: the header is a sheet on a phone
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -55,7 +56,7 @@ test("an open game renews its access token two minutes before the 30 are up, and
     await page.fill("#login-password", PASSWORD);
     await page.click("#credential-login-btn");
     await page.waitForURL(/\/\?account=/);
-    await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+    await gameDrawn(page);
 
     const renewals = [];
     page.on("response", (r) => { if (r.url().endsWith("/api/auth/refresh")) renewals.push(r.status()); });
@@ -69,7 +70,7 @@ test("an open game renews its access token two minutes before the 30 are up, and
     await expect.poll(() => renewals).toEqual([200, 200]);
 
     await expect(page).not.toHaveURL(/login\.html/);
-    await expect(page.locator("#logout-btn")).toBeVisible();
+    await gameDrawn(page); // AB#2468: Log Out is in the ☰ sheet on a phone
     const session = await page.evaluate(async () => (await (await import("/scripts/apiClient.js")).apiFetch("/api/auth/session")).status);
     expect(session, "a signed-in call after the renewals").toBe(200);
     await page.screenshot({ path: path.join(SCREEN_DIR, "token-renewal-still-in-game-1280x800.png") });

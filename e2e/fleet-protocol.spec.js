@@ -4,7 +4,7 @@
 // after a ship is queued (Lodged); and the notification of ships the server's own ticker delivered (Concluded).
 // Nothing is mocked: the account is seeded, and the rest is the page and the server. Shots go to e2e/screenshots/ab-4810/.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, toggleNotifications } from "./nav.mjs";
 import { acknowledgeReceipt } from "./receipt.mjs";
 import fs from "node:fs";
 import os from "node:os";
@@ -121,7 +121,7 @@ test("the Fleet tab's statuses, refusals, log and notifications carry the protoc
 
     // 5. the ships the server's ticker delivered: the notification, Concluded beside its plain words
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.click("#notification-toggle");
+    await toggleNotifications(page);
     const note = page.locator("#notification-list li", { hasText: "Ships Delivered" });
     await expect(note).toBeVisible({ timeout: 20_000 });
     await expect(note.locator(".protocol-line")).toContainText("Concluded");

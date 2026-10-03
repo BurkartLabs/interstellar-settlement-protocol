@@ -10,7 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab, openStationOffices, openMiningCycles } from "./nav.mjs";
+import { gameDrawn, openMiningCycles, openStationOffices, openTab, toggleNotifications } from "./nav.mjs";
 import { acknowledgeReceipt } from "./receipt.mjs";
 import { verificationToken } from "./verification.mjs";
 import { beltCentre, openSystem, recordCanvas } from "./starmapCanvas.mjs";
@@ -46,7 +46,7 @@ async function logIn(page, url, email) {
   await page.fill("#login-email", email);
   await page.fill("#login-password", PASSWORD);
   await page.click('#login-form button[type="submit"]');
-  await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+  await gameDrawn(page);
 }
 
 const shot = async (locator, name) => {
@@ -92,13 +92,13 @@ test("a lease, a yard and a cycle carry their protocol lines, at 1280x800", asyn
     await shot(yard, "ab4819-1-yard-active");
 
     // The notifications: the plain title and body, then the protocol line
-    await page.click("#notification-toggle");
+    await toggleNotifications(page);
     const list = page.locator("#notification-list");
     await expect(list).toContainText("Mining Cycle Started");
     await expect(list).toContainText(/In force\s*\/\/ STA-OPS-6/i);
     await expect(list).toContainText(/Mining Lease Approved[\s\S]*In force\s*\/\/ ISA-REG-8/i);
     await shot(page.locator("#notification-panel"), "ab4819-2-notifications");
-    await page.click("#notification-toggle");
+    await toggleNotifications(page);
 
     // The Mining cycles page
     await openMiningCycles(page);

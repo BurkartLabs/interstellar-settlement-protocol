@@ -15,7 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab, openStationOffices } from "./nav.mjs";
+import { gameDrawn, openStationOffices, openTab } from "./nav.mjs";
 import { findings } from "./screenFindings.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -95,7 +95,7 @@ for (const [width, height] of SIZES) {
       await page.fill("#login-password", PASSWORD);
       await page.click("#credential-login-btn");
       await page.waitForURL(/\/\?account=/);
-      await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+      await gameDrawn(page);
 
       for (const tab of TABS) {
         await openTab(page, tab);

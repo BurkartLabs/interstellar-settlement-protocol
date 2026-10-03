@@ -3,7 +3,7 @@
 // panel, and the row and the slot counter change without a reload. At 1440x900 and 390x844. Starts its own server on a
 // seeded data directory (the listing-refusal-in-row.spec.js pattern); screenshots go to e2e/screenshots/ab-785/.
 import { test, expect } from "@playwright/test";
-import { openTab, openExchangePage, openStationOffices, openStationSubpage } from "./nav.mjs";
+import { openExchangePage, openStationOffices, openStationSubpage, openTab, toggleNotifications } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -131,13 +131,13 @@ for (const viewport of VIEWPORTS) {
       // the list fetches it, so reopen it until the note is there, whichever came first, the tick or the click.
       const note = page.locator("#notification-list li", { hasText: "Expedition Complete" }).first();
       await expect.poll(async () => {
-        if (!(await page.locator("#notification-panel").isHidden())) await page.click("#notification-toggle");
-        await page.click("#notification-toggle");
+        if (!(await page.locator("#notification-panel").isHidden())) await toggleNotifications(page);
+        await toggleNotifications(page);
         return note.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false);
       }, { timeout: 90_000, intervals: [2_000] }).toBe(true);
       await expect(note).toContainText("Your Ferric Mining Complex added 10 Nickel and 5 Titanium.");
       await page.screenshot({ path: path.join(SHOT_DIR, `ferric-notification-${viewport.label}.png`) });
-      await page.click("#notification-toggle");
+      await toggleNotifications(page);
 
       await openTab(page, "inbox");
       await page.locator("#inbox-message-list li", { hasText: "Mining Probe Return" }).first().click();

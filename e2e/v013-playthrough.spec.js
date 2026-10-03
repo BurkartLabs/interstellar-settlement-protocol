@@ -13,7 +13,7 @@
 // end if any did. Screenshots go to e2e/screenshots/ab-940/<pass>/. This is a LOCAL run: AB#940 asks for the deployed
 // build, which cannot register new players until AB#989 is deployed, and is the Board's to deploy.
 import { test, expect } from "@playwright/test";
-import { openExchangePage, openStationOffices, openTab } from "./nav.mjs";
+import { gameDrawn, openExchangePage, openStationOffices, openTab, toggleNotifications } from "./nav.mjs";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -78,7 +78,7 @@ for (const [passName, sizes] of [["a-desktop", { A: DESKTOP, B: PHONE, C: DESKTO
       await page.fill("#login-email", emails[name]);
       await page.fill("#login-password", PASSWORD);
       await page.click('#login-form button[type="submit"]');
-      await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+      await gameDrawn(page);
       players[name] = { page, context, size };
       return page;
     }
@@ -288,7 +288,7 @@ for (const [passName, sizes] of [["a-desktop", { A: DESKTOP, B: PHONE, C: DESKTO
       await step("A", "jumps to Sol", (page) => jumpTo(page, "sol"));
       await restart("travel,dump");
       await step("B", "the ITC opens an anti-dumping investigation", async (page) => {
-        await page.click("#notification-toggle");
+        await toggleNotifications(page);
         const list = page.locator("#notification-panel");
         await expect(list).toContainText("ITC Anti-Dumping Investigation");
         return list;
@@ -307,7 +307,7 @@ for (const [passName, sizes] of [["a-desktop", { A: DESKTOP, B: PHONE, C: DESKTO
       });
       await step("C", "buys Bright's Nickel from Kestrel Platform", (page) => buyFromBright(page, 26, 300));
       await step("B", "the duty is levied", async (page) => {
-        await page.click("#notification-toggle");
+        await toggleNotifications(page);
         const list = page.locator("#notification-panel");
         await expect(list).toContainText(/duty/i);
         return list;

@@ -11,6 +11,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { verificationToken } from "./verification.mjs";
+import { gameDrawn } from "./nav.mjs"; // AB#2468: the header is a sheet on a phone
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -52,12 +53,12 @@ test("two tabs that refresh at the same moment both stay signed in", async ({ pa
     await page.fill("#login-password", PASSWORD);
     await page.click("#credential-login-btn");
     await page.waitForURL(/\/\?account=/);
-    await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+    await gameDrawn(page);
 
     const second = await context.newPage();
     await second.setViewportSize({ width: 1280, height: 800 });
     await second.goto(page.url());
-    await expect(second.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+    await gameDrawn(second);
 
     // A refresh token minted in the same second as the one it replaces is the same string; wait so rotation shows.
     await page.waitForTimeout(1100);
@@ -83,7 +84,7 @@ test("two tabs that refresh at the same moment both stay signed in", async ({ pa
     await context.unroute("**/api/auth/refresh");
     await Promise.all([page.reload(), second.reload()]);
     for (const tab of [page, second]) {
-      await expect(tab.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+      await gameDrawn(tab);
       await expect(tab).not.toHaveURL(/login\.html/);
     }
     expect((await context.cookies()).some((c) => c.name === "isp_refresh"), "the refresh cookie survives").toBe(true);

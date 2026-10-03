@@ -5,7 +5,7 @@
 // longer works. B then opens the conversation: A's message is erased and A is "Anonymised corporation".
 // At 1280x800 and 375x812; screenshots go to e2e/screenshots/ab-960/.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { gameDrawn, openTab, pressHeader } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -80,8 +80,8 @@ for (const viewport of VIEWPORTS) {
       // A: the Account dialog, and the download
       let s = await signIn(browser, url, viewport, emailA);
       let page = s.page;
-      await page.locator("#logout-btn").waitFor({ state: "visible" });
-      await page.locator("#account-data-btn").click();
+      await gameDrawn(page);
+      await pressHeader(page, "#account-data-btn");
       const modal = page.locator("#account-data-modal");
       await expect(modal).toBeVisible();
       await shot(page, "account-dialog", viewport);

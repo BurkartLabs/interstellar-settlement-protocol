@@ -11,7 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab, openStationOffices } from "./nav.mjs";
+import { gameDrawn, openStationOffices, openTab } from "./nav.mjs";
 import { acknowledgeReceipt } from "./receipt.mjs";
 import { verificationToken } from "./verification.mjs";
 
@@ -54,7 +54,7 @@ test("every minimum event fires at its trigger and is stored without an account,
     await page.fill("#login-email", email);
     await page.fill("#login-password", PASSWORD);
     await page.click("#credential-login-btn");
-    await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+    await gameDrawn(page);
 
     // funnel_step: the briefing's first step, and the next
     await page.getByRole("button", { name: "Brief me" }).click();

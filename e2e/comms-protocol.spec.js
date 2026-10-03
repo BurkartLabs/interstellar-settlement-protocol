@@ -10,7 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { gameDrawn, openTab } from "./nav.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -54,7 +54,7 @@ test("chat, the Inbox and the Forums say their protocol line after the plain wor
   await page.fill("#login-email", logins.nova);
   await page.fill("#login-password", PASSWORD);
   await page.click("#credential-login-btn");
-  await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+  await gameDrawn(page);
 
   // Chat: a third line inside ten seconds is refused by the server: Denied, the Chat's code
   await openTab(page, "chat");

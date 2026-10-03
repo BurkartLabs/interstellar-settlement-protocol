@@ -4,7 +4,7 @@
 // quiet (In force). Player B, who hired A's other fleet, files a readiness case at the Galactic Arbitration Council:
 // Filed, awaiting review in the status line, on its case and on the public docket. Screenshots: e2e/screenshots/ab-4826/.
 import { test, expect } from "@playwright/test";
-import { openTab, openStationOffices } from "./nav.mjs";
+import { openStationOffices, openTab, toggleNotifications } from "./nav.mjs";
 import { acknowledgeReceipt } from "./receipt.mjs";
 import fs from "node:fs";
 import os from "node:os";
@@ -111,7 +111,7 @@ test("hunts and the Arbitration Council carry the protocol line, at 1280x800", a
     await expect(page.locator("[data-belt-quiet] .protocol-line")).toContainText("In force");
     await page.locator("[data-belt-rats]").scrollIntoViewIfNeeded();
     await page.locator("[data-belt-rats]").screenshot({ path: path.join(SHOT_DIR, "2-hunt-won-belt-quiet.png") });
-    await page.click("#notification-toggle");
+    await toggleNotifications(page);
     await expect(page.locator("#notification-list li", { hasText: "Hunt won" }).locator(".protocol-line")).toContainText("Concluded");
     await page.locator("#notification-panel").screenshot({ path: path.join(SHOT_DIR, "3-notification-hunt-won.png") });
     expect(s.errors).toEqual([]);

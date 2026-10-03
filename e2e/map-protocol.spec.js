@@ -6,7 +6,7 @@
 // Hunts and their reports are ISP-255d's (AB#4826).
 // Shots go to e2e/screenshots/ab-4831/.
 import { test, expect } from "@playwright/test";
-import { openTab } from "./nav.mjs";
+import { openTab, toggleNotifications } from "./nav.mjs";
 import { acknowledgeReceipt } from "./receipt.mjs"; // the dock's receipt
 import fs from "node:fs";
 import os from "node:os";
@@ -109,7 +109,7 @@ test("a journey: the Travel screen In force, and the course's notice, at 1280", 
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: path.join(SHOT_DIR, "2-travel-in-force.png") });
     // 3. its notice: In force on the Travel screen, beside its plain words
-    await page.click("#notification-toggle");
+    await toggleNotifications(page);
     const note = page.locator("#notification-list li", { hasText: "Undocking" });
     await expect(note.locator(".protocol-line")).toContainText("In force");
     await page.locator("#notification-panel").screenshot({ path: path.join(SHOT_DIR, "3-notice-course-set.png") });

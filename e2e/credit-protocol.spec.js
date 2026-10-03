@@ -6,7 +6,7 @@
 //     subscription for more units than are left (Denied).
 // Shots go to e2e/screenshots/ab-4824/.
 import { test, expect } from "@playwright/test";
-import { openTab, openStationOffices } from "./nav.mjs";
+import { openStationOffices, openTab, toggleNotifications } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -84,7 +84,7 @@ test("the Loan Board: the lender's loans, the borrower's warning and notice, and
     await showUnderHeader(warning);
     await shot(warning, "2-borrower-warning");
     await tessera.page.evaluate(() => window.scrollTo(0, 0));
-    await tessera.page.click("#notification-toggle");
+    await toggleNotifications(tessera.page);
     const note = tessera.page.locator("#notification-list li", { hasText: "Your assets will be sold in 24 hours" });
     await expect(note.locator(".protocol-line")).toContainText("Filed, awaiting review");
     await tessera.page.locator("#notification-panel").screenshot({ path: path.join(SHOT_DIR, "3-notice-sale-scheduled.png") });

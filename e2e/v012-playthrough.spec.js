@@ -12,7 +12,7 @@
 //
 // This is a local run: AB#915 asks for the deployed build, which is the Board's to deploy.
 import { test, expect } from "@playwright/test";
-import { openExchangePage, openStationOffices, openTab } from "./nav.mjs";
+import { gameDrawn, openExchangePage, openStationOffices, openTab } from "./nav.mjs";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -74,7 +74,7 @@ for (const [passName, sizeA, sizeB] of [["a-desktop", DESKTOP, PHONE], ["a-phone
       await page.click('#login-form button[type="submit"]');
       await page.waitForURL(/\?account=/);
       // Bug #4836/AB#4840: the game, and its socket in the rooms, open after the page; a step starts once they have
-      await page.locator("#logout-btn").waitFor({ state: "visible", timeout: 20_000 });
+      await gameDrawn(page);
       players[name] = { page, context, size };
       return page;
     }

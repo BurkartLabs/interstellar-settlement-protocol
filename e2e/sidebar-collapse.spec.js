@@ -7,7 +7,7 @@
 // Run against a server you started (playwright.config.js): `npx playwright test e2e/sidebar-collapse.spec.js`.
 import { test, expect } from "@playwright/test";
 import path from "node:path";
-import { openTab } from "./nav.mjs";
+import { gameDrawn, openTab } from "./nav.mjs";
 import { verifyAndLogIn } from "./verification.mjs";
 
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-2481");
@@ -71,7 +71,7 @@ test.describe("at 1280x800", () => {
 
     // A reload keeps them.
     await page.reload();
-    await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+    await gameDrawn(page);
     expect(await expanded(block(page, "identity"))).toBe(false);
     expect(await expanded(group(page, "industry"))).toBe(true);
     await expect(page.locator(".nav-tab[data-tab='refinery']")).toBeVisible();

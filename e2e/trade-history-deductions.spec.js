@@ -11,7 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openExchangePage } from "./nav.mjs";
+import { gameDrawn, openExchangePage } from "./nav.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(REPO_ROOT, "e2e", "screenshots", "bug-4853");
@@ -45,7 +45,7 @@ for (const [width, height] of [[1280, 800], [375, 812]]) {
     await page.fill("#login-email", seeded.seller);
     await page.fill("#login-password", PASSWORD);
     await page.click("#credential-login-btn");
-    await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+    await gameDrawn(page);
 
     await openExchangePage(page, "history");
     const table = page.locator("#trade-history-table");
