@@ -22,7 +22,8 @@ import { paintStationArt, stationArtHtml } from "../stationArt.js"; // ISP-78 (A
 import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB#785)
 import { nextYardPriceFor } from "../yardPrice.js"; // ISP-303 (AB#2286)
 import { facilityUpgradeHtml, facilityUpgradeView, upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795), ISP-102 (AB#794)
-import { priorityQuote, renderMissions } from "./assignments.js"; // priorityQuote: AB#4689 slice 8
+import { renderMissions } from "./assignments.js";
+import { priorityQuote } from "../bureauTerms.js"; // AB#4689 slice 8
 import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
 // back to the control that was pressed if it is still there, otherwise to the one the flow continues from.

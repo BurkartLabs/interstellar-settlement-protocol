@@ -38,7 +38,7 @@ describe("player mail routing (Bug #711)", () => {
     const text = JSON.stringify(res.body);
     expect(text).not.toContain(a.id);
     expect(text).not.toContain("@");
-    expect(Object.keys(res.body.corporations[0]).sort()).toEqual(["ceo", "corporationName", "location", "publicId"]);
+    expect(Object.keys(res.body.corporations[0]).sort()).toEqual(["ceo", "corporationName", "grade", "location", "publicId"]);
   });
 
   it("delivers mail addressed by public id to exactly that corporation, even when two share a name", async () => {
