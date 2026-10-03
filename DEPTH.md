@@ -476,6 +476,16 @@ Level 9** (`miningLease:Luna`, verified directly in `data/milestones.json` this 
 sequenced *after* the Salvage Assignment stories, since the probe cannot even reach Level 9 to test it until a
 broke corporation can recover — a genuinely correct dependency call by whoever ordered the backlog.
 
+**Added after this review by a Builder (AB#4689 slice 10, 2026-10-03), not scored here.** BOT NUMBERS (P-PROXY):
+- **Mastery:** `npm run probe:desk-mastery`, 50 simulated hours per tier: the rules-aware bot earns 5.3x the random
+  bot's Bureau Standing at tier 1, 10.8x at tier 2 and 66.7x at tier 3 (20, 40 and 60 points an hour against 3.8, 3.7
+  and 0.9). The first measured greedy-versus-planner gap in the game, on the Desk only.
+- **Decision density:** `npm run probe:desk-decisions` misses its target: one kind of packet is best for every profile
+  at tier 1 (Audit) and at tier 2 (Survey, best on every payoff); only at tier 3 does the scout's intel split them. Fees
+  and points are set by tier, not by kind, so under the probe's assumed minutes per packet the fastest kind wins every
+  profile; the design's "Dispatches pay the largest fee per packet" is not in data/economy.json. Reported, not
+  retuned (AB#4779).
+
 ## Scores (RUBRIC Depth table)
 
 Scored blind against the two probe runs and the code, before opening this file's own history further than the

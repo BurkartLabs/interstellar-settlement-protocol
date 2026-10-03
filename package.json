@@ -37,6 +37,8 @@
     "probe:tariffs": "node scripts/probe-tariffs.mjs",
     "probe:tournament": "node scripts/probe-tournament.mjs",
     "probe:warfare": "node scripts/probe-warfare.mjs",
+    "probe:desk-mastery": "node scripts/probe-desk-mastery.mjs",
+    "probe:desk-decisions": "node scripts/probe-desk-decisions.mjs",
     "gate:rc": "node scripts/rc-gate.mjs"
   },
   "testRelated": {"runAllOn":["tests/setup.js","tests/globalSetup.js"],"alwaysRun":["tests/unit/no-payments.test.js","tests/unit/moduleSize.test.js","tests/unit/noTokenStorage.test.js","tests/unit/e2eNoSourceWrites.test.js","tests/unit/timeFormat.test.js","tests/unit/cssVariables.test.js","tests/unit/designTokens.test.js","tests/unit/runtimeDataIgnored.test.js","tests/unit/focusAndMotion.test.js","tests/unit/refineRuleTripwire.test.js"]},
