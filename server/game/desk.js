@@ -6,10 +6,12 @@
 //
 // Slice 1 is the Survey (ISA Mineral Survey Division, section 5): readings of a body's resource profile or a live belt's
 // composition, with seeded noise and, from tier 2, resources that are not there at all. Slice 2 is the Audit (ISA Claims
-// & Leases Division): a filing in which one clause, two, or none breaks a rule the server enforces. Dispatch follows.
+// & Leases Division): a filing in which one clause, two, or none breaks a rule the server enforces. Slice 3 is the
+// Dispatch (GEX Routing Desk): a transfer to price, a fill to cost delivered, a deadline fill and its margin.
 
 import crypto from "node:crypto";
-import { ECONOMY } from "../economy.js";
+import { ECONOMY, npcBidFor } from "../economy.js";
+import { jumpsBetween, transferFee, transitTime } from "../transfers.js";
 import { WARFARE_CATALOG } from "../warfare.js";
 import { CONGLOMERATE_CATALOG } from "../conglomerates.js";
 import { NPC_CATALOG } from "../npcCorporations.js";
@@ -22,7 +24,8 @@ import { nextYardPrice } from "../../public/scripts/yardPrice.js";
 import { SYSTEMS_DATA } from "./catalog.js";
 import { BELT_TIERS } from "./beltRules.js";
 import { TIER_TEMPLATES, isBeltPresent } from "./belts.js";
-import { bidQuotaFor } from "./world.js";
+import { catalogStations } from "./stations.js";
+import { bidQuotaFor, bidRuleFor } from "./world.js";
 
 /** The tiers a packet is drawn at. Tier 2 opens at Recognized and tier 3 at Trusted (section 4); the routes check that. */
 export const DESK_TIERS = Object.freeze([1, 2, 3]);
@@ -496,4 +499,143 @@ export function gradeAudit(key, answer) {
     const v = answer.figures?.[b.clause];
     return typeof v === "number" && Number.isFinite(v) && Math.abs(v - b.figure) < 0.005;
   }));
+}
+
+// ─── Dispatch (GEX Routing Desk, section 5) ──────────────────────────────────────────────────────────────────────────
+//
+// The truth is the Logistics tab's own fee and transit (server/transfers.js) and the standing bid (npcBidFor over the
+// order's rule). Fees are per unit, so the cheapest fill takes the lots cheapest delivered unit first; a grader costs a
+// plan from the unit costs in its key and compares it with that minimum, so any plan that ties the minimum is right.
+
+const DISPATCH_DIVISION = "GEX Routing Desk";
+const DISPATCH_SHAPE = Object.freeze({
+  1: { question: "fee-and-transit" },
+  2: { question: "cheapest-fill", lots: 3 },
+  3: { question: "deadline-fill-and-margin", lots: 5 }
+});
+const withinPct = (value, truth, pct) => typeof value === "number" && Number.isFinite(value) && Math.abs(value - truth) <= (Math.abs(truth) * pct) / 100 + 1e-9;
+const stationRef = (s) => ({ id: s.id, name: s.name, systemId: s.systemId });
+
+/** `count` distinct stations from the registry, every one with a route to the first. */
+function drawStations(stations, rng, count) {
+  for (let tries = 0; tries < MAX_DRAWS; tries += 1) {
+    const picked = shuffled(stations, rng).slice(0, count);
+    if (picked.length === count && picked.slice(1).every((s) => jumpsBetween(s.id, picked[0].id) !== null)) return picked;
+  }
+  return null;
+}
+
+/** The cheapest way to take `quantity` from `lots` ({ id, available, unitCost }): cheapest delivered unit first; null when they cannot fill it. */
+function cheapestFill(lots, quantity) {
+  const take = {};
+  let left = quantity, cost = 0;
+  for (const lot of [...lots].sort((a, b) => a.unitCost - b.unitCost || (a.id < b.id ? -1 : 1))) {
+    const n = Math.min(left, lot.available);
+    if (n > 0) { take[lot.id] = n; cost += n * lot.unitCost; left -= n; }
+  }
+  return left === 0 ? { take, cost } : null;
+}
+
+/** What a plan costs delivered, from the key's lots; null for a plan that is not a fill (unknown or overdrawn lot, a fraction, the wrong total). */
+function planCost(lots, quantity, take) {
+  if (!take || typeof take !== "object" || Array.isArray(take)) return null;
+  let total = 0, cost = 0;
+  for (const [id, n] of Object.entries(take)) {
+    const lot = lots.find((l) => l.id === id);
+    if (!lot || !Number.isInteger(n) || n < 0 || n > lot.available) return null;
+    total += n;
+    cost += n * lot.unitCost;
+  }
+  return total === quantity ? cost : null;
+}
+
+/** A Dispatch packet at `tier` from `seed`: { packet, key }, or null when the registry has no route to draw. Pure in its arguments and the registry's routes. */
+export function generateDispatch({ seed, tier, stations = catalogStations(), rules = ECONOMY.desk } = {}) {
+  const shape = DISPATCH_SHAPE[tier];
+  if (!shape) return null;
+  const rng = deskRng(`dispatch:${tier}:${seed}`);
+  const ref = `GRD-${String(Math.floor(rng() * 1_000_000)).padStart(6, "0")}`;
+  const base = { kind: "dispatch", tier, ref, division: DISPATCH_DIVISION, question: shape.question, fee: rules.payByTier[tier - 1], points: rules.pointsByTier[tier - 1], rates: { ...ECONOMY.logistics } };
+  const items = BID_ITEMS.filter((b) => b.price >= 5);
+
+  if (tier === 1) {
+    const { item } = pick(items, rng);
+    const route = drawStations(stations, rng, 2);
+    if (!route) return null;
+    const [to, from] = route;
+    const quantity = int(rng, 1, 40) * 10;
+    const jumps = jumpsBetween(from.id, to.id);
+    const packet = { ...base, item, quantity, from: stationRef(from), to: stationRef(to), jumps };
+    const key = { kind: "dispatch", tier, ref, quantity, jumps, transferFee: transferFee(from.id, to.id, quantity), transitMinutes: transitTime(from.id, to.id), tolerancePct: rules.dispatchTolerancePct };
+    return { packet, key };
+  }
+
+  for (let draw = 0; draw < MAX_DRAWS * 4; draw += 1) {
+    // The item is drawn each time: at a high enough price the fee stops mattering, and no fill is worth asking about.
+    const { item, price } = pick(items, rng);
+    const route = drawStations(stations, rng, shape.lots + 1);
+    if (!route) return null;
+    const [at, ...sources] = route;
+    const quantity = int(rng, 5, 30) * 10;
+    const lots = sources.map((s, i) => {
+      const unitPrice = Math.max(1, Math.round(price * (tier === 2 ? 0.9 + rng() * 0.6 : 0.4 + rng() * 0.45)));
+      const available = Math.max(10, Math.round((quantity * (0.3 + rng() * 0.9)) / 10) * 10);
+      return { id: `L${i + 1}`, station: stationRef(s), jumps: jumpsBetween(s.id, at.id), unitPrice, available, unitCost: unitPrice + transferFee(s.id, at.id, 1), transitMinutes: transitTime(s.id, at.id) };
+    });
+    let dueInHours = null, open = lots;
+    if (tier === 3) {
+      // A deadline that rules out at least one lot the cheapest fill would otherwise take.
+      const times = [...new Set(lots.map((l) => l.transitMinutes))].sort((a, b) => a - b);
+      if (times.length < 2) continue;
+      dueInHours = Math.ceil(times[int(rng, 0, times.length - 2)] / 60);
+      open = lots.filter((l) => l.transitMinutes <= dueInHours * 60);
+      const unbounded = cheapestFill(lots, quantity);
+      if (!unbounded || Object.keys(unbounded.take).every((id) => open.some((l) => l.id === id))) continue;
+    }
+    const best = cheapestFill(open, quantity);
+    if (!best) continue;
+    if (tier === 2) {
+      // Only worth asking when the cheapest price on the sticker is not the cheapest delivered.
+      const sticker = cheapestFill(lots.map((l) => ({ ...l, unitCost: l.unitPrice })), quantity);
+      if (sticker && planCost(lots, quantity, sticker.take) === best.cost) continue;
+    }
+    const packet = { ...base, item, quantity, at: stationRef(at), lots: lots.map(({ unitCost, ...l }) => l) };
+    const key = { kind: "dispatch", tier, ref, quantity, lots: lots.map((l) => ({ id: l.id, available: l.available, unitCost: l.unitCost, transitMinutes: l.transitMinutes })), minCost: best.cost, best: best.take };
+    if (tier === 2) return { packet, key };
+    const quota = bidQuotaFor(item);
+    const soldToday = Math.floor(quota * rng() * 0.6);
+    if (soldToday + quantity > quota) continue;
+    const bid = npcBidFor(price, soldToday, bidRuleFor({ item }));
+    const margin = quantity * bid - best.cost;
+    if (!(margin > quantity * bid * 0.1)) continue;
+    packet.dueInHours = dueInHours;
+    packet.standingBid = { basePrice: price, soldToday, quota, driftAtFullQuotaPct: ECONOMY.npcBid.driftAtFullQuotaPct, floorPct: ECONOMY.npcBid.floorPct };
+    return { packet, key: { ...key, dueInHours, bid, margin, tolerancePct: rules.dispatchTolerancePct } };
+  }
+  return null;
+}
+
+/** The graded receipt's sentence for a dispatch: the truth, and the rule it was graded by. */
+function dispatchExplanation(key) {
+  if (key.tier === 1) return `${key.quantity} units over ${key.jumps} jump${key.jumps === 1 ? "" : "s"} cost ${key.transferFee} credits to move and land in ${key.transitMinutes} minutes; a tier-1 dispatch is correct when both figures are within ${key.tolerancePct}%.`;
+  const take = Object.entries(key.best).map(([id, n]) => `${n} from ${id}`).join(", ");
+  const fill = `The cheapest delivered fill is ${take}, ${key.minCost} credits: a lot's delivered cost is its price plus the transfer fee from its station.`;
+  if (key.tier === 2) return fill;
+  return `${fill} Only lots that land within ${key.dueInHours} hours can fill it, and at a standing bid of ${key.bid} the margin is ${key.margin} credits; a tier-3 dispatch is correct when the fill is that cheap, meets the deadline and the margin is within ${key.tolerancePct}%.`;
+}
+
+/**
+ * Grade an answer to a Dispatch against its stored key: { correct, explanation }. Tier 1 reads { transferFee,
+ * transitMinutes }; tier 2 { take: { <lot id>: units } }; tier 3 that plus { margin }. Anything malformed is incorrect.
+ */
+export function gradeDispatch(key, answer) {
+  if (!key || key.kind !== "dispatch" || !DISPATCH_SHAPE[key.tier]) return { correct: false, explanation: "" };
+  const result = (correct) => ({ correct, explanation: dispatchExplanation(key) });
+  if (!answer || typeof answer !== "object") return result(false);
+  if (key.tier === 1) return result(withinPct(answer.transferFee, key.transferFee, key.tolerancePct) && withinPct(answer.transitMinutes, key.transitMinutes, key.tolerancePct));
+  const cost = planCost(key.lots, key.quantity, answer.take);
+  if (cost === null || cost > key.minCost) return result(false);
+  // A plan that leans on a lot landing after the deadline misses it, however cheap.
+  if (key.tier === 3 && key.lots.some((l) => l.transitMinutes > key.dueInHours * 60 && answer.take[l.id] > 0)) return result(false);
+  return result(key.tier === 2 || withinPct(answer.margin, key.margin, key.tolerancePct));
 }

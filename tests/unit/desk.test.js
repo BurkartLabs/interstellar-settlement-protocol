@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { ECONOMY } from "../../server/economy.js";
+import { ECONOMY, npcBidFor } from "../../server/economy.js";
 import { SYSTEMS_DATA } from "../../server/game/catalog.js";
 import { ensureBeltState, spawnBelt, BELT_SLOTS } from "../../server/game/belts.js";
 import fs from "node:fs";
-import { AUDIT_CLAUSES, DESK_TIERS, deskRng, generateAudit, generateSurvey, gradeAudit, gradeSurvey, surveySubjects } from "../../server/game/desk.js";
-import { bidQuotaFor } from "../../server/game/world.js";
+import { AUDIT_CLAUSES, DESK_TIERS, deskRng, generateAudit, generateDispatch, generateSurvey, gradeAudit, gradeDispatch, gradeSurvey, surveySubjects } from "../../server/game/desk.js";
+import { bidQuotaFor, bidRuleFor } from "../../server/game/world.js";
+import { transferFee, transitTime } from "../../server/transfers.js";
 import { getEffectiveExchangeTaxRate } from "../../server/game/progression.js";
 import { maxUpgradeTierOf } from "../../server/upgrades.js";
 import { EMPLOYEES_PER_LEASE } from "../../public/scripts/leaseStaffing.js";
@@ -374,5 +375,101 @@ describe("gradeAudit", () => {
       expect(wrong.correct).toBe(false);
       expect(wrong.explanation).toContain(key.rules[innocent]);
     }
+  });
+});
+
+// AB#4689 slice 3: the Dispatch generator and grader (docs/design/desk-work.md section 5, Dispatch).
+
+const TOL = ECONOMY.desk.dispatchTolerancePct;
+const rightDispatch = (key) => (key.tier === 1 ? { transferFee: key.transferFee, transitMinutes: key.transitMinutes } : { take: { ...key.best }, ...(key.tier === 3 ? { margin: key.margin } : {}) });
+const fillBy = (lots, quantity, costOf) => {
+  const take = {};
+  let left = quantity;
+  for (const lot of [...lots].sort((a, b) => costOf(a) - costOf(b))) {
+    const n = Math.min(left, lot.available);
+    if (n > 0) { take[lot.id] = n; left -= n; }
+  }
+  return take;
+};
+
+describe("generateDispatch", () => {
+  it("yields the same packet and key twice from the same seed, at every tier, and always has one to give", () => {
+    for (const tier of DESK_TIERS) {
+      const once = generateDispatch({ seed: "corp-7:9", tier });
+      expect(generateDispatch({ seed: "corp-7:9", tier })).toEqual(once);
+      for (let seed = 0; seed < DRAWS; seed += 1) expect(generateDispatch({ seed, tier }), `tier ${tier} seed ${seed}`).not.toBeNull();
+    }
+  });
+
+  it("tier 1: the figures are the Logistics tab's own fee and transit, graded within the tolerance at both edges", () => {
+    for (let seed = 0; seed < DRAWS; seed += 1) {
+      const { packet, key } = generateDispatch({ seed, tier: 1 });
+      expect(key.transferFee).toBe(transferFee(packet.from.id, packet.to.id, packet.quantity));
+      expect(key.transitMinutes).toBe(transitTime(packet.from.id, packet.to.id));
+      const right = rightDispatch(key);
+      expect(gradeDispatch(key, right).correct).toBe(true);
+      for (const field of ["transferFee", "transitMinutes"]) {
+        const edge = (key[field] * TOL) / 100;
+        expect(gradeDispatch(key, { ...right, [field]: key[field] + edge }).correct).toBe(true);
+        expect(gradeDispatch(key, { ...right, [field]: key[field] - edge }).correct).toBe(true);
+        expect(gradeDispatch(key, { ...right, [field]: key[field] + edge + 1 }).correct, `${field} over`).toBe(false);
+        expect(gradeDispatch(key, { ...right, [field]: key[field] - edge - 1 }).correct, `${field} under`).toBe(false);
+      }
+    }
+  });
+
+  it("tier 2: across 1000 seeds the cheapest delivered fill is correct, and the cheapest sticker fill, a short or overdrawn fill are not", () => {
+    for (let seed = 0; seed < DRAWS; seed += 1) {
+      const { packet, key } = generateDispatch({ seed, tier: 2 });
+      for (const lot of packet.lots) expect(key.lots.find((l) => l.id === lot.id).unitCost).toBe(lot.unitPrice + transferFee(lot.station.id, packet.at.id, 1));
+      expect(gradeDispatch(key, rightDispatch(key)).correct, `seed ${seed}`).toBe(true);
+      expect(gradeDispatch(key, { take: fillBy(packet.lots, packet.quantity, (l) => l.unitPrice) }).correct, `seed ${seed}: sticker`).toBe(false);
+      const [first] = Object.keys(key.best);
+      expect(gradeDispatch(key, { take: { ...key.best, [first]: key.best[first] - 1 } }).correct).toBe(false);
+      const lot = packet.lots[0];
+      expect(gradeDispatch(key, { take: { [lot.id]: lot.available + 1 } }).correct).toBe(false);
+    }
+  });
+
+  it("tier 3: across 1000 seeds the deadline fill and its margin are correct; the fill that misses the deadline and a margin past the tolerance are not", () => {
+    for (let seed = 0; seed < DRAWS; seed += 1) {
+      const { packet, key } = generateDispatch({ seed, tier: 3 });
+      expect(key.bid).toBe(npcBidFor(packet.standingBid.basePrice, packet.standingBid.soldToday, bidRuleFor({ item: packet.item })));
+      expect(key.margin).toBe(packet.quantity * key.bid - key.minCost);
+      const right = rightDispatch(key);
+      expect(gradeDispatch(key, right).correct, `seed ${seed}`).toBe(true);
+      const late = packet.lots.filter((l) => l.transitMinutes > packet.dueInHours * 60);
+      expect(late.length).toBeGreaterThan(0);
+      const unbounded = fillBy(key.lots, packet.quantity, (l) => l.unitCost);
+      expect(late.some((l) => unbounded[l.id] > 0)).toBe(true);
+      expect(gradeDispatch(key, { ...right, take: unbounded }).correct, `seed ${seed}: misses the deadline`).toBe(false);
+      const edge = (Math.abs(key.margin) * TOL) / 100;
+      expect(gradeDispatch(key, { ...right, margin: key.margin + edge }).correct).toBe(true);
+      expect(gradeDispatch(key, { ...right, margin: key.margin - edge }).correct).toBe(true);
+      expect(gradeDispatch(key, { ...right, margin: key.margin + edge + 1 }).correct).toBe(false);
+      expect(gradeDispatch(key, { ...right, margin: key.margin - edge - 1 }).correct).toBe(false);
+    }
+  });
+
+  it("sends no key: no delivered costs, cheapest fill, bid or margin in the packet", () => {
+    for (const tier of DESK_TIERS) {
+      for (let seed = 0; seed < 100; seed += 1) {
+        const { packet } = generateDispatch({ seed, tier });
+        expect(JSON.stringify(packet)).not.toMatch(/"(unitCost|minCost|best|margin|bid|transferFee)"/);
+      }
+    }
+  });
+
+  it("fails closed on anything malformed", () => {
+    const t1 = generateDispatch({ seed: 1, tier: 1 }).key;
+    const t3 = generateDispatch({ seed: 1, tier: 3 }).key;
+    const right = rightDispatch(t3);
+    const [first] = Object.keys(t3.best);
+    for (const [key, answer] of [
+      [t1, null], [t1, {}], [t1, { transferFee: String(t1.transferFee), transitMinutes: t1.transitMinutes }], [t1, { transferFee: t1.transferFee, transitMinutes: Number.NaN }],
+      [null, rightDispatch(t1)], [{ ...t1, kind: "audit" }, rightDispatch(t1)],
+      [t3, { ...right, take: null }], [t3, { ...right, take: [] }], [t3, { ...right, take: { ...t3.best, L99: 0 } }],
+      [t3, { ...right, take: { ...t3.best, [first]: t3.best[first] - 0.5, ...{} } }], [t3, { ...right, margin: String(right.margin) }], [t3, { take: t3.best }]
+    ]) expect(gradeDispatch(key, answer).correct, JSON.stringify(answer)).toBe(false);
   });
 });

@@ -18,13 +18,13 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
-## What's now true (AB#4689 slices 1 and 2 — Desk Work's desk block, Survey and Audit, Builder, 2026-10-03)
+## What's now true (AB#4689 slices 1 to 3 — Desk Work's desk block, Survey, Audit and Dispatch, Builder, 2026-10-03)
 
 - `data/economy.json` has the `desk` block (docs/design/desk-work.md section 7); ECONOMY.md has a row per key.
-- `server/game/desk.js` generates and grades Survey and Audit packets, tiers 1 to 3, pure and seeded. Nothing calls
+- `server/game/desk.js` generates and grades Survey, Audit and Dispatch packets, tiers 1 to 3, pure and seeded. Nothing calls
   it yet: the routes are slice 5, the screen slice 9. A Survey is redrawn until its own readings answer it; every
   Audit clause is decided by the server function the route uses (AUDIT_CLAUSES).
-- In flight on stacked branches: slice 3 (Dispatch, agent/4689-s3-desk-dispatch) and slice 4 (Bureau Standing as
+- In flight on a stacked branch: slice 4 (Bureau Standing as
   points, agent/4689-s4-standing-points). Lander was not running on 2026-10-03, so PRs ran test:gate by hand.
 - Next: slice 5, the routes. Spec: docs/specs/4689-desk-work-bureau-field-assignments-and-bureau-standing-an.md.
 

@@ -42,9 +42,9 @@ Was part of Requirement AB#4695. Design section 5 (Audit).
 
 Was part of Requirement AB#4695. Design section 5 (Dispatch), and "Why no single kind is always best".
 
-- [ ] server/game/desk.js generates and grades Dispatch packets for tiers 1 to 3 from the real fee and transit tables (server/transfers.js), pure and seeded.
-- [ ] A numeric answer is graded within the tolerance in the `desk` block, and the test covers both edges of the tolerance.
-- [ ] The test draws 1000 Dispatch packets per tier; every stored answer grades correct and every distractor incorrect.
+- [x] server/game/desk.js generates and grades Dispatch packets for tiers 1 to 3 from the real fee and transit tables (server/transfers.js), pure and seeded.
+- [x] A numeric answer is graded within the tolerance in the `desk` block, and the test covers both edges of the tolerance.
+- [x] The test draws 1000 Dispatch packets per tier; every stored answer grades correct and every distractor incorrect.
 
 ### Slice 4: Bureau Standing as points (lane: interstellar-settlement-protocol/economy)
 
