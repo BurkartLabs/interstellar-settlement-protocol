@@ -154,6 +154,22 @@ Other corporations selling into the same order are not modelled: each one lowers
 Today's server pays a lot at the bid before it and opens every day at 24 (AB#2356, AB#2357): one lot a day of up to 7,000 t is
 paid 24 a tonne, the flat figure above. This model prices what ECONOMY.md's rule says, which the game pays once both are fixed.
 A model, not play: perfect play, no travel, selling every unit to the standing bid as mined, no research.
+
+The Desk (AB#4689), every answer correct at 20 packets an hour, per day. The same for every profile at the cap (planner,
+greedy, reserve): the first 20 correct packets of a UTC day pay in full, the rest 25% of the fee.
+  tier | hours/day | packets | credits/day | standing points/day
+     1 |         1 |      20 |         800 |                  20
+     1 |         3 |      60 |       1,200 |                  60
+     1 |         8 |     160 |       2,200 |                 160
+     2 |         1 |      20 |       1,600 |                  40
+     2 |         3 |      60 |       2,400 |                 120
+     2 |         8 |     160 |       4,400 |                 320
+     3 |         1 |      20 |       3,200 |                  60
+     3 |         3 |      60 |       4,800 |                 180
+     3 |         8 |     160 |       8,800 |                 480
+Two ways back from broke: the Salvage Assignment pays 3,000 after 4 hours served; the Desk pays a cycle's 500 startup
+in 13 tier-1 packets (520 credits), 39 minutes at the pace above; a person takes longer.
+A day of office rent (1,000) takes 40 tier-1 packets in one UTC day, 120 minutes at that pace.
 ```
 <!-- economy-model:end -->
 
@@ -299,7 +315,10 @@ Iron Ore or smelts. The probe cannot see Mars' lower raw value; a bot that plays
 
 ## Faucets and sinks
 
-Credits enter the game from two places: the NPC bids (every sale to them creates money) and mission rewards. Every
+Credits enter the game from two places: the NPC bids (every sale to them creates money) and mission rewards. Since
+AB#4689 a third, sized in docs/design/desk-work.md section 7: the Desk, which pays for attention rather than capital and
+is capped per UTC day (`desk.paidAssignmentsPerDay` at full fee, `desk.overCapPayPct` after); the model output above
+prices it by tier and hours a day. Every
 other movement is a sink: rent, hires, payroll, buildings, startup and running costs, the sales tax and transfer fees.
 The bid is a fixed price with a daily quantity no single corporation approaches, so the faucet grows with every
 extractor while the sinks stay flat. Published writing on MMO economies names this as the classic route to inflation
@@ -310,6 +329,12 @@ in a player market, and argues for keeping the NPC bid as a floor while tying dr
 so the retune can measure it instead of asserting it.
 
 ## The way back from broke (ISP-289, replaces the next attempt at ISP-42/AB#728)
+
+**Two ways back, since AB#4689.** The Salvage Assignment below is the no-effort floor, time served; the Desk is the
+effort path. Both are priced in the model output above ("Two ways back from broke"), from data/economy.json, not
+typed here: the Salvage Assignment's payout after its hours, and the tier-1 packets, and minutes at the bot pace, that
+pay a mining cycle's startup or a day of office rent. The Desk needs an office, so it is the way back for a corporation
+that still holds one; one whose office lapsed has the Salvage Assignment.
 
 **Evidence a retune cannot fix (bot numbers, P-PROXY).** On `agent/728-economy-retune`, seed 7000, the planner and
 greedy bots' 7-day and 30-day probe runs are byte-for-byte identical past bot-day 2-3 except the `wait` count

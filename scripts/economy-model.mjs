@@ -114,7 +114,38 @@ export function computeModel(economy, leases, rules = CODE_RULES) {
 
   // What today's server pays instead (AB#2356, AB#2357): a lot is priced at the bid before it and every day opens at
   // the base, so a corporation that sells a day's output in one lot, up to the quota, is paid the base for all of it.
-  return { rules: r, lease, officeDays, steps, sunk, credits, fixedPerHour, uptime, meanUpHours, meanDownHours, rows, silicates, keep, npcBid, best, flatBest, yards };
+  return { rules: r, lease, officeDays, steps, sunk, credits, fixedPerHour, uptime, meanUpHours, meanDownHours, rows, silicates, keep, npcBid, best, flatBest, yards, desk: deskFaucet(economy) };
+}
+
+/**
+ * AB#4689 (docs/design/desk-work.md section 7): the Desk as a faucet, all answers correct, at the design's bot pace. The
+ * same for every profile at the cap (planner, greedy and reserve alike): it pays for attention, not capital, and the
+ * first paidAssignmentsPerDay correct packets of a UTC day pay in full, the rest overCapPayPct.
+ */
+export const DESK_PACKETS_PER_HOUR = 20; // the design's section 4 pace: a bot's; a person's is slower
+export function deskFaucet(economy) {
+  const d = economy.desk;
+  const dayAt = (tier, hoursPerDay) => {
+    const packets = DESK_PACKETS_PER_HOUR * hoursPerDay;
+    const full = Math.min(packets, d.paidAssignmentsPerDay);
+    const fee = d.payByTier[tier - 1];
+    return { tier, hoursPerDay, packets, credits: full * fee + (packets - full) * Math.round((fee * d.overCapPayPct) / 100), points: packets * d.pointsByTier[tier - 1] };
+  };
+  const table = [1, 2, 3].flatMap((tier) => [1, 3, 8].map((h) => dayAt(tier, h)));
+  // The two ways back from broke: the Salvage Assignment (time served), and tier-1 packets until a cycle's startup is paid.
+  const packets = Math.ceil(economy.operations.minStartupCost / d.payByTier[0]);
+  // The Feature's acceptance: what a day of office rent takes at the Desk, tier 1, from one UTC day's packets (the cap applies).
+  const fee = d.payByTier[0];
+  const overCapFee = Math.round((fee * d.overCapPayPct) / 100);
+  const rent = economy.office.rentPerDay;
+  const capCredits = d.paidAssignmentsPerDay * fee;
+  const rentPackets = rent <= capCredits ? Math.ceil(rent / fee) : d.paidAssignmentsPerDay + Math.ceil((rent - capCredits) / overCapFee);
+  return {
+    table, cap: d.paidAssignmentsPerDay, overCapPct: d.overCapPayPct,
+    rent: { credits: rent, packets: rentPackets, minutes: (rentPackets * 60) / DESK_PACKETS_PER_HOUR },
+    salvage: { hours: economy.salvage.hoursRequired, credits: economy.salvage.payoutCredits },
+    desk: { packets, minutes: (packets * 60) / DESK_PACKETS_PER_HOUR, credits: packets * d.payByTier[0], needed: economy.operations.minStartupCost }
+  };
 }
 
 const hours = (h) => (Number.isFinite(h) ? `${h.toFixed(1)} h (day ${Math.ceil(h / 24)})` : "never");
@@ -158,6 +189,14 @@ export function renderModel(m) {
   lines.push(`Today's server pays a lot at the bid before it and opens every day at ${m.silicates.unitPrice} (AB#2356, AB#2357): one lot a day of up to ${fmt(m.npcBid.quotaPerDay)} t is`);
   lines.push(`paid ${m.silicates.unitPrice} a tonne, the flat figure above. This model prices what ECONOMY.md's rule says, which the game pays once both are fixed.`);
   lines.push("A model, not play: perfect play, no travel, selling every unit to the standing bid as mined, no research.");
+  lines.push("");
+  lines.push(`The Desk (AB#4689), every answer correct at ${DESK_PACKETS_PER_HOUR} packets an hour, per day. The same for every profile at the cap (planner,`);
+  lines.push(`greedy, reserve): the first ${m.desk.cap} correct packets of a UTC day pay in full, the rest ${m.desk.overCapPct}% of the fee.`);
+  lines.push("  tier | hours/day | packets | credits/day | standing points/day");
+  for (const d of m.desk.table) lines.push(`  ${String(d.tier).padStart(4)} | ${String(d.hoursPerDay).padStart(9)} | ${String(d.packets).padStart(7)} | ${fmt(d.credits).padStart(11)} | ${fmt(d.points).padStart(19)}`);
+  lines.push(`Two ways back from broke: the Salvage Assignment pays ${fmt(m.desk.salvage.credits)} after ${m.desk.salvage.hours} hours served; the Desk pays a cycle's ${fmt(m.desk.desk.needed)} startup`);
+  lines.push(`in ${m.desk.desk.packets} tier-1 packets (${fmt(m.desk.desk.credits)} credits), ${Math.round(m.desk.desk.minutes)} minutes at the pace above; a person takes longer.`);
+  lines.push(`A day of office rent (${fmt(m.desk.rent.credits)}) takes ${m.desk.rent.packets} tier-1 packets in one UTC day, ${Math.round(m.desk.rent.minutes)} minutes at that pace.`);
   return lines.join("\n");
 }
 

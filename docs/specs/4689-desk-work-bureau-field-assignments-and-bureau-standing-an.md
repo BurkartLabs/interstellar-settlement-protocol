@@ -110,9 +110,9 @@ Was part of Requirement AB#4701. Design section 8. These are bot numbers (P-PROX
 
 Was Requirement AB#4702, plus AB#4695's documentation line. Design section 7.
 
-- [ ] Every key in the `desk` block of data/economy.json has a row in ECONOMY.md with a reason; ECONOMY.md's check script (if present) passes.
-- [ ] The model output includes desk income for the planner, greedy and reserve profiles at the cap.
-- [ ] The broke section names both paths back (salvage and the Desk) and their times, computed from the data, not typed.
+- [x] Every key in the `desk` block of data/economy.json has a row in ECONOMY.md with a reason; ECONOMY.md's check script (if present) passes.
+- [x] The model output includes desk income for the planner, greedy and reserve profiles at the cap.
+- [x] The broke section names both paths back (salvage and the Desk) and their times, computed from the data, not typed.
 
 ### Slice 12: The cross-catalog guard: no milestone metric may name a desk stat (lane: interstellar-settlement-protocol/platform)
 
