@@ -379,6 +379,37 @@ describe("data/milestones.json names only what this build has (Bug #424)", async
   });
 });
 
+// AB#4689 slice 12, the cross-catalog guard (docs/design/desk-work.md, section 6 and rule 7): Bureau Standing never
+// satisfies a ladder requirement and desk work never counts as one. No milestone may name a desk stat (stat:desk...)
+// or read the agents' reputation (agentReputation points: Bureau Standing; every "reputation" in this build is that
+// one). It is its own check, not part of "names only what this build has" above: once the Desk keeps
+// stat:deskCompleted (slice 5) that check would let a desk metric through, and this one still must not.
+const DESK_RULE = "Desk Work rule 7 (docs/design/desk-work.md, section 6; AB#4689): Bureau Standing and desk work never satisfy a ladder requirement";
+const deskRuleBreach = (metric) => {
+  if (/^stat:desk/i.test(metric)) return `${DESK_RULE}, and "${metric}" names a desk stat`;
+  if (/reputation|bureau[-_ ]?standing/i.test(metric)) return `${DESK_RULE}, and "${metric}" reads agentReputation points`;
+  return null;
+};
+
+describe("data/milestones.json never reads the Desk or Bureau Standing (AB#4689, rule 7)", () => {
+  const requirements = load("milestones.json").levels.flatMap((l) => l.requirements.map((r) => ({ level: l.level, ...r })));
+
+  it("no requirement names a desk stat or reads agentReputation points", () => {
+    const broken = requirements.map((r) => ({ r, why: deskRuleBreach(r.metric) })).filter((x) => x.why).map((x) => `L${x.r.level} ${x.r.id}: ${x.why}`);
+    expect(broken).toEqual([]);
+  });
+
+  it("the guard refuses a desk stat or a reputation read, saying which rule", () => {
+    for (const metric of ["stat:deskCompleted", "stat:deskCompleted:survey", "stat:DeskCompleted", "agentReputation:voss", "stat:reputationPoints", "reputation:Trusted", "bureauStanding", "stat:bureau-standing"]) {
+      expect(deskRuleBreach(metric), metric).toMatch(/^Desk Work rule 7 \(docs\/design\/desk-work\.md, section 6; AB#4689\)/);
+    }
+    // what the ladder reads today, and ISP's other "standing" (standing buy orders, political standing), pass
+    for (const metric of [...new Set(requirements.map((r) => r.metric)), "stat:standingOrdersPlaced", "standing:ISA"]) {
+      expect(deskRuleBreach(metric), metric).toBeNull();
+    }
+  });
+});
+
 // Bug #588: this file used to check data/state.json too. That file is the server's gitignored runtime output, so on a
 // fresh clone this whole file failed to load and none of the catalog checks ran. The global state's shape is tested
 // where it is made, in tests/unit/globalState.test.js; this file reads committed catalogs only.
