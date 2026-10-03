@@ -102,9 +102,9 @@ Was Requirement AB#4700. Design section 2 and docs/design/BUREAUCRATIC_UI.md. A 
 
 Was part of Requirement AB#4701. Design section 8. These are bot numbers (P-PROXY). If a target misses, report the number and stop: do not retune the faucet to hit it (economy tuning waits for the Board's review, AB#4779).
 
-- [ ] `npm run probe:desk-mastery` and `npm run probe:desk-decisions` run from origin/main, exit 1 on failure, and print what they measure in their first line (bots, not players).
-- [ ] desk-mastery: a random bot and a rules-aware bot each work the Desk for one simulated hour, and the output shows both totals and the ratio at each tier.
-- [ ] DEPTH.md gains a line under mastery and decision density naming the probe and its current number, marked as a bot number.
+- [x] `npm run probe:desk-mastery` and `npm run probe:desk-decisions` run from origin/main, exit 1 on failure, and print what they measure in their first line (bots, not players).
+- [x] desk-mastery: a random bot and a rules-aware bot each work the Desk for one simulated hour, and the output shows both totals and the ratio at each tier.
+- [x] DEPTH.md gains a line under mastery and decision density naming the probe and its current number, marked as a bot number.
 
 ### Slice 11: ECONOMY.md: the desk faucet joins the model (lane: interstellar-settlement-protocol/economy)
 
