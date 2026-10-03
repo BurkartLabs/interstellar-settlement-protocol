@@ -6,3 +6,8 @@ export function activeOfficeAt(corp, stationId, now = Date.now()) {
   if (!stationId || !Array.isArray(corp?.offices)) return null;
   return corp.offices.find((o) => o.stationId === stationId && o.rentedUntil > now) || null;
 }
+
+/** AB#4689: whether the corporation holds an office anywhere that has not lapsed. The Desk asks this ("from anywhere"). */
+export function hasActiveOffice(corp, now = Date.now()) {
+  return Array.isArray(corp?.offices) && corp.offices.some((o) => o.rentedUntil > now);
+}

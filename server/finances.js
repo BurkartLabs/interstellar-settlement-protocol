@@ -88,7 +88,7 @@ export const CREDIT_CATEGORIES = Object.freeze({
   // fills or is cancelled; over an order's life the two are equal, and what it bought is "exchange-purchases".
   // ISP-146 (AB#840): what server/settlement.js moves between parties, booked `<reason>-received` by the payee and
   // `<reason>-paid` by the payer (its REASONS; a fee and an escrow hold only leave, an escrow release only arrives).
-  income: Object.freeze(["exchange", "missions", "salvage", "exchange-escrow-return",
+  income: Object.freeze(["exchange", "missions", "salvage", "desk", "exchange-escrow-return",
     "loan-disbursal-received", "loan-repayment-received", "bond-subscription-received", "coupon-received", "dividend-received",
     "share-purchase-received", "escrow-release-received", "loan-interest-received",
     "bond-redemption-received", // ISP-155 (AB#849): a bond's face back at maturity

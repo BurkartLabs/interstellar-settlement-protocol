@@ -18,7 +18,7 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
-## What's now true (AB#4689 slices 1 to 4 — Desk Work's packets and Bureau Standing as points, Builder, 2026-10-03)
+## What's now true (AB#4689 slices 1 to 5 — Desk Work's packets, Bureau Standing as points, the Desk's routes, Builder, 2026-10-03)
 
 - `data/economy.json` has the `desk` block (docs/design/desk-work.md section 7); ECONOMY.md has a row per key.
 - `server/game/desk.js` generates and grades Survey, Audit and Dispatch packets, tiers 1 to 3, pure and seeded. Nothing calls
@@ -27,7 +27,10 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 - Bureau Standing is points (slice 4): public/scripts/bureauStanding.js holds the rules; contracts earn
   desk.contractPoints, saves migrate at shape time, Bureaucratic Persuasion is live (+15%, the fraction carried).
   Lander was not running on 2026-10-03, so these PRs ran test:gate by hand.
-- Next: slice 5, the routes. Spec: docs/specs/4689-desk-work-bureau-field-assignments-and-bureau-standing-an.md.
+- The Desk's routes (slice 5): GET /gameplay/desk, POST /desk/answer and /desk/decline (server/routes/desk.js).
+  No key is stored: packets are redrawn from an HMAC of the server secret (server/game/deskDraws.js). No page calls
+  them yet; the answer route is exempt in receiptRoutes.test.js until the Desk screen (slice 9) maps it.
+- Next: slices 6 to 12 need 5 (6 survey payoffs, 8 grade perks, 9 the screen, 10 probes, 11 ECONOMY.md). Spec: docs/specs/4689-desk-work-bureau-field-assignments-and-bureau-standing-an.md.
 
 ## What's now true (AB#772 — ISP-83, the accessibility score and the three-width sweep of every screen)
 

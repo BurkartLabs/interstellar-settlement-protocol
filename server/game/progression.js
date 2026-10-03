@@ -56,6 +56,8 @@ export const COUNTED_STATS = Object.freeze([
   // ISP-106 (AB#798): every contract ever completed. completedMissions keeps only the last 200, so a level past that
   // (docs/design/ladder-11-40.md) could never be met from it; stat:missionsCompleted reads the larger of the two.
   "missionsCompletedTotal",
+  // AB#4689: correct Desk packets, in all and by kind. Never a contract, and no milestone may read them (Desk Work rule 7).
+  "deskCompleted", "deskCompleted:survey", "deskCompleted:audit", "deskCompleted:dispatch",
   // ISP-106 (AB#798): what returning expeditions deposit, per resource, for totalMined:<resource>.
   ...MINEABLE_RESOURCES.map((r) => `mined:${r}`),
   // AB#831: what refinery runs have delivered, per product, so a level can name a product (stat:manufactured:<item>),
