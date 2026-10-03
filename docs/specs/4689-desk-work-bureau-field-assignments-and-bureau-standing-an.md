@@ -69,9 +69,9 @@ Was Requirement AB#4697. Design section 3, rules 1 to 4, 6 and 7. `GET .../desk`
 
 Was part of Requirement AB#4698. Design section 5 (Survey) and the Board's decision 5. A correct tier-2 or tier-3 Survey marks the belt scouted for its current generation in asteroidMining.scoutedBelts, the field a probe writes, so conglomerate intel shares it.
 
-- [ ] After a correct tier-2 belt survey, GET starmap shows the belt scouted for the current generation exactly as after a probe; after the belt respawns it is unscouted again.
-- [ ] A correct survey of a lease body stores the body's resource profile for that corporation only.
-- [ ] A wrong survey publishes nothing.
+- [x] After a correct tier-2 belt survey, GET starmap shows the belt scouted for the current generation exactly as after a probe; after the belt respawns it is unscouted again.
+- [x] A correct survey of a lease body stores the body's resource profile for that corporation only.
+- [x] A wrong survey publishes nothing.
 
 ### Slice 7: Survey payoffs on the Starmap overlay (lane: interstellar-settlement-protocol/client-views)
 

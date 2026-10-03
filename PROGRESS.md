@@ -18,7 +18,7 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
-## What's now true (AB#4689 slices 1 to 5 — Desk Work's packets, Bureau Standing as points, the Desk's routes, Builder, 2026-10-03)
+## What's now true (AB#4689 slices 1 to 6 — Desk Work's packets, Bureau Standing as points, the Desk's routes, Builder, 2026-10-03)
 
 - `data/economy.json` has the `desk` block (docs/design/desk-work.md section 7); ECONOMY.md has a row per key.
 - `server/game/desk.js` generates and grades Survey, Audit and Dispatch packets, tiers 1 to 3, pure and seeded. Nothing calls
@@ -30,7 +30,9 @@ below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 - The Desk's routes (slice 5): GET /gameplay/desk, POST /desk/answer and /desk/decline (server/routes/desk.js).
   No key is stored: packets are redrawn from an HMAC of the server secret (server/game/deskDraws.js). No page calls
   them yet; the answer route is exempt in receiptRoutes.test.js until the Desk screen (slice 9) maps it.
-- Next: slices 6 to 12 need 5 (6 survey payoffs, 8 grade perks, 9 the screen, 10 probes, 11 ECONOMY.md). Spec: docs/specs/4689-desk-work-bureau-field-assignments-and-bureau-standing-an.md.
+- A correct Survey publishes (slice 6, applySurveyPayoff): tier 2 and 3 belt surveys scout the belt as a probe does;
+  lease-body surveys store corp.surveys. The Starmap overlay that shows them is slice 7.
+- Next: 8 grade perks, 10 probes, 11 ECONOMY.md (economy lane), then 7 and 9 (client-views). Spec: docs/specs/4689-desk-work-bureau-field-assignments-and-bureau-standing-an.md.
 
 ## What's now true (AB#772 — ISP-83, the accessibility score and the three-width sweep of every screen)
 
