@@ -1754,6 +1754,12 @@ body.walkthrough--open .layout-grid {
   .side-panel {
     max-height: none;
   }
+  /* AB#2495 on a phone (AB#2468): the Travel panel fills the first screen under the navigation's rows, so its card sits
+     in the middle of what a player sees. As tall as its card, it ended wherever the card did, and the sidebar's panels
+     came up under it. */
+  .main-panel:has(> #travel.tab-panel.active) {
+    min-height: calc(100dvh - var(--phone-nav-height) - var(--space-3) - var(--space-4));
+  }
   /* ISP-83 (AB#772): the header's and the sidebar's small sizes raised as a screen's are, and a thumb-high toggle. */
   :is(.app-header, .side-panel) :is(.ui-button, .ui-badge, .ui-panel__meta, .ui-kv, .ui-card__body, .ui-card__meta, .app-header__overline, .side-panel__milestone) {
     font-size: var(--font-size-3);

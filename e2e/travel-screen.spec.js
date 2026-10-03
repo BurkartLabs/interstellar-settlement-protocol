@@ -130,8 +130,14 @@ for (const [width, height] of SIZES) {
           const r = (el) => el.getBoundingClientRect();
           const main = document.querySelector(".main-panel"), card = document.getElementById("travel");
           const m = r(main), c = r(card), header = r(document.querySelector(".app-header"));
+          // AB#2468: what covers the top is the header on a desktop and the navigation's two fixed rows on a phone, where
+          // the header is not shown; the panel fills what either leaves (the same number as before on a desktop).
+          const topBars = [...document.querySelectorAll(".app-nav, .nav-group__tabs, .app-nav__menu")]
+            .filter((el) => el.getClientRects().length && getComputedStyle(el).position === "fixed" && r(el).top < window.innerHeight / 2)
+            .reduce((low, el) => Math.max(low, r(el).bottom), 0);
+          const above = Math.max(header.height, topBars);
           return { ratio: c.width / m.width, dx: Math.abs((c.left - m.left) - (m.right - c.right)), dy: Math.abs((c.top - m.top) - (m.bottom - c.bottom)),
-            fills: m.bottom >= window.innerHeight - header.height - 64 || m.height > window.innerHeight, card: c.height, panel: m.height,
+            fills: m.bottom >= window.innerHeight - above - 64 || m.height > window.innerHeight, card: c.height, panel: m.height,
             bg: getComputedStyle(main).backgroundColor, floor: 17.5 * parseFloat(getComputedStyle(document.documentElement).fontSize) };
         });
         if (width >= 768) expect(box.ratio).toBeCloseTo(0.75, 2);
