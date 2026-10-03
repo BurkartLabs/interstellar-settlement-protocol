@@ -1825,14 +1825,14 @@ body.walkthrough--open .layout-grid {
     border-radius: 0;
   }
   /* AB#2468: the second row is always there, so the ☰ always has its place: under a group with one tab it is this strip
-     alone. The six groups' names fill the first row at 375 (344px of it), so the ☰ cannot sit there. */
-  .app-nav::after {
+     alone. The six groups' names fill the first row at 375 (344px of it), so the ☰ cannot sit there. As ::before it is
+     painted first, so the open group's tabs and the ☰ come out over it without a z-index. */
+  .app-nav::before {
     content: "";
     position: fixed;
     left: 0;
     right: 0;
     top: calc(var(--phone-nav-row) + env(safe-area-inset-top));
-    z-index: -1;
     box-sizing: border-box;
     height: var(--phone-nav-row);
     background: var(--surface-2);
