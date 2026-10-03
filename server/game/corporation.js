@@ -8,6 +8,7 @@ import { ECONOMY } from "../economy.js";
 import { ensureBuildingIds } from "./buildingIds.js";
 import { ensureCorpMilitary } from "./units.js";
 import { newShareRegistry } from "../shareRegistry.js"; // ISP-157 (AB#851)
+import { tiersInPoints } from "../../public/scripts/bureauStanding.js"; // AB#4689
 
 /* TODO(AB#726): Should this all be hardcoded? Or should some of it be based upon completed research, etc? */
 export function createStarterCorporationState(baseState, ceoName, corpName) {
@@ -124,7 +125,13 @@ export const FIRST_CONTRACT_ID = "ms-log-001";
 // (the header there says how), and the Assignments views show it with no template of their own.
 export const MISSION_TEMPLATES = MISSIONS_DATA.templates;
 export const MISSION_AGENTS_DATA = MISSIONS_DATA.agents;
-export const REPUTATION_TIERS_DATA = MISSIONS_DATA.reputationTiers;
+// AB#4689: Bureau Standing is points; the thresholds are the file's times desk.reputationThresholdMultiplier, and the
+// page is sent with them what a contract is worth and what an offline save's count of contracts becomes.
+export const REPUTATION_TIERS_DATA = Object.freeze({
+  ...tiersInPoints(MISSIONS_DATA.reputationTiers, ECONOMY.desk.reputationThresholdMultiplier),
+  contractPoints: ECONOMY.desk.contractPoints,
+  multiplier: ECONOMY.desk.reputationThresholdMultiplier
+});
 
 /** A whole multiple of `step` in [min, max], min when the range is empty or inverted. */
 function randomInRange(min, max, step) {

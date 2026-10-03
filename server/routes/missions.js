@@ -1,5 +1,6 @@
 // server/routes/missions.js: the missions routes, split out of server/index.js (AB#1815).
-import { missionRewardCredits } from "../../public/scripts/ceoEffects.js";
+import { missionRewardCredits, standingGain } from "../../public/scripts/ceoEffects.js";
+import { addStandingPoints, migrateStanding } from "../../public/scripts/bureauStanding.js"; // AB#4689
 import { ECONOMY } from "../economy.js";
 import {
   mutateAccountState,
@@ -92,6 +93,7 @@ export function registerMissionRoutes(app) {
     let hoursRemaining = null;
     let wrongStation = null;
     let done = null; // AB#744: what was delivered and paid, for the receipt
+    let pointsGained = 0; // AB#4689: the Bureau Standing points this contract added
     const account = mutateAccountState(req.params.accountId, (state) => {
       if (!Array.isArray(state.corp.activeMissions)) state.corp.activeMissions = [];
       const mission = state.corp.activeMissions.find((m) => m.id === missionId);
@@ -169,8 +171,12 @@ export function registerMissionRoutes(app) {
       // Update agent reputation
       if (!state.corp.agentReputation || typeof state.corp.agentReputation !== "object") state.corp.agentReputation = {};
       const agentId = mission.agentId || "unknown";
-      if (!state.corp.agentReputation[agentId]) state.corp.agentReputation[agentId] = { completedCount: 0 };
-      state.corp.agentReputation[agentId].completedCount += 1;
+      // AB#4689: Bureau Standing points, desk.contractPoints a contract (15% more with Bureaucratic Persuasion). The
+      // count is kept beside them as a record; nothing reads it for the grade any more.
+      const rep = migrateStanding(state.corp.agentReputation[agentId], ECONOMY.desk.reputationThresholdMultiplier);
+      state.corp.agentReputation[agentId] = rep;
+      rep.completedCount = (Number(rep.completedCount) || 0) + 1;
+      pointsGained = addStandingPoints(rep, standingGain(ECONOMY.desk.contractPoints, state.corp.completedInsights));
     });
 
     if (!account) return res.status(404).json({ error: "Account not found." });
@@ -190,9 +196,9 @@ export function registerMissionRoutes(app) {
       return res.status(400).json({ error: missionShortMessage({ ...shortfall, inventory: account.state.corp.inventory, stationName }) });
     }
     // AB#744: standing after this contract, and whether it moved (the page's own overlay used to work this out).
-    const count = Number(account.state.corp.agentReputation?.[done.agentId]?.completedCount || 0);
-    const now = standingFor(count, REPUTATION_TIERS_DATA);
-    const standing = { ...now, raised: now.level > standingFor(count - 1, REPUTATION_TIERS_DATA).level };
+    const points = Number(account.state.corp.agentReputation?.[done.agentId]?.points || 0);
+    const now = standingFor(points, REPUTATION_TIERS_DATA);
+    const standing = { ...now, raised: now.level > standingFor(points - pointsGained, REPUTATION_TIERS_DATA).level };
     res.json({ ...account, receipt: completeMissionReceipt({ ...done, standing }) });
   });
 }

@@ -555,7 +555,7 @@ export function acceptMissionReceipt({ title, quota, hoursRequired, reward }) {
 }
 
 /**
- * The standing a count of completed contracts gives, from data/missions.json's reputationTiers: the same thresholds
+ * The standing Bureau Standing points give (AB#4689: a count of contracts before), from REPUTATION_TIERS_DATA: the same thresholds
  * and titles the Assignments page reads (views/assignments.js getAgentRepLevel).
  */
 export function standingFor(count, tiers) {

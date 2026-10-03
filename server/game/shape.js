@@ -8,6 +8,8 @@ import { ensureCorpMiningModel } from "./mining.js";
 import { ensureCorpRefineryModel } from "./refining.js";
 import { ensureCorpAsteroidMiningModel } from "./asteroids.js";
 import { ensureCorpMilitary } from "./units.js";
+import { ECONOMY } from "../economy.js";
+import { migrateStanding } from "../../public/scripts/bureauStanding.js"; // AB#4689
 
 // AB#742, Bug #2112: how a body is drawn, and which planet a moon orbits, are catalogue, not state. A saved world keeps
 // the bodies it was created with, so a style or parentId added to data/systems.json later would never reach an existing
@@ -175,6 +177,10 @@ export function normalizeStateShape(rawState) {
 
   if (!rawState.corp.agentReputation || typeof rawState.corp.agentReputation !== "object") {
     rawState.corp.agentReputation = {};
+  }
+  // AB#4689: a save from before Bureau Standing points counted contracts; each becomes desk.reputationThresholdMultiplier points.
+  for (const [agentId, rep] of Object.entries(rawState.corp.agentReputation)) {
+    rawState.corp.agentReputation[agentId] = migrateStanding(rep, ECONOMY.desk.reputationThresholdMultiplier);
   }
 
   if (!rawState.corp.contractOfferings || typeof rawState.corp.contractOfferings !== "object") {

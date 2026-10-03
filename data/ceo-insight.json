@@ -134,7 +134,7 @@
       "prereqs": ["ceo-isa-regulatory-navigation"],
       "tier": 3,
       "category": "Regulatory Affairs",
-      "status": "planned",
+      "status": "live",
       "maxLevels": 1
     },
     {
