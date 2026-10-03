@@ -32,9 +32,9 @@ PM note (2026-10-01): split into the three slices below, one session each. Main 
 
 Needs slice 1.
 
-- [ ] At 375px width Corporation Identity, Milestones and Quick Actions render as three pinned buttons at the bottom of the screen: Profile, Milestones, Quick Actions. Each opens its panel and closes again, by touch and by keyboard.
-- [ ] The pinned buttons never cover a page's last control: the page scrolls clear of them.
-- [ ] Screenshots at 375x812 of the bar and of each panel open, attached to the pull request.
+- [x] At 375px width Corporation Identity, Milestones and Quick Actions render as three pinned buttons at the bottom of the screen: Profile, Milestones, Quick Actions. Each opens its panel and closes again, by touch and by keyboard.
+- [x] The pinned buttons never cover a page's last control: the page scrolls clear of them.
+- [x] Screenshots at 375x812 of the bar and of each panel open, attached to the pull request.
 
 ### Slice 3: Phone layout: page sections collapse, and start collapsed (lane: interstellar-settlement-protocol/client-shell)
 
