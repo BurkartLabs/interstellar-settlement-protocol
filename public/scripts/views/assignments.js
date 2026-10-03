@@ -5,6 +5,7 @@ import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { showActionReceipt } from "./receiptModal.js"; // AB#744
 import { missionRewardCredits, standingGain } from "../ceoEffects.js";
 import { addStandingPoints, migrateStanding } from "../bureauStanding.js"; // AB#4689
+import { setBureauTerms } from "../bureauTerms.js"; // AB#4689 slice 8
 import { missionShortAdvice } from "../contractAdvice.js";
 import { deepClone, formatDurationHours, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
@@ -68,6 +69,7 @@ export function applyMissionAgentsCatalog(agents, reputationTiers) {
     REPUTATION_TITLES = reputationTiers.titles;
     CONTRACT_POINTS = Number(reputationTiers.contractPoints) || 0;
     REPUTATION_MULTIPLIER = Number(reputationTiers.multiplier) || 1;
+    setBureauTerms(reputationTiers);
   }
 }
 

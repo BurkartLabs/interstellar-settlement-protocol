@@ -23,6 +23,7 @@ import { renderConstructionPanel } from "../constructionPanel.js"; // ISP-95 (AB
 import { nextYardPriceFor } from "../yardPrice.js"; // ISP-303 (AB#2286)
 import { facilityUpgradeHtml, facilityUpgradeView, upgradePath, yardUpgradeHtml, yardUpgradeView } from "../upgradeControl.js"; // ISP-103 (AB#795), ISP-102 (AB#794)
 import { renderMissions } from "./assignments.js";
+import { priorityQuote } from "../bureauTerms.js"; // AB#4689 slice 8
 import { formatSystemLabel, getCurrentStationInfo, pushFeedback, revealUnderHeader, setTab, showTradeConfirmation, updateAllViews } from "./shared.js";
 // AB#743: what each committing action did, from the server's answer. The view redraws after an action, so focus goes
 // back to the control that was pressed if it is still there, otherwise to the one the flow continues from.
@@ -312,7 +313,7 @@ export function renderOrbitalExecutiveSuites(building, data) {
   const existingOffice = (corp.offices || []).find((o) => o.stationId === stationId);
   // ISP-212 (AB#907): at its own conglomerate's station a member pays the member rate, which the server charges too
   const memberStation = appState.conglomerate?.station || null;
-  const rate = (cost) => memberOfficeCost(cost, memberStation, stationId);
+  const rate = (cost) => priorityQuote(memberOfficeCost(cost, memberStation, stationId), corp); // AB#4689: and priority processing
   const memberNote = isMemberStation(memberStation, stationId)
     ? `<p class="station__note">Member rate: your conglomerate's station, so the rent is ${memberStation.officeRentPct}% of the standard ${toCurrency(officeLeaseCost(1))} a day.</p>`
     : "";
@@ -452,7 +453,7 @@ export function bindOfficeActions(building, data) {
           revealUnderHeader(document.getElementById("office-hire-form")?.closest(".ui-panel"));
           showActionReceipt(account, { returnFocusTo: firstPresent("#rent-office-btn", "#office-hire-count") });
         } else {
-          const cost = officeLeaseCost(durationDays);
+          const cost = priorityQuote(officeLeaseCost(durationDays), appState.data.corp); // AB#4689
           if ((appState.data.corp.finances.credits || 0) < cost) {
             throw new Error(`Leasing requires ${toCurrency(cost)}. Current reserves: ${toCurrency(appState.data.corp.finances.credits)}.`);
           }
@@ -508,7 +509,7 @@ export function bindOfficeActions(building, data) {
           showStationBuilding(building.id);
           showActionReceipt(account, { returnFocusTo: firstPresent("#renew-office-form button[type=submit]") });
         } else {
-          const renewalCost = officeRenewalCost(corp.completedInsights, durationDays);
+          const renewalCost = priorityQuote(officeRenewalCost(corp.completedInsights, durationDays), corp); // AB#4689
           if ((corp.finances.credits || 0) < renewalCost) {
             throw new Error(`Renewal requires ${toCurrency(renewalCost)}. Current reserves: ${toCurrency(corp.finances.credits)}.`);
           }
@@ -677,7 +678,8 @@ export function renderISAClaimsLeases(building, data) {
     }))}</p>`;
   } else {
     purchaseHtml = availableBodies.map((entry) => {
-      const canAfford = (corp?.finances?.credits || 0) >= entry.cost;
+      const cost = priorityQuote(entry.cost, corp); // AB#4689: what purchase-lease charges at Valued
+      const canAfford = (corp?.finances?.credits || 0) >= cost;
       const hasEnoughStaff = currentEmployees >= requiredForNext;
       return `
         <div class="station__lease-purchase">
@@ -685,7 +687,7 @@ export function renderISAClaimsLeases(building, data) {
           <p class="station__note">${escapeHtml(entry.description)}</p>
           <dl class="ui-kv">
             <dt>Yields</dt><dd data-role="lease-yield">${escapeHtml(profileText(bodyProfile(appState.systemsCatalog, entry.body)))}</dd>
-            <dt>Lease Cost</dt><dd>${toCurrency(entry.cost)} (one-time)</dd>
+            <dt>Lease Cost</dt><dd>${toCurrency(cost)} (one-time)</dd>
             <dt>Employee Requirement</dt><dd>${requiredForNext} on payroll (current: ${currentEmployees})</dd>
             <dt>Building Slots Granted</dt><dd>2 on-surface slots</dd>
           </dl>

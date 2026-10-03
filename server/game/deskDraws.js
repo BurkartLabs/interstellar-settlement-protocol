@@ -10,6 +10,8 @@ import { ECONOMY } from "../economy.js";
 import { deskRng, generateAudit, generateDispatch, generateSurvey, gradeAudit, gradeDispatch, gradeSurvey } from "./desk.js";
 import { SYSTEMS_DATA } from "./catalog.js";
 import { isBeltPresent, recordBeltScouted } from "./belts.js";
+import { REPUTATION_TIERS_DATA } from "./corporation.js";
+import { bureauPoints, deskTiersFor } from "../../public/scripts/bureauStanding.js";
 
 export const DESK_KINDS = Object.freeze(["survey", "audit", "dispatch"]);
 const GENERATE = { survey: generateSurvey, audit: generateAudit, dispatch: generateDispatch };
@@ -21,10 +23,14 @@ export function deskSeed(accountId, draw, secret = process.env.ISP_DESK_SEED_SEC
   return crypto.createHmac("sha256", secret).update(`desk:${accountId}:${draw}`).digest("hex");
 }
 
-/** What the nth draw is: its kind, from its seed, and its tier. Slice 8 opens tiers 2 and 3 by grade; until then, 1. */
-export function drawEntry(accountId, draw, secret) {
+/** The Desk tiers this corporation has opened (slice 8): 1, 2 from Recognized, 3 from Trusted. */
+export const openTiersOf = (corp) => deskTiersFor(bureauPoints(corp, ECONOMY.desk.reputationThresholdMultiplier), REPUTATION_TIERS_DATA);
+
+/** What the nth draw is: its kind and its tier, one of `tiers` (the ones the corporation has opened), from its seed. */
+export function drawEntry(accountId, draw, secret, tiers = [1]) {
   const rng = deskRng(`kind:${deskSeed(accountId, draw, secret)}`);
-  return { draw, kind: DESK_KINDS[Math.floor(rng() * DESK_KINDS.length)], tier: 1 };
+  const kind = DESK_KINDS[Math.floor(rng() * DESK_KINDS.length)];
+  return { draw, kind, tier: tiers[Math.floor(rng() * tiers.length)] };
 }
 
 /**
@@ -34,7 +40,7 @@ export function drawEntry(accountId, draw, secret) {
 export function deskState(corp, accountId, secret, rules = ECONOMY.desk) {
   const stored = corp?.desk;
   if (stored && Array.isArray(stored.open) && Number.isInteger(stored.next)) return stored;
-  return { next: rules.openPackets + 1, open: Array.from({ length: rules.openPackets }, (_, i) => drawEntry(accountId, i + 1, secret)), paidDay: 0, paidToday: 0 };
+  return { next: rules.openPackets + 1, open: Array.from({ length: rules.openPackets }, (_, i) => drawEntry(accountId, i + 1, secret, openTiersOf(corp))), paidDay: 0, paidToday: 0 };
 }
 
 /** A packet's fingerprint: what the client was shown, hashed, so an answer to a packet that has since changed is refused. */

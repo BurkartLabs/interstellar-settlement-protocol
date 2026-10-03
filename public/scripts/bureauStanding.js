@@ -3,6 +3,54 @@
 // points, fed by contracts (desk.contractPoints each) and, from slice 5, by desk packets. The reputation tiers'
 // thresholds are multiplied by desk.reputationThresholdMultiplier, and a save's count becomes points by the same factor,
 // so every grade stays where it was.
+//
+// Slice 8: what a grade gives (design section 4, the perks table). Each perk is named by the grade that opens it, and
+// the grade's level is read from the tiers' own titles, so the thresholds stay data/missions.json's.
+
+import { ASSIGNED_COORDINATOR } from "./liaison.js";
+
+/** The grade `points` reach in `tiers`: { level, title }, Unknown below the first threshold. */
+export function gradeOf(points, tiers) {
+  const thresholds = tiers?.thresholds || [0];
+  let level = 0;
+  for (let i = thresholds.length - 1; i >= 0; i -= 1) {
+    if (points >= thresholds[i]) { level = i; break; }
+  }
+  return { level, title: (tiers?.titles || [])[level] || "Unknown" };
+}
+
+/** Bureau Standing: the points a corporation holds with the coordinator, from a save of either shape. */
+export function bureauPoints(corp, multiplier) {
+  return migrateStanding(corp?.agentReputation?.[ASSIGNED_COORDINATOR.id], multiplier).points;
+}
+
+/** Design section 4's perks, each by the grade that opens it. */
+export const GRADE_PERKS = Object.freeze({
+  deskTier2: "Recognized", thirdContract: "Recognized",
+  deskTier3: "Trusted", hourlyBoard: "Trusted",
+  priorityProcessing: "Valued",
+  fourthContract: "Distinguished"
+});
+
+/** Whether `points` hold the grade that opens `perk`. */
+export function hasPerk(points, tiers, perk) {
+  const at = (tiers?.titles || []).indexOf(GRADE_PERKS[perk]);
+  return at >= 0 && gradeOf(points, tiers).level >= at;
+}
+
+/** The Desk tiers open at these points: 1, 2 from Recognized, 3 from Trusted. */
+export const deskTiersFor = (points, tiers) => [1, ...(hasPerk(points, tiers, "deskTier2") ? [2] : []), ...(hasPerk(points, tiers, "deskTier3") ? [3] : [])];
+
+/** Contracts on the Bureau's board: the base, one more at Recognized, another at Distinguished. */
+export const contractsOfferedFor = (points, tiers, base) => base + (hasPerk(points, tiers, "thirdContract") ? 1 : 0) + (hasPerk(points, tiers, "fourthContract") ? 1 : 0);
+
+/** How often the board refreshes: the base, or hourly from Trusted. */
+export const contractRefreshMsFor = (points, tiers, base) => (hasPerk(points, tiers, "hourlyBoard") ? 3_600_000 : base);
+
+/** An ISA fee (a lease purchase, office rent) with priority processing: priorityProcessingPct off from Valued. */
+export function priorityPrice(price, points, tiers, pct) {
+  return hasPerk(points, tiers, "priorityProcessing") ? Math.round((price * (100 - pct)) / 100) : price;
+}
 
 /** The thresholds of `tiers` ({ thresholds, titles }) in points: each multiplied by `multiplier`. */
 export function tiersInPoints(tiers, multiplier) {

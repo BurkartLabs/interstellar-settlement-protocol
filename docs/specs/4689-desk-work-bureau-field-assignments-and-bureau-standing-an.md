@@ -84,10 +84,10 @@ Was part of Requirement AB#4698. Needs slice 6. The design says the Starmap's re
 
 Was Requirement AB#4699. Design section 4, the perks table. Tier 2 packets from Recognized, tier 3 from Trusted; CONTRACTS_PER_AGENT becomes per-corporation (2, 3 at Recognized, 4 at Distinguished); CONTRACT_REFRESH_MS becomes per-corporation (2 h, 1 h at Trusted); priority processing at Valued; the grade on the public card.
 
-- [ ] A Recognized corporation sees three contracts and can draw tier-2 packets; a Trusted one refreshes hourly and draws tier 3; below those grades the old values hold.
-- [ ] Lease and rent charges at Valued are reduced by exactly priorityProcessingPct; Exchange settlement code is untouched (the diff shows no change under marketSettlement or buyOrders).
-- [ ] The public card shows the grade title; a corporation with 0 points shows Unknown.
-- [ ] Unit tests per perk; the ladder test suite still passes with no milestone changed.
+- [x] A Recognized corporation sees three contracts and can draw tier-2 packets; a Trusted one refreshes hourly and draws tier 3; below those grades the old values hold.
+- [x] Lease and rent charges at Valued are reduced by exactly priorityProcessingPct; Exchange settlement code is untouched (the diff shows no change under marketSettlement or buyOrders).
+- [x] The public card shows the grade title; a corporation with 0 points shows Unknown.
+- [x] Unit tests per perk; the ladder test suite still passes with no milestone changed.
 
 ### Slice 9: The Desk on the Assignments tab (lane: interstellar-settlement-protocol/client-views)
 
