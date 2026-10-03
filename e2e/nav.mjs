@@ -55,6 +55,8 @@ export async function gameDrawn(page, timeout = 20_000) {
 
 /** Open the ☰ sheet on a phone if it is closed; nothing on a desktop, where the header is always shown. */
 export async function openHeaderSheet(page) {
+  // the game first: called straight after a login, the ☰ is not drawn yet and would read as "a desktop"
+  await gameDrawn(page);
   const menu = page.locator("#phone-menu-toggle");
   if ((await menu.isVisible()) && (await menu.getAttribute("aria-expanded")) !== "true") await menu.click();
 }
