@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Economy Planner</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <p>ISP · Developer tools</p>
+    <h1>Economy Planner</h1>
+  </div>
+  <div class="top-r">
+    <span class="tag" id="rules-tag">rules: loading…</span>
+    <button class="btn" id="reload-rules" title="Re-read data/economy.json, research and leases from the checkout">Reload rules</button>
+    <button class="btn" data-act="undo" id="undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
+    <button class="btn" data-act="redo" id="redo" title="Redo (Ctrl+Y)" disabled>Redo</button>
+  </div>
+</header>
+
+<div class="planbar" role="toolbar" aria-label="Plans">
+  <label class="pick">Plan <select id="plan-select" aria-label="Choose plan"></select></label>
+  <input id="plan-name" data-f="plan-name" class="plan-name" aria-label="Plan name" placeholder="Plan name" spellcheck="false">
+  <button class="btn" data-act="plan-rename" title="Rename the plan">Rename</button>
+  <button class="btn" data-act="plan-new">New plan</button>
+  <button class="btn" data-act="plan-dup">Duplicate</button>
+  <button class="btn danger" data-act="plan-del">Delete</button>
+  <span class="sep"></span>
+  <button class="btn" data-act="plan-import">Import JSON</button>
+  <button class="btn" data-act="plan-export">Export JSON</button>
+  <button class="btn" data-act="csv">Export CSV</button>
+  <input type="file" id="import-file" accept=".json,application/json" hidden>
+</div>
+
+<div id="banner" class="banner" hidden></div>
+
+<main>
+  <div class="editor-col">
+    <details class="panel settings" open>
+      <summary>Starting position</summary>
+      <div class="body settings-grid">
+        <label class="f">Starting capital<input id="s-capital" data-f="set-capital" inputmode="decimal"></label>
+        <label class="f">Sales tax %<input id="s-tax" data-f="set-taxPct" inputmode="decimal"></label>
+        <label class="f">Extra days to simulate<input id="s-extra" data-f="set-extraDays" type="number" min="0" max="365"></label>
+        <label class="f chk"><input id="s-down" data-f="set-downtime" type="checkbox"><span>Model downtime<small>expected uptime, not random</small></span></label>
+      </div>
+    </details>
+    <div class="phasebar">
+      <button class="btn primary" data-act="phase-add">+ Add phase</button>
+      <span class="grow"></span>
+      <button class="btn" data-act="phases-collapse">Collapse all</button>
+      <button class="btn" data-act="phases-expand">Expand all</button>
+    </div>
+    <div id="editor"></div>
+  </div>
+
+  <div class="results-col" id="results">
+    <section class="panel kpi-panel"><div class="kpis" id="kpis"></div></section>
+
+    <section class="panel">
+      <h2><span>Cash over time</span>
+        <span class="chart-tools">
+          <label><input type="checkbox" id="t-flow"> Net-flow bars</label>
+          <label><input type="checkbox" id="t-overlay"> Overlay <select id="ov-select" aria-label="Overlay plan"></select></label>
+        </span>
+      </h2>
+      <div class="body chart-body"><div id="chart"></div></div>
+      <div class="range-row">
+        <label>From day <input type="range" id="r-from" min="0" max="1" value="0"> <output id="o-from"></output></label>
+        <label>To day <input type="range" id="r-to" min="1" max="1" value="1"> <output id="o-to"></output></label>
+        <button class="btn sm" id="r-all">Fit all</button>
+      </div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section class="panel" id="warn-panel">
+      <h2><span>Warnings</span><span class="tag" id="warn-count"></span></h2>
+      <ul class="warns" id="warns"></ul>
+    </section>
+
+    <section class="panel">
+      <h2>Phases</h2>
+      <div class="body tbl"><table id="phasetable"></table></div>
+    </section>
+
+    <section class="panel">
+      <h2><span>Day by day</span>
+        <span class="chart-tools"><label><input type="checkbox" id="t-split"> Split expenses by category</label></span>
+      </h2>
+      <div class="body tbl days"><table id="daytable"></table></div>
+    </section>
+  </div>
+</main>
+<div class="tip" id="tip"></div>
+<div class="toast" id="toast" role="status"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -22,6 +22,7 @@
     "look:facelift": "node scripts/facelift-sweep.mjs && node scripts/facelift-inventory.mjs",
     "playtest": "playwright test",
     "economy:model": "node scripts/economy-model.mjs",
+    "planner": "node scripts/planner.mjs",
     "combat:model": "node scripts/combat-model.mjs",
     "belt:model": "node scripts/belt-model.mjs",
     "probe:pacing": "node scripts/probe-pacing.mjs",
