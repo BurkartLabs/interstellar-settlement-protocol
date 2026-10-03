@@ -18,6 +18,14 @@ a test-only fix with nothing to look at. No CONTROL_URL / Chrome extension on an
 don't get one by design). See "Blind spot" below. #1 then did ISP-52 (AB#738), the first half of splitting app.js,
 below — and #2 then did ISP-53 (AB#739), the second half, directly below.**
 
+## What's now true (AB#4689 slice 1 — Desk Work's desk block and Survey generator, Builder, 2026-10-03)
+
+- `data/economy.json` has the `desk` block (docs/design/desk-work.md section 7); ECONOMY.md has a row per key.
+- `server/game/desk.js` generates and grades Survey packets, tiers 1 to 3, pure and seeded. Nothing calls it yet:
+  the routes are slice 5, the screen slice 9. A packet is redrawn until its own readings answer it.
+- Next: slices 2 (Audit), 3 (Dispatch) and 4 (Bureau Standing as points) in `server/game/desk.js` and the missions
+  code, then slice 5, the routes. Spec: docs/specs/4689-desk-work-bureau-field-assignments-and-bureau-standing-an.md.
+
 ## What's now true (AB#772 — ISP-83, the accessibility score and the three-width sweep of every screen)
 
 - Lighthouse accessibility is 100 on the landing and on the main app view, on a phone and a desktop
