@@ -25,18 +25,18 @@ Order: slices 1 to 4 need nothing and can go in any order. Slice 5 needs 1 to 4.
 
 Was part of Requirement AB#4695. Design sections 5 (Survey) and 3, rule 3. origin/agent/4695-desk-generators holds a start (d8ec271c): the `desk` block in data/economy.json only. Begin from it. `auditTwoClauseSharePct` 50 in that block was its author's guess; keep it and say so in the pull request.
 
-- [ ] data/economy.json has the `desk` block (openPackets, payByTier 40/80/160, pointsByTier 1/2/3, paidAssignmentsPerDay 20, overCapPayPct 25, noise and tolerances), and the schema test knows it.
-- [ ] server/game/desk.js has a pure, seeded Survey generator and grader for tiers 1 to 3: the same seed and data yield the same packet twice.
-- [ ] tests/unit/desk.test.js draws 1000 Survey packets per tier from seeds; every stored answer grades correct and every distractor grades incorrect.
-- [ ] Survey subjects at tier 1 are Sol only; tier 2 only systems the corporation can reach; tier 3 rare or exotic belts.
+- [x] data/economy.json has the `desk` block (openPackets, payByTier 40/80/160, pointsByTier 1/2/3, paidAssignmentsPerDay 20, overCapPayPct 25, noise and tolerances), and the schema test knows it.
+- [x] server/game/desk.js has a pure, seeded Survey generator and grader for tiers 1 to 3: the same seed and data yield the same packet twice.
+- [x] tests/unit/desk.test.js draws 1000 Survey packets per tier from seeds; every stored answer grades correct and every distractor grades incorrect.
+- [x] Survey subjects at tier 1 are Sol only; tier 2 only systems the corporation can reach; tier 3 rare or exotic belts.
 
 ### Slice 2: The Audit generator and grader (lane: interstellar-settlement-protocol/economy)
 
 Was part of Requirement AB#4695. Design section 5 (Audit).
 
-- [ ] server/game/desk.js generates and grades Audit packets for tiers 1 to 3, pure and seeded as the Survey is.
-- [ ] Every Audit clause maps to a rule the server already enforces (lease headcount, office-before-lease, slots, lease price, ITC line, royalty, quota, yard growth, upgrade tier, deployments, conglomerate cap), and its graded explanation quotes that rule in one sentence.
-- [ ] The test draws 1000 Audit packets per tier; every stored answer grades correct and every distractor incorrect.
+- [x] server/game/desk.js generates and grades Audit packets for tiers 1 to 3, pure and seeded as the Survey is.
+- [x] Every Audit clause maps to a rule the server already enforces (lease headcount, office-before-lease, slots, lease price, ITC line, royalty, quota, yard growth, upgrade tier, deployments, conglomerate cap), and its graded explanation quotes that rule in one sentence.
+- [x] The test draws 1000 Audit packets per tier; every stored answer grades correct and every distractor incorrect.
 
 ### Slice 3: The Dispatch generator and grader (lane: interstellar-settlement-protocol/economy)
 
