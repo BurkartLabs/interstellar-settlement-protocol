@@ -2,7 +2,18 @@ import { describe, it, expect } from "vitest";
 import { ECONOMY } from "../../server/economy.js";
 import { SYSTEMS_DATA } from "../../server/game/catalog.js";
 import { ensureBeltState, spawnBelt, BELT_SLOTS } from "../../server/game/belts.js";
-import { DESK_TIERS, deskRng, generateSurvey, gradeSurvey, surveySubjects } from "../../server/game/desk.js";
+import fs from "node:fs";
+import { AUDIT_CLAUSES, DESK_TIERS, deskRng, generateAudit, generateSurvey, gradeAudit, gradeSurvey, surveySubjects } from "../../server/game/desk.js";
+import { bidQuotaFor } from "../../server/game/world.js";
+import { getEffectiveExchangeTaxRate } from "../../server/game/progression.js";
+import { maxUpgradeTierOf } from "../../server/upgrades.js";
+import { EMPLOYEES_PER_LEASE } from "../../public/scripts/leaseStaffing.js";
+import { leaseHasRoom } from "../../public/scripts/leaseSlots.js";
+import { nextYardPrice } from "../../public/scripts/yardPrice.js";
+
+const readData = (name) => JSON.parse(fs.readFileSync(new URL(`../../data/${name}`, import.meta.url), "utf8"));
+const WARFARE_DATA = readData("warfare.json");
+const CONGLOMERATE_DATA = readData("conglomerates.json");
 
 // AB#4689 slice 1: the desk block and the Survey generator and grader (docs/design/desk-work.md sections 3 and 5).
 
@@ -208,6 +219,160 @@ describe("gradeSurvey fails closed", () => {
       expect(wrong).toBe(gradeSurvey(key, rightAnswer(key)).explanation);
       expect(wrong).toContain(key.truth[0].resource);
       expect(wrong).toMatch(/correct when/);
+    }
+  });
+});
+
+// AB#4689 slice 2: the Audit generator and grader (docs/design/desk-work.md section 5, Audit).
+
+const AUDIT_FIELDS = { 1: 3, 2: 6, 3: 10 };
+
+/** The answer the key says is right. */
+function rightAudit(key) {
+  if (!key.broken.length) return { compliant: true };
+  return { clauses: key.broken.map((b) => b.clause), figures: Object.fromEntries(key.broken.filter((b) => b.figure !== null).map((b) => [b.clause, b.figure])) };
+}
+
+/** Every wrong answer a filing offers: certifying a broken one, a wrong, missing or extra clause, a figure a step off. */
+function wrongAudits(packet, key) {
+  const brokenNames = key.broken.map((b) => b.clause);
+  const others = packet.options.filter((c) => !brokenNames.includes(c));
+  if (!brokenNames.length) return others.map((c) => ({ clauses: [c], figures: { [c]: 1 } }));
+  const right = rightAudit(key);
+  const out = [{ compliant: true }];
+  for (const c of others) {
+    out.push({ ...right, clauses: [...right.clauses, c] });
+    for (let i = 0; i < brokenNames.length; i += 1) out.push({ clauses: brokenNames.map((b, j) => (j === i ? c : b)), figures: { ...right.figures, [c]: 1 } });
+  }
+  if (brokenNames.length === 2) for (const b of brokenNames) out.push({ ...right, clauses: [b] });
+  if (key.figures) {
+    for (const b of key.broken.filter((x) => x.figure !== null)) {
+      const step = Number.isInteger(b.figure) ? 1 : 0.01;
+      for (const d of [-step, step]) out.push({ ...right, figures: { ...right.figures, [b.clause]: b.figure + d } });
+      const { [b.clause]: _gone, ...without } = right.figures;
+      out.push({ ...right, figures: without });
+    }
+  }
+  return out;
+}
+
+describe("generateAudit", () => {
+  it("yields the same filing and key twice from the same seed, at every tier", () => {
+    for (const tier of DESK_TIERS) {
+      const once = generateAudit({ seed: "corp-7:3", tier });
+      expect(generateAudit({ seed: "corp-7:3", tier })).toEqual(once);
+      expect(new Set(Array.from({ length: 20 }, (_, i) => generateAudit({ seed: i, tier }).packet.ref)).size).toBeGreaterThan(1);
+    }
+  });
+
+  for (const tier of DESK_TIERS) {
+    it(`tier ${tier}: across ${DRAWS} seeds, the stored answer grades correct and every distractor grades incorrect`, () => {
+      let wrongs = 0;
+      for (let seed = 0; seed < DRAWS; seed += 1) {
+        const { packet, key } = generateAudit({ seed, tier });
+        expect(packet.fields).toHaveLength(AUDIT_FIELDS[tier]);
+        expect(gradeAudit(key, rightAudit(key)).correct, `seed ${seed}`).toBe(true);
+        for (const wrong of wrongAudits(packet, key)) {
+          expect(gradeAudit(key, wrong).correct, `seed ${seed}: ${JSON.stringify(wrong)}`).toBe(false);
+          wrongs += 1;
+        }
+      }
+      expect(wrongs).toBeGreaterThan(DRAWS);
+    });
+  }
+
+  it("leaves auditCleanSharePct of filings compliant, and at tier 3 breaks two clauses in auditTwoClauseSharePct of the rest", () => {
+    for (const tier of DESK_TIERS) {
+      const keys = Array.from({ length: DRAWS }, (_, seed) => generateAudit({ seed, tier }).key);
+      const clean = keys.filter((k) => !k.broken.length).length / DRAWS;
+      expect(Math.abs(clean * 100 - ECONOMY.desk.auditCleanSharePct)).toBeLessThan(5);
+      const broken = keys.filter((k) => k.broken.length);
+      const two = broken.filter((k) => k.broken.length === 2).length / broken.length;
+      if (tier < 3) expect(two).toBe(0);
+      else expect(Math.abs(two * 100 - ECONOMY.desk.auditTwoClauseSharePct)).toBeLessThan(6);
+    }
+  });
+
+  it("draws clauses only from its tier and lower, lists them in one fixed order, and sends no key", () => {
+    const order = Object.keys(AUDIT_CLAUSES);
+    for (const tier of DESK_TIERS) {
+      for (let seed = 0; seed < 200; seed += 1) {
+        const { packet } = generateAudit({ seed, tier });
+        const kinds = packet.fields.map((f) => f.clause);
+        for (const k of kinds) expect(AUDIT_CLAUSES[k].tier).toBeLessThanOrEqual(tier);
+        expect(kinds).toEqual(order.filter((k) => kinds.includes(k)));
+        for (const field of ["broken", "rules", "figures", "key"]) expect(packet).not.toHaveProperty(field);
+        expect(JSON.stringify(packet)).not.toMatch(/"(compliant|figure|rule)"/);
+      }
+    }
+  });
+});
+
+describe("every Audit clause is a rule the server enforces, decided by the server's own code", () => {
+  const SERVER_RULE = {
+    "lease-headcount": (f) => f.employees >= EMPLOYEES_PER_LEASE * (f.leasesHeld + 1), // POST purchase-lease, insufficient-employees
+    "office-before-lease": (f) => f.office === "active", // POST purchase-lease, no-office
+    "lease-slots": (f) => leaseHasRoom({ buildingSlots: 2, extractorIds: Array(f.buildingsOnLease).fill("y") }), // purchase-lease writes buildingSlots: 2
+    "lease-price": (f) => f.declaredPrice === SYSTEMS_DATA.find((s) => s.name === f.system).bodies.find((b) => b.name === f.body).leaseCost,
+    "itc-line": (f) => f.unitPrice >= (f.normalValue * WARFARE_DATA.dumping.priceThresholdPct) / 100, // itcService's dumping assessment
+    "lease-royalty": (f) => f.declaredTax === Math.round((f.gross * getEffectiveExchangeTaxRate({ corp: { miningLeases: Array(f.leasesHeld).fill({}) } })) / 100),
+    "order-quota": (f) => f.soldToday + f.units <= bidQuotaFor(f.item), // the standing bid's remainingQty
+    "yard-price": (f) => f.declaredPrice === nextYardPrice(f.yardsOwned, ECONOMY.buildings),
+    "upgrade-tier": (f) => f.requestedTier <= maxUpgradeTierOf({ unlocks: { maxUpgradeTier: f.maxUpgradeTier } }), // upgrades.js level-too-low
+    deployments: (f) => f.activeExpeditions < f.maxDeployments, // the asteroids route's deployment-cap
+    "conglomerate-cap": (f) => f.members < CONGLOMERATE_DATA.levels[f.level - 1].maxMembers // membership.js conglomerate-full
+  };
+
+  it("covers the eleven clauses the design names", () => {
+    expect(Object.keys(AUDIT_CLAUSES).sort()).toEqual(Object.keys(SERVER_RULE).sort());
+  });
+
+  for (const clause of Object.keys(SERVER_RULE)) {
+    it(`${clause}: every role it is drawn in agrees with the server's rule, and its rule is one sentence with its number`, () => {
+      const c = AUDIT_CLAUSES[clause];
+      const rng = deskRng(`clause:${clause}`);
+      for (const role of ["broken", "clean", ...(c.near ? ["near"] : [])]) {
+        for (let i = 0; i < 300; i += 1) {
+          const facts = c.draw(rng, role);
+          expect(SERVER_RULE[clause](facts), `${role}: ${JSON.stringify(facts)}`).toBe(role !== "broken");
+          const { compliant, figure } = c.judge(facts);
+          expect(compliant).toBe(role !== "broken");
+          const rule = c.rule(facts);
+          expect(rule).not.toMatch(/\.\s+[A-Z]/);
+          if (figure !== null) expect(rule).toContain(String(figure));
+        }
+      }
+    });
+  }
+});
+
+describe("gradeAudit", () => {
+  it("fails closed on anything malformed", () => {
+    let broken, clean;
+    for (let seed = 0; !(broken && clean); seed += 1) {
+      const { key } = generateAudit({ seed, tier: 2 });
+      if (key.broken.length && key.broken[0].figure !== null) broken ||= key;
+      else if (!key.broken.length) clean ||= key;
+    }
+    const right = rightAudit(broken);
+    for (const [key, answer] of [
+      [broken, null], [broken, {}], [broken, { clauses: [] }], [broken, { ...right, clauses: right.clauses[0] }],
+      [broken, { ...right, clauses: [...right.clauses, ...right.clauses] }], [broken, { ...right, clauses: [7] }],
+      [null, right], [{ ...broken, kind: "survey" }, right],
+      [clean, { compliant: "true" }], [clean, { compliant: true, clauses: ["lease-price"] }], [clean, {}]
+    ]) expect(gradeAudit(key, answer).correct, JSON.stringify(answer)).toBe(false);
+    for (const bad of ["12", Number.NaN, Infinity, null]) expect(gradeAudit(broken, { ...right, figures: { [right.clauses[0]]: bad } }).correct).toBe(false);
+  });
+
+  it("quotes the broken rule, right or wrong, and the rule of a clause wrongly named", () => {
+    for (let seed = 0; seed < 50; seed += 1) {
+      const { packet, key } = generateAudit({ seed, tier: 3 });
+      const right = gradeAudit(key, rightAudit(key)).explanation;
+      for (const b of key.broken) expect(right).toContain(b.rule);
+      const innocent = packet.options.find((c) => !key.broken.some((b) => b.clause === c));
+      const wrong = gradeAudit(key, { clauses: [innocent] });
+      expect(wrong.correct).toBe(false);
+      expect(wrong.explanation).toContain(key.rules[innocent]);
     }
   });
 });
