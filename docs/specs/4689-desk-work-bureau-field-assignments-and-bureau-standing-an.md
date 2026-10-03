@@ -50,9 +50,9 @@ Was part of Requirement AB#4695. Design section 5 (Dispatch), and "Why no single
 
 Was Requirement AB#4696. Design section 4. `agentReputation[agent].completedCount` becomes `points`; saves migrate as points = completedCount x 10; data/missions.json reputationTiers thresholds multiply by `desk.reputationThresholdMultiplier` (10).
 
-- [ ] A save with completedCount 7 loads as points 70 and grade Reliable, identical to before.
-- [ ] Completing a contract adds exactly 10 points (11 or 12 with Bureaucratic Persuasion, rounded as the code documents).
-- [ ] Unit tests cover migration, the multiplier and the insight bonus; the completion receipt (AB#744) still reports the grade.
+- [x] A save with completedCount 7 loads as points 70 and grade Reliable, identical to before.
+- [x] Completing a contract adds exactly 10 points (11 or 12 with Bureaucratic Persuasion, rounded as the code documents).
+- [x] Unit tests cover migration, the multiplier and the insight bonus; the completion receipt (AB#744) still reports the grade.
 
 ### Slice 5: Desk routes and state (lane: interstellar-settlement-protocol/economy)
 

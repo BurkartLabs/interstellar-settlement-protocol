@@ -60,7 +60,7 @@ const BEFORE_THE_MOVE = {
   desk: {
     openPackets: 3, payByTier: [40, 80, 160], pointsByTier: [1, 2, 3], paidAssignmentsPerDay: 20, overCapPayPct: 25,
     surveyNoisePctByTier: [15, 30, 45], surveyReserveTolerancePct: 20, auditCleanSharePct: 30, auditTwoClauseSharePct: 50,
-    dispatchTolerancePct: 5
+    dispatchTolerancePct: 5, contractPoints: 10, reputationThresholdMultiplier: 10
   },
   salvage: { creditsThreshold: 3000, hoursRequired: 4, payoutCredits: 3000, cooldownHours: 8 },
   npcBid: { quotaPerDay: 7000, driftAtFullQuotaPct: 50, recoveryPerDayPct: 60, floorPct: 55 }, // ISP-87

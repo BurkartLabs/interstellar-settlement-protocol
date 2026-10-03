@@ -34,3 +34,13 @@ export function missionRewardCredits(reward, completedInsights) {
   const base = parseInt(String(reward ?? "").replace(/[^0-9]/g, ""), 10) || 0;
   return (completedInsights || []).includes(CONTRACT_LAW) ? Math.round(base * 1.08) : base;
 }
+
+const BUREAUCRATIC_PERSUASION = "ceo-bureaucratic-persuasion";
+
+/**
+ * AB#4689: the Bureau Standing points a gain of `points` is worth, 15% more with Bureaucratic Persuasion: 10 is 11.5,
+ * which addStandingPoints (bureauStanding.js) banks as whole points with the fraction carried.
+ */
+export function standingGain(points, completedInsights) {
+  return (completedInsights || []).includes(BUREAUCRATIC_PERSUASION) ? points * 1.15 : points;
+}

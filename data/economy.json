@@ -109,7 +109,9 @@
     "surveyReserveTolerancePct": 20,
     "auditCleanSharePct": 30,
     "auditTwoClauseSharePct": 50,
-    "dispatchTolerancePct": 5
+    "dispatchTolerancePct": 5,
+    "contractPoints": 10,
+    "reputationThresholdMultiplier": 10
   },
   "salvage": {
     "creditsThreshold": 3000,

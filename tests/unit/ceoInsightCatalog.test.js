@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import { getEffectiveExchangeTaxRate, extractorDowntimeProbPerSec } from "../../server/gameState.js";
-import { officeRenewalCost, missionRewardCredits } from "../../public/scripts/ceoEffects.js";
+import { officeRenewalCost, missionRewardCredits, standingGain } from "../../public/scripts/ceoEffects.js";
 
 // Bug #983: eleven of twelve CEO Insight programs were sold with stated effects and changed nothing. Every program
 // is now live or planned, and this file derives its cases from the catalogue: marking a program live without giving
@@ -18,7 +18,9 @@ const MEASURES = {
   "ceo-isa-regulatory-navigation": { effect: "-5% lease renewal cost", measure: (ids) => officeRenewalCost(ids, 7), without: 7000, with: 6650 },
   "ceo-risk-assessment": { effect: "-12% extractor downtime chance", measure: (ids) => extractorDowntimeProbPerSec(corpWith(ids)), without: 0.00005, with: 0.00005 * 0.88 },
   // Bug #1009: live once mission rewards reached the balance at all.
-  "ceo-contract-law": { effect: "+8% mission reward bonus", measure: (ids) => missionRewardCredits("12,000 Credits", ids), without: 12000, with: 12960 }
+  "ceo-contract-law": { effect: "+8% mission reward bonus", measure: (ids) => missionRewardCredits("12,000 Credits", ids), without: 12000, with: 12960 },
+  // AB#4689: live once contracts earned Bureau Standing points; the half point is carried, not rounded (bureauStanding.js).
+  "ceo-bureaucratic-persuasion": { effect: "+15% ISA reputation gains", measure: (ids) => standingGain(10, ids), without: 10, with: 11.5 }
 };
 
 describe("CEO Insight catalogue (Bug #983)", () => {

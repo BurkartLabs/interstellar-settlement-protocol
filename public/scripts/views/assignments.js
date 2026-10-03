@@ -3,7 +3,8 @@
 
 import { apiFetch, parseJsonResponse } from "../apiClient.js";
 import { showActionReceipt } from "./receiptModal.js"; // AB#744
-import { missionRewardCredits } from "../ceoEffects.js";
+import { missionRewardCredits, standingGain } from "../ceoEffects.js";
+import { addStandingPoints, migrateStanding } from "../bureauStanding.js"; // AB#4689
 import { missionShortAdvice } from "../contractAdvice.js";
 import { deepClone, formatDurationHours, formatTime, toCurrency } from "../helpers.js";
 import { escapeHtml } from "../html.js";
@@ -37,16 +38,21 @@ export let REPUTATION_THRESHOLDS = [0];
 
 export let REPUTATION_TITLES = ["Unknown"];
 
+// AB#4689: Bureau Standing is points. The thresholds above arrive in points; what a contract earns and what an offline
+// save's count of contracts becomes arrive with them.
+let CONTRACT_POINTS = 0;
+let REPUTATION_MULTIPLIER = 1;
+
 export function getAgentRepLevel(agentId) {
   const rep = appState.data?.corp?.agentReputation?.[agentId];
-  const count = rep?.completedCount || 0;
+  const points = migrateStanding(rep, REPUTATION_MULTIPLIER).points;
   let level = 0;
   for (let i = REPUTATION_THRESHOLDS.length - 1; i >= 0; i--) {
-    if (count >= REPUTATION_THRESHOLDS[i]) { level = i; break; }
+    if (points >= REPUTATION_THRESHOLDS[i]) { level = i; break; }
   }
   const maxLevel = REPUTATION_THRESHOLDS.length - 1;
   const nextThreshold = level < maxLevel ? REPUTATION_THRESHOLDS[level + 1] : REPUTATION_THRESHOLDS[maxLevel];
-  return { level, count, title: REPUTATION_TITLES[level], nextThreshold, maxLevel };
+  return { level, points, title: REPUTATION_TITLES[level], nextThreshold, maxLevel };
 }
 
 // ─── Mission Agent Registry ────────────────────────────────────────────────
@@ -60,6 +66,8 @@ export function applyMissionAgentsCatalog(agents, reputationTiers) {
   if (reputationTiers?.thresholds?.length && reputationTiers.thresholds.length === reputationTiers.titles?.length) {
     REPUTATION_THRESHOLDS = reputationTiers.thresholds;
     REPUTATION_TITLES = reputationTiers.titles;
+    CONTRACT_POINTS = Number(reputationTiers.contractPoints) || 0;
+    REPUTATION_MULTIPLIER = Number(reputationTiers.multiplier) || 1;
   }
 }
 
@@ -201,10 +209,10 @@ export function showMissionCompleteOverlay(mission, rep, agentName, creditedAmou
   closeMissionModal();
 
   // Check if this completion crossed a reputation threshold
-  const prevCount = rep.count - 1;
+  const prevPoints = rep.points - (rep.gained || 0); // AB#4689: the points before this contract
   let prevLevel = 0;
   for (let i = REPUTATION_THRESHOLDS.length - 1; i >= 0; i--) {
-    if (prevCount >= REPUTATION_THRESHOLDS[i]) { prevLevel = i; break; }
+    if (prevPoints >= REPUTATION_THRESHOLDS[i]) { prevLevel = i; break; }
   }
   const leveledUp = rep.level > prevLevel;
 
@@ -290,7 +298,7 @@ export function renderMissions(data) {
     if (repEl) {
       const rep = getAgentRepLevel(agent.id);
       const pct = rep.level >= rep.maxLevel ? 100 : rep.nextThreshold > 0
-        ? Math.round(((rep.count - REPUTATION_THRESHOLDS[rep.level]) / (rep.nextThreshold - REPUTATION_THRESHOLDS[rep.level])) * 100)
+        ? Math.round(((rep.points - REPUTATION_THRESHOLDS[rep.level]) / (rep.nextThreshold - REPUTATION_THRESHOLDS[rep.level])) * 100)
         : 0;
       const starsHtml = Array.from({ length: rep.maxLevel }, (_, i) =>
         `<span class="missions__star${i < rep.level ? " is-filled" : ""}">\u2726</span>`
@@ -300,7 +308,7 @@ export function renderMissions(data) {
         <p class="missions__standing">${escapeHtml(rep.title)}</p>
         <p class="missions__stars" aria-label="Level ${rep.level} of ${rep.maxLevel}">${starsHtml}</p>
         <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
-        <p class="missions__hint">${rep.level < rep.maxLevel ? `${(rep.nextThreshold - rep.count).toLocaleString()} more to next level` : "Maximum standing"}</p>
+        <p class="missions__hint">${rep.level < rep.maxLevel ? `${(rep.nextThreshold - rep.points).toLocaleString()} more standing points to the next level` : "Maximum standing"}</p>
       `;
     }
 
@@ -614,6 +622,7 @@ export function bindAssignmentForms() {
       : missionRewardCredits(mission.reward, appState.data?.corp?.completedInsights);
 
     let receiptAnswer = null; // AB#744: the server's answer; offline there is none and the old overlay stays
+    let pointsGained = 0; // AB#4689: the standing points this contract added, offline, for the overlay's level-up
     if (appState.profileMode === "account" && appState.accountId) {
       const response = await apiFetch(`/api/accounts/${encodeURIComponent(appState.accountId)}/gameplay/complete-mission`, {
         method: "POST",
@@ -669,11 +678,12 @@ export function bindAssignmentForms() {
         if (!appState.data.corp.agentReputation || typeof appState.data.corp.agentReputation !== "object") {
           appState.data.corp.agentReputation = {};
         }
+        // AB#4689: the server's rule, offline: points, not a count (bureauStanding.js).
         const localAgentId = mission.agentId || "unknown";
-        if (!appState.data.corp.agentReputation[localAgentId]) {
-          appState.data.corp.agentReputation[localAgentId] = { completedCount: 0 };
-        }
-        appState.data.corp.agentReputation[localAgentId].completedCount += 1;
+        const localRep = migrateStanding(appState.data.corp.agentReputation[localAgentId], REPUTATION_MULTIPLIER);
+        appState.data.corp.agentReputation[localAgentId] = localRep;
+        localRep.completedCount = (Number(localRep.completedCount) || 0) + 1;
+        pointsGained = addStandingPoints(localRep, standingGain(CONTRACT_POINTS, appState.data.corp.completedInsights));
       }
 
       // Credit reward into the spendable balance (Bug #1009: it went to corp.credits, which nothing reads)
@@ -686,7 +696,7 @@ export function bindAssignmentForms() {
 
     // Check for reputation level-up
     const agentId = mission.agentId || "unknown";
-    const rep = getAgentRepLevel(agentId);
+    const rep = { ...getAgentRepLevel(agentId), gained: pointsGained };
     const agent = MISSION_AGENTS.find(a => a.id === agentId);
     const agentName = agent ? agent.name : "Agent";
 
