@@ -1,6 +1,6 @@
 // The Economy Planner's interface (AB#4911). Plain DOM, inline SVG, no dependencies: it runs offline against the
 // local server (scripts/planner.mjs). The simulation lives in ./engine.js; this file edits a plan and draws the result.
-import { simulate, priceAction, newAction, newDay, newPhase, cloneDay, flattenDays, defaultName, boardSheetPlan, KINDS, HOURS, newId } from "./engine.js";
+import { simulate, priceAction, newAction, newDay, newPhase, cloneDay, flattenDays, defaultName, boardSheetPlan, KINDS, HOURS, newId, basePriceFor } from "./engine.js";
 
 const STORE = "isp.planner.plans";
 const UIKEY = "isp.planner.ui";
@@ -128,7 +128,7 @@ function techOptions(cur) {
   for (const r of rules.research) { const k = `Tier ${r.tier} · ${r.category}`; (groups.get(k) || groups.set(k, []).get(k)).push(r); }
   return [...groups].map(([g, rs]) => `<optgroup label="${esc(g)}">${rs.map((r) => opt(r.id, `${r.name} · ${fmt(r.costCredits)} · ${r.durationHours} h`, cur)).join("")}</optgroup>`).join("");
 }
-const itemOptions = (cur) => rules.economy.npcBuyers.map((b) => opt(b.item, `${b.item} ($${b.unitPrice})`, cur || "Silicates")).join("");
+const itemOptions = (cur) => rules.economy.npcBuyers.map((b) => opt(b.item, `${b.item} ($${basePriceFor(b.item, rules, plan().settings)})`, cur || "Silicates")).join("");
 
 function actionHTML(a) {
   const k = a.kind, id = a.id;
@@ -258,6 +258,14 @@ function onField(t) {
   const pEl = t.closest("[data-phase]");
   if (f === "phase-name" && pEl) { const loc = locPhase(pEl.dataset.phase); edit(`pn:${pEl.dataset.phase}`, () => { loc.ph.name = t.value; }); return; }
   if (f === "plan-name") { edit("plan-name", () => { plan().name = t.value; }); const o = $(`#plan-select option[value="${activeId}"]`); if (o) o.textContent = t.value || "(unnamed)"; return; }
+  if (f === "price") {
+    const item = t.dataset.item;
+    edit(`pr:${item}`, () => { const s = plan().settings; s.prices = { ...(s.prices || {}) }; if (val === "") delete s.prices[item]; else s.prices[item] = val; });
+    t.classList.toggle("ov", t.value !== "");
+    const reset = t.closest(".price-row")?.querySelector("[data-act=price-reset]");
+    if (reset) reset.hidden = t.value === "";
+    return;
+  }
   if (f.startsWith("set-")) { const key = f.slice(4); edit(`s:${key}`, () => { plan().settings[key] = val; }); }
 }
 document.addEventListener("input", (e) => { if (e.target.dataset && e.target.dataset.f) onField(e.target); });
@@ -306,6 +314,7 @@ document.addEventListener("click", (e) => {
     case "plan-import": return $("#import-file").click();
     case "plan-export": return download(`${slug(plan().name)}.json`, JSON.stringify(plan(), null, 2), "application/json");
     case "csv": return download(`${slug(plan().name)}-days.csv`, csv(), "text/csv");
+    case "price-reset": { const item = b.dataset.item; structural(() => { const s = plan().settings; s.prices = { ...(s.prices || {}) }; delete s.prices[item]; }); return renderSettings(); }
     case "phase-add": return structural(() => { plan().phases.push(newPhase(`Phase ${plan().phases.length + 1}`)); });
     case "phases-collapse": case "phases-expand": plan().phases.forEach((ph) => { ph.collapsed = act === "phases-collapse"; }); $$(".phase").forEach((el) => el.classList.toggle("collapsed", act === "phases-collapse")); return save();
     case "phase-toggle": P.ph.collapsed = !P.ph.collapsed; pEl.classList.toggle("collapsed", P.ph.collapsed); return save();
@@ -353,7 +362,25 @@ function renderSettings() {
   $("#s-capital").value = s.capital ?? ""; $("#s-capital").placeholder = fmtNum(rules.code.startingCredits);
   $("#s-tax").value = s.taxPct ?? ""; $("#s-tax").placeholder = String(rules.economy.exchange.salesTaxPct);
   $("#s-extra").value = s.extraDays ?? 0; $("#s-down").checked = !!s.downtime;
+  renderPrices();
 }
+/** Sale prices: Silicates always, every item the plan mines, and any item it has priced; the rest one pick away. */
+function renderPrices() {
+  const s = plan().settings, own = s.prices || {};
+  const mined = new Set(["Silicates", ...Object.keys(own)]);
+  for (const ph of plan().phases) for (const d of ph.days) for (const a of d.actions) if (a.kind === "cycle") mined.add(a.item || "Silicates");
+  const buyers = rules.economy.npcBuyers;
+  $("#price-rows").innerHTML = buyers.filter((b) => mined.has(b.item)).map((b) => {
+    const set = own[b.item] !== undefined && own[b.item] !== "";
+    return `<div class="price-row"><span>${esc(b.item)}</span><input data-f="price" data-item="${esc(b.item)}" data-t="num" inputmode="decimal" class="${set ? "ov" : ""}" value="${set ? own[b.item] : ""}" placeholder="${b.unitPrice}" aria-label="${esc(b.item)} price"><span class="game">game $${b.unitPrice}</span><button class="ib" data-act="price-reset" data-item="${esc(b.item)}" title="Back to the game's price" aria-label="Reset ${esc(b.item)} price"${set ? "" : " hidden"}>↺</button></div>`;
+  }).join("");
+  $("#price-add").innerHTML = `<option value="">+ Price another item</option>` + buyers.filter((b) => !mined.has(b.item)).map((b) => `<option value="${esc(b.item)}">${esc(b.item)} ($${b.unitPrice})</option>`).join("");
+}
+$("#price-add").addEventListener("change", (e) => {
+  const item = e.target.value; if (!item) return;
+  structural(() => { const s = plan().settings; s.prices = { ...(s.prices || {}), [item]: rules.economy.npcBuyers.find((b) => b.item === item).unitPrice }; });
+  renderSettings();
+});
 $("#plan-select").addEventListener("change", (e) => { activeId = e.target.value; ui.from = 0; ui.to = null; save(); fullRender(); });
 function importFile(file) {
   const r = new FileReader();

@@ -63,6 +63,21 @@ describe("Economy Planner engine (AB#4911)", () => {
     expect(r.days[1].byCat.sales).toBeGreaterThan(0);
   });
 
+  it("a plan's own Silicates price is where the bid opens, and the bid still falls from it", () => {
+    const plan = (prices) => ({ settings: { capital: 250000, prices }, phases: [{ id: "p", name: "x", days: [
+      { id: "d1", actions: [newAction("office", rules), newAction("hire", rules), newAction("lease", rules), newAction("yard", rules), { ...newAction("cycle", rules), throughput: 100 }] },
+      { id: "d2", actions: [] }
+    ] }] });
+    const game = simulate(plan(undefined), rules).days[1];
+    const dear = simulate(plan({ Silicates: 48 }), rules).days[1];
+    expect(dear.sold).toBe(game.sold);
+    // twice the base, the same curve (the game rounds each bid to the credit, so not exactly twice)
+    expect(dear.avgBid / game.avgBid).toBeGreaterThan(1.9);
+    expect(dear.avgBid / game.avgBid).toBeLessThan(2.1);
+    expect(dear.avgBid).toBeLessThan(48);
+    expect(simulate(plan({ Silicates: "" }), rules).days[1].avgBid).toBe(game.avgBid); // a cleared field is the game's price
+  });
+
   it("warns when a cycle has no yard, and research runs one at a time after its prerequisites", () => {
     const [first, second] = [rules.research.find((t) => !t.prereqs?.length), rules.research.find((t) => t.prereqs?.length === 1)];
     const plan = { settings: {}, phases: [{ id: "p", name: "x", days: [{ id: "d", actions: [
