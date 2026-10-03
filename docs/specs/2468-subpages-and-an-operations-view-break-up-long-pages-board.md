@@ -24,9 +24,9 @@ PM note (2026-10-01): split into the three slices below, one session each. Main 
 
 ### Slice 1: Phone layout: navigation at the top, the header panel hidden (lane: interstellar-settlement-protocol/client-shell)
 
-- [ ] At 375px width the panel holding the header, notifications, Replay Onboarding and Log out is hidden, and navigation is at the top. Notifications, Replay Onboarding and Log out are still reachable, and the pull request says where.
-- [ ] Above 767px nothing changes.
-- [ ] Screenshots at 375x812, before and after, attached to the pull request.
+- [x] At 375px width the panel holding the header, notifications, Replay Onboarding and Log out is hidden, and navigation is at the top. Notifications, Replay Onboarding and Log out are still reachable, and the pull request says where.
+- [x] Above 767px nothing changes.
+- [x] Screenshots at 375x812, before and after, attached to the pull request.
 
 ### Slice 2: Phone layout: Profile, Milestones and Quick Actions pinned at the bottom (lane: interstellar-settlement-protocol/client-shell)
 
