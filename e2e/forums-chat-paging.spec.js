@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { gameDrawn, openTab } from "./nav.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-995");
@@ -48,7 +48,7 @@ for (const [width, height] of [[1280, 800], [375, 812]]) {
       await page.click("#credential-login-btn");
       await page.waitForURL(/\/\?account=/);
       // Bug #4836: the game loads after the page, so its session (the token apiClient sends) is ready only once it is drawn
-      await page.locator("#logout-btn").waitFor({ state: "visible", timeout: 20_000 });
+      await gameDrawn(page);
 
       // A thread of 60 replies, and 70 lines on the trade channel, through the page's own API and socket
       await page.evaluate(async () => {
@@ -62,7 +62,7 @@ for (const [width, height] of [[1280, 800], [375, 812]]) {
         });
       });
       await page.reload(); // state:init: the chat's last 50 lines, and no forum threads until the Forums tab reads them
-      await page.locator("#logout-btn").waitFor({ state: "visible", timeout: 20_000 }); // the app has taken ?account= off the address
+      await gameDrawn(page); // the app has taken ?account= off the address
 
       // Forums: the thread opens with 50 of its 60 replies
       await openTab(page, "forums");

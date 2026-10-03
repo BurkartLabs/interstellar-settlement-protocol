@@ -8,6 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { gameDrawn } from "./nav.mjs"; // AB#2468: the header is a sheet on a phone
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -89,7 +90,7 @@ for (const vp of VIEWPORTS) {
       await page.fill("#login-password", PASSWORD);
       await page.click("#credential-login-btn");
       await page.waitForURL(/\/\?account=/);
-      await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+      await gameDrawn(page);
       await page.screenshot({ path: path.join(SCREEN_DIR, `gate-in-the-game-${vp.label}.png`) });
     } finally {
       child.kill();

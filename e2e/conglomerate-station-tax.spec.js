@@ -12,7 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { gameDrawn, openTab } from "./nav.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(REPO_ROOT, "e2e", "screenshots", "ab-4655");
@@ -42,7 +42,7 @@ async function login(page, url, email, width, height) {
   await page.fill("#login-email", email);
   await page.fill("#login-password", PASSWORD);
   await page.click("#credential-login-btn");
-  await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+  await gameDrawn(page);
 }
 
 /** Open the sale of 100 Silicates to the standing buyer, screenshot its confirmation; returns the confirmation's text. */

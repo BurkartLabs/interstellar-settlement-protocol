@@ -46,9 +46,9 @@ test.describe("at 375x812", () => {
   test("the six groups are the bar, which does not scroll; every control 44px, no text under 14px", async ({ page }) => {
     await register(page);
     expect(await shownGroups(page)).toEqual(GROUPS);
-    const bar = await page.locator(".app-nav").evaluate((nav) => ({ over: nav.scrollWidth - nav.clientWidth, bottom: nav.getBoundingClientRect().bottom }));
+    const bar = await page.locator(".app-nav").evaluate((nav) => ({ over: nav.scrollWidth - nav.clientWidth, top: nav.getBoundingClientRect().top }));
     expect(bar.over, "the bar does not scroll").toBe(0);
-    expect(Math.round(bar.bottom)).toBe(812);
+    expect(Math.round(bar.top), "AB#2468: the bar is along the top").toBe(0);
     for (const group of GROUPS) {
       await page.locator(".nav-group__button", { hasText: group }).click();
       const small = await page.locator(".app-nav button:visible").evaluateAll((els) =>

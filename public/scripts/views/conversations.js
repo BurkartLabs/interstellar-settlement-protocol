@@ -6,6 +6,7 @@
 // body, name and preview goes through escapeHtml: message text renders as text, never HTML.
 
 import { apiFetch } from "../apiClient.js";
+import { fixedBarEdges, fixedBarRects } from "../helpers.js";
 import { escapeHtml } from "../html.js";
 import { commsMeaning, setStatusLine } from "../commsProtocol.js"; // ISP-255c1 (AB#4830)
 import { markdownHtml } from "../markdown.js"; // AB#2467: a body renders its Markdown, escaped as it is built
@@ -120,10 +121,10 @@ function fitThreadToScreen() {
   const form = document.getElementById("thread-reply-form");
   if (!el || !view || !form || typeof window === "undefined" || !window.innerHeight) return;
   const header = document.querySelector(".app-header");
-  const top = header && getComputedStyle(header).position === "sticky" ? header.getBoundingClientRect().height : 0;
-  const fixedBelow = [...document.querySelectorAll(".app-nav, .nav-group__tabs")]
-    .filter((n) => getComputedStyle(n).position === "fixed" && n.getBoundingClientRect().height > 0)
-    .reduce((most, n) => Math.max(most, window.innerHeight - n.getBoundingClientRect().top), 0);
+  // AB#2468: the phone's navigation is fixed along the top now, so it covers the top, not the bottom
+  const bars = fixedBarEdges(fixedBarRects(), window.innerHeight);
+  const top = Math.max(header && getComputedStyle(header).position === "sticky" ? header.getBoundingClientRect().height : 0, bars.top);
+  const fixedBelow = window.innerHeight - bars.bottom;
   const above = el.getBoundingClientRect().top - view.getBoundingClientRect().top; // Back and the title
   const room = window.innerHeight - top - fixedBelow - above - form.getBoundingClientRect().height - 24;
   el.style.maxHeight = `${Math.round(Math.max(180, Math.min(560, room)))}px`;

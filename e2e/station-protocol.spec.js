@@ -5,7 +5,7 @@
 // Operational, In force. Screenshots go to
 // e2e/screenshots/ab-4818/.
 import { test, expect } from "@playwright/test";
-import { openTab, openStationOffices } from "./nav.mjs";
+import { openStationOffices, openTab, toggleNotifications } from "./nav.mjs";
 import { acknowledgeReceipt } from "./receipt.mjs";
 import fs from "node:fs";
 import os from "node:os";
@@ -96,11 +96,11 @@ test("the Station's statuses and notices carry the protocol line, at 1280x800", 
     await shot("2-hire-refused-unfunded");
 
     // 3. the lease's notification, In force, in the bell
-    await page.click("#notification-toggle");
+    await toggleNotifications(page);
     const note = page.locator("#notification-list li", { hasText: "Office Lease Confirmed" }).first();
     await expect(note.locator(".protocol-line")).toContainText("In force");
     await shot("3-notification-office-lease", page.locator("#notification-panel"));
-    await page.click("#notification-toggle");
+    await toggleNotifications(page);
 
     // 4. the command log (kept in the page, so before any reload): the lease confirmed, In force
     await openTab(page, "overview");

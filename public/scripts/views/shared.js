@@ -3,7 +3,7 @@
 // AB#739 (ISP-53): apart from the forwarders, everything here moved from app.js unchanged.
 
 import { revealScroll } from "../firstAction.js";
-import { formatTime } from "../helpers.js";
+import { fixedBarEdges, fixedBarRects, formatTime } from "../helpers.js";
 import { escapeHtml, tradeConfirmRowsHtml } from "../html.js";
 import { protocolLineHtml } from "../protocol.js"; // ISP-254 (AB#950)
 import { appState } from "../state.js";
@@ -170,7 +170,8 @@ export function salvageRemainingMs(mission, now = Date.now()) {
 /** Scroll `el` to just under the pinned header when it is not already in view below it (AB#1056). */
 export function revealUnderHeader(el) {
   if (!el) return;
-  const headerBottom = document.querySelector(".app-header")?.getBoundingClientRect().bottom ?? 0;
+  // AB#2468: on a phone the navigation's rows are fixed along the top and the header is not shown
+  const headerBottom = Math.max(document.querySelector(".app-header")?.getBoundingClientRect().bottom ?? 0, fixedBarEdges(fixedBarRects(), window.innerHeight).top);
   const delta = revealScroll(el.getBoundingClientRect().top, headerBottom, window.innerHeight);
   if (!delta) return;
   window.scrollBy(0, delta);

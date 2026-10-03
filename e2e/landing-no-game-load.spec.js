@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { gameDrawn } from "./nav.mjs"; // AB#2468: the header is a sheet on a phone
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SECRET = "landing-no-game-load-e2e-secret-0123456789";
@@ -47,7 +48,7 @@ test("the logged-out landing loads no socket and no game data; signing in loads 
   await page.fill("#login-email", email);
   await page.fill("#login-password", PASSWORD);
   await page.click("#credential-login-btn");
-  await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+  await gameDrawn(page);
   await expect.poll(() => requests.some((u) => u.startsWith("/socket.io/socket.io.js"))).toBe(true);
   await expect.poll(() => requests.some((u) => u.startsWith("/socket.io/?EIO="))).toBe(true); // it connects
   expect(requests.some((u) => u.startsWith("/api/bootstrap"))).toBe(true);

@@ -74,3 +74,27 @@ export function formatDurationHours(ms) {
 export function formatInboxDate(ts) {
   return ts ? utcTime(ts) : "";
 }
+
+/**
+ * AB#2468: how much of the window the fixed bars cover, at its top and at its bottom. On a phone the navigation is two
+ * rows fixed along the top (.app-nav, the open group's tab row and the ☰); a fixed bar in the window's lower half
+ * covers its bottom instead. Takes each bar's { top, bottom } and the window's height; returns where the clear part of
+ * the window starts and ends.
+ */
+export function fixedBarEdges(rects, viewportHeight) {
+  let top = 0;
+  let bottom = viewportHeight;
+  for (const r of rects || []) {
+    if (!r || !Number.isFinite(r.top) || !(r.bottom > r.top)) continue;
+    if (r.top < viewportHeight / 2) top = Math.max(top, r.bottom);
+    else bottom = Math.min(bottom, r.top);
+  }
+  return { top, bottom };
+}
+
+/** The fixed navigation bars on the page now, measured (none on a desktop, where the navigation is a column). */
+export function fixedBarRects(root = document) {
+  return [...root.querySelectorAll(".app-nav, .nav-group__tabs, .app-nav__menu")]
+    .filter((el) => el.getClientRects().length && getComputedStyle(el).position === "fixed")
+    .map((el) => el.getBoundingClientRect());
+}

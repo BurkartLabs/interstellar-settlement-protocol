@@ -15,7 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { gameDrawn, openTab, toggleNotifications } from "./nav.mjs";
 import { findings } from "./screenFindings.mjs"; // ISP-250 (AB#946): shared with the Company and Station audit
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -84,7 +84,7 @@ for (const [width, height] of SIZES) {
         await page.fill("#login-password", PASSWORD);
         await page.click("#credential-login-btn");
         await page.waitForURL(/\/\?account=/);
-        await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+        await gameDrawn(page);
       };
 
       await logIn(email);
@@ -106,11 +106,11 @@ for (const [width, height] of SIZES) {
       while (await closed.count()) await closed.first().click();
       found.push(...await findings(page, "sidebar", width, ".side-panel"));
       await shot(page, "sidebar", width, height);
-      await page.click("#notification-toggle");
+      await toggleNotifications(page);
       await expect(page.locator("#notification-panel")).toBeVisible();
       found.push(...await findings(page, "notifications", width, "#notification-panel"));
       await page.screenshot({ path: path.join(SHOT_DIR, `notifications-${width}x${height}.png`) });
-      await page.click("#notification-toggle");
+      await toggleNotifications(page);
 
       await logIn(traveller);
       await openTab(page, "travel");

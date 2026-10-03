@@ -105,6 +105,8 @@
   --z-modal: 400;
   --z-toast: 500;
   --z-tooltip: 600;
+  --phone-nav-row: calc(44px + 2 * var(--space-1) + 1px);
+  --phone-nav-height: calc(2 * var(--phone-nav-row) + env(safe-area-inset-top));
 }
 @media (prefers-reduced-motion: reduce) {
   :root {
@@ -397,10 +399,10 @@ h1 {
 }
 @media (max-width: 767px) {
   html {
-    scroll-padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
+    scroll-padding-top: calc(var(--phone-nav-height) + var(--space-4));
   }
   #walkthrough-modal {
-    padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
+    padding-top: var(--phone-nav-height);
   }
 }
 .ui-button {

@@ -11,6 +11,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { verifyAndLogIn } from "./verification.mjs";
+import { pressHeader } from "./nav.mjs"; // AB#2468: the header is a sheet on a phone
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -86,7 +87,7 @@ for (const vp of VIEWPORTS) {
         await expect(page.locator("#dialogue-modal")).toBeHidden();
 
         // 2. Replay the intro: any key finishes it, and Enter then acts on the focused first choice.
-        await page.click("#replay-onboarding-btn");
+        await pressHeader(page, "#replay-onboarding-btn"); // AB#2468: in the ☰ sheet on a phone
         // The replay awaits a request before the intro opens, and the last line's text is still in the element.
         await expect(page.locator("#dialogue-title")).toHaveText("Corporate Confirmation", { timeout: 20_000 });
         await expect(line).toHaveText(/^Registration complete/);

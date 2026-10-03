@@ -121,7 +121,7 @@
     </section>
 
     <div id="game-shell" hidden>
-      <header class="app-header">
+      <header class="app-header" id="app-header">
         <!-- ISP-83 (AB#772): the shell on the design system, in the flat direction (Decision AB#1801). -->
         <div class="app-header__brand">
           <p class="app-header__overline" id="app-version-line">Est. 2147</p>
@@ -204,6 +204,9 @@
               <button class="nav-tab" data-tab="travel" type="button" hidden>Travel</button>
             </div>
           </section>
+          <!-- AB#2468: on a phone the header's controls (Notifications, Style, Replay Onboarding, Account, Log Out) are a
+               sheet this opens, at the right end of the navigation's second row; a desktop never shows it. app.js wires it. -->
+          <button id="phone-menu-toggle" class="app-nav__menu" type="button" aria-expanded="false" aria-controls="app-header" aria-label="Menu"><span aria-hidden="true">☰</span><span id="phone-menu-count" class="nav-count" hidden></span></button>
         </nav>
         <aside class="side-panel">
           <section class="ui-panel">

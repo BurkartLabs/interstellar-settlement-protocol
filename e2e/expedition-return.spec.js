@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { toggleNotifications } from "./nav.mjs"; // AB#2468: the header is a sheet on a phone
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -55,7 +56,7 @@ for (const vp of [{ label: "1280x800", width: 1280, height: 800 }, { label: "375
 
       // The expedition tick runs every 10 seconds; the notification arrives over the socket into the open list.
       // (Registering and signing in leave notifications of their own, so the badge alone proves nothing.)
-      await page.click("#notification-toggle");
+      await toggleNotifications(page);
       const item = page.locator("#notification-list li", { hasText: "Expedition Complete" }).first();
       await expect(item).toBeVisible({ timeout: 30_000 });
       const text = await item.innerText();

@@ -148,6 +148,10 @@
   --z-modal: 400;
   --z-toast: 500;
   --z-tooltip: 600;
+  /* AB#2468: one row of the phone's navigation (a 44px control, its padding and its border), and the two rows with the
+     screen's top inset: the height of what is fixed along a phone's top. Used only in the app shell's phone query. */
+  --phone-nav-row: calc(44px + 2 * var(--space-1) + 1px);
+  --phone-nav-height: calc(2 * var(--phone-nav-row) + env(safe-area-inset-top));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1708,6 +1712,10 @@ body.walkthrough--open .layout-grid {
   opacity: 0.3;
   cursor: not-allowed;
 }
+/* AB#2468: the ☰ that opens the header on a phone (below). A desktop shows the header itself and never this. */
+.app-nav__menu {
+  display: none;
+}
 /* What a closed group is holding, such as unread mail (Bug #1130), as a number on its button. */
 .nav-count {
   display: inline-flex;
@@ -1728,9 +1736,11 @@ body.walkthrough--open .layout-grid {
 }
 
 @media (max-width: 767px) {
-  /* What the browser scrolls into view (keyboard focus, scrollIntoView) stops above the bar and its row, not under. */
+  /* AB#2468: the navigation is two rows along the top (--phone-nav-height): the six groups, then the open group's tabs
+     with the ☰ at the row's right end. What the browser scrolls into view (keyboard focus, scrollIntoView) stops
+     below the two rows, not under them. */
   html {
-    scroll-padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
+    scroll-padding-top: calc(var(--phone-nav-height) + var(--space-4));
   }
   /* Bug #4846: the screen first, then the sidebar's panels. Stacked above it, the three panels (collapsed on a phone,
      AB#1056) put every screen's own title a third of the way down the first screenful; after it, they are one scroll
@@ -1738,10 +1748,17 @@ body.walkthrough--open .layout-grid {
   .layout-grid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "main" "side";
-    padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
+    padding-top: calc(var(--phone-nav-height) + var(--space-3));
+    padding-bottom: var(--space-4);
   }
   .side-panel {
     max-height: none;
+  }
+  /* AB#2495 on a phone (AB#2468): the Travel panel fills the first screen under the navigation's rows, so its card sits
+     in the middle of what a player sees. As tall as its card, it ended wherever the card did, and the sidebar's panels
+     came up under it. */
+  .main-panel:has(> #travel.tab-panel.active) {
+    min-height: calc(100dvh - var(--phone-nav-height) - var(--space-3) - var(--space-4));
   }
   /* ISP-83 (AB#772): the header's and the sidebar's small sizes raised as a screen's are, and a thumb-high toggle. */
   :is(.app-header, .side-panel) :is(.ui-button, .ui-badge, .ui-panel__meta, .ui-kv, .ui-card__body, .ui-card__meta, .app-header__overline, .side-panel__milestone) {
@@ -1750,13 +1767,32 @@ body.walkthrough--open .layout-grid {
   .side-panel__toggle {
     min-height: 44px;
   }
-  /* The header was a third of a phone's first screen: a three-line title beside two stacked buttons. The name takes the
-     width at a smaller size, and the buttons sit in one row under it. */
+  /* AB#2468: the header (the name, Notifications, Style, Replay Onboarding, Account, Log Out) was a quarter of a phone's
+     first screen. It is not shown; the ☰ opens it as a sheet under the navigation, the name small over the controls. */
   .app-header {
+    display: none;
     flex-direction: column;
     align-items: stretch;
     gap: var(--space-2);
     padding: var(--space-3) var(--space-4);
+  }
+  #game-shell.is-menu-open .app-header {
+    display: flex;
+    position: fixed;
+    top: var(--phone-nav-height);
+    left: 0;
+    right: 0;
+    z-index: var(--z-dropdown);
+    max-height: calc(100dvh - var(--phone-nav-height));
+    overflow-y: auto;
+    box-shadow: var(--elevation-overlay);
+  }
+  /* In the sheet the notifications open in place, under their button: placed below the sheet, the sheet's own scroll
+     cut them off (seen at 375x812). */
+  #game-shell.is-menu-open .app-header .app-header__panel {
+    position: static;
+    width: auto;
+    margin-top: var(--space-2);
   }
   /* Scoped to the header, so these outrank the base rules, which come later in the file. The buttons wrap: a level-0
      corporation also has Replay Onboarding, and three do not fit one row at 375. */
@@ -1773,20 +1809,56 @@ body.walkthrough--open .layout-grid {
     width: auto;
   }
   /* The bar: each group as wide as its name, the space shared evenly, never scrolling; below every dialog (--z-modal)
-     and the briefing (--z-overlay). Equal columns ran "Company" into "Station" at 375. */
+     and the briefing (--z-overlay). Equal columns ran "Company" into "Station" at 375. AB#2468: along the top. */
   .app-nav {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
+    top: 0;
     z-index: var(--z-sticky);
     display: flex;
     flex-direction: row;
     justify-content: space-evenly;
     gap: 0;
-    padding: var(--space-1) var(--space-1) calc(var(--space-1) + env(safe-area-inset-bottom));
-    border-width: 1px 0 0;
+    padding: calc(var(--space-1) + env(safe-area-inset-top)) var(--space-1) var(--space-1);
+    border-width: 0 0 1px;
     border-radius: 0;
+  }
+  /* AB#2468: the second row is always there, so the ☰ always has its place: under a group with one tab it is this strip
+     alone. The six groups' names fill the first row at 375 (344px of it), so the ☰ cannot sit there. As ::before it is
+     painted first, so the open group's tabs and the ☰ come out over it without a z-index. */
+  .app-nav::before {
+    content: "";
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: calc(var(--phone-nav-row) + env(safe-area-inset-top));
+    box-sizing: border-box;
+    height: var(--phone-nav-row);
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .app-nav__menu {
+    position: fixed;
+    top: calc(var(--phone-nav-row) + env(safe-area-inset-top) + var(--space-1));
+    right: var(--space-1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-soft);
+    font-family: var(--font-sans);
+    font-size: var(--font-size-4);
+    cursor: pointer;
+  }
+  .app-nav__menu[aria-expanded="true"] {
+    background: var(--surface-3);
+    color: var(--text);
   }
   .nav-group {
     display: block;
@@ -1822,22 +1894,23 @@ body.walkthrough--open .layout-grid {
   .nav-count::after {
     content: none;
   }
-  /* Only the open group's tabs, in a row just above the bar, and only when it has more than one. */
+  /* Only the open group's tabs, in the second row under the bar, and only when it has more than one; they scroll
+     sideways short of the ☰. */
   .nav-group__tabs {
     display: none;
   }
   .nav-group.is-open .nav-group__tabs:has(> .nav-tab:not([hidden]) ~ .nav-tab:not([hidden])) {
     position: fixed;
     left: 0;
-    right: 0;
-    bottom: calc(44px + 2 * var(--space-1) + 1px + env(safe-area-inset-bottom));
+    right: var(--phone-nav-row);
+    top: calc(var(--phone-nav-row) + env(safe-area-inset-top));
     display: flex;
     flex-direction: row;
     gap: var(--space-1);
     padding: var(--space-1);
     overflow-x: auto;
     background: var(--surface-2);
-    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
     scrollbar-width: thin;
   }
   .nav-tab {
@@ -1858,12 +1931,13 @@ body.walkthrough--open .layout-grid {
     max-height: 45vh;
     overflow-y: auto;
   }
-  /* The briefing card sits above the bar and its row, so the tab or group a step asks for is never under it. */
+  /* AB#2468: the briefing card stays clear of the navigation's two rows at the top, so the tab or group a step asks for
+     is never under it, and the page can scroll its end clear of the card. */
   #walkthrough-modal {
-    padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16));
+    padding-top: var(--phone-nav-height);
   }
   body.walkthrough--open .layout-grid {
-    padding-bottom: calc(var(--space-4) + var(--space-16) + var(--space-16) + var(--walkthrough-card-height, var(--space-16)));
+    padding-bottom: calc(var(--space-4) + var(--walkthrough-card-height, var(--space-16)));
   }
 }
 

@@ -2,7 +2,7 @@
 // other Exchange tables hide theirs when empty (AB#402). With goods the table is drawn as before. Starts its own server
 // on a seeded data directory (the sell-orders-capped.spec.js pattern); screenshots go to e2e/screenshots/ab-1857/.
 import { test, expect } from "@playwright/test";
-import { openExchangePage, openTab } from "./nav.mjs";
+import { openExchangePage, openTab, pressHeader } from "./nav.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -87,7 +87,7 @@ for (const viewport of VIEWPORTS) {
       await page.screenshot({ path: path.join(SHOT_DIR, `empty-${viewport.label}.png`) });
 
       // The seeded corporation holds 40 Silicates at Earth Station Prime: the table and its row are drawn.
-      await page.click("#logout-btn, button:has-text('Log Out')");
+      await pressHeader(page, "#logout-btn");
       await page.goto(`${url}/login.html`);
       await page.fill("#login-email", email);
       await page.fill("#login-password", PASSWORD);

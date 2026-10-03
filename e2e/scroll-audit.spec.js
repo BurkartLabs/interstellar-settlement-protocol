@@ -14,7 +14,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { gameDrawn, openTab } from "./nav.mjs";
 import { NAV_GROUPS } from "../public/scripts/navGroups.js";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -111,7 +111,7 @@ for (const [width, height] of SIZES) {
         await page.fill("#login-password", PASSWORD);
         await page.click("#credential-login-btn");
         await page.waitForURL(/\/\?account=/);
-        await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+        await gameDrawn(page);
       };
 
       await logIn(email);

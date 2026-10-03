@@ -11,6 +11,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { verificationToken, verifyAndLogIn } from "./verification.mjs";
+import { gameDrawn, pressHeader } from "./nav.mjs"; // AB#2468: the header is a sheet on a phone
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCREEN_DIR = path.join(process.cwd(), "e2e", "screenshots");
@@ -64,7 +65,7 @@ test("sign in, reload and stay signed in, with no token a script can read; log o
     await page.click('#register-form button[type="submit"]');
     await verifyAndLogIn(page, url, email, PASSWORD); // AB#2288: verify, then log in, which is where the cookie is set
     await page.waitForURL(/\/\?account=/);
-    await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+    await gameDrawn(page);
 
     const cookies = await context.cookies();
     const refresh = cookies.find((c) => c.name === "isp_refresh");
@@ -75,12 +76,12 @@ test("sign in, reload and stay signed in, with no token a script can read; log o
 
     // A reload holds no token in memory: the page must get one from the cookie and come back signed in.
     await page.reload();
-    await expect(page.locator("#logout-btn")).toBeVisible({ timeout: 20_000 });
+    await gameDrawn(page);
     await expect(page).toHaveURL(/\/\?account=|\/$/);
     expect(await storedTokens(page)).toEqual([]);
     await page.screenshot({ path: path.join(SCREEN_DIR, "ab757-signed-in-after-reload-1280x800.png") });
 
-    await page.click("#logout-btn");
+    await pressHeader(page, "#logout-btn");
     await expect.poll(async () => (await context.cookies()).some((c) => c.name === "isp_refresh")).toBe(false);
     await page.goto(`${url}/`);
     await page.waitForURL(/\/login\.html|\/$/);
