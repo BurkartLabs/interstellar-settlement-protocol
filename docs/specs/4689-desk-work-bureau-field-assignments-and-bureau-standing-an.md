@@ -118,7 +118,7 @@ Was Requirement AB#4702, plus AB#4695's documentation line. Design section 7.
 
 Was Requirement AB#4703. Design section 6 and rule 7. It stands alone and can go at any time.
 
-- [ ] Adding a milestone with metric stat:deskCompleted, or one that reads agentReputation points, fails tests/schema/data-files.test.js with a message naming this rule.
+- [x] Adding a milestone with metric stat:deskCompleted, or one that reads agentReputation points, fails tests/schema/data-files.test.js with a message naming this rule.
 
 ## Held back
 
