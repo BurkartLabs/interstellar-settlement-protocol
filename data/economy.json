@@ -99,6 +99,18 @@
     "sameSystemTransitMinutes": 30,
     "perJumpTransitMinutes": 120
   },
+  "desk": {
+    "openPackets": 3,
+    "payByTier": [40, 80, 160],
+    "pointsByTier": [1, 2, 3],
+    "paidAssignmentsPerDay": 20,
+    "overCapPayPct": 25,
+    "surveyNoisePctByTier": [15, 30, 45],
+    "surveyReserveTolerancePct": 20,
+    "auditCleanSharePct": 30,
+    "auditTwoClauseSharePct": 50,
+    "dispatchTolerancePct": 5
+  },
   "salvage": {
     "creditsThreshold": 3000,
     "hoursRequired": 4,
