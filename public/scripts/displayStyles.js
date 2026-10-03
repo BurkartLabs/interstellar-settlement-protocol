@@ -26,7 +26,8 @@
     { id: "megaproject", name: "Megaproject", group: "Round 2" },
     { id: "director", name: "Director", group: "Round 2" },
     { id: "keynote", name: "Keynote", group: "Round 2" },
-    { id: "lightline", name: "Lightline", group: "Round 2" }
+    { id: "lightline", name: "Lightline", group: "Round 2" },
+    { id: "command-bridge", name: "Command Bridge", group: "Round 3" }
   ];
   var KEY = "isp.displayStyle";
   var FONTS = "/themes/fonts.css";
