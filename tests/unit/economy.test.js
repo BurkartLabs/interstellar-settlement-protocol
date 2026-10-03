@@ -56,6 +56,12 @@ const BEFORE_THE_MOVE = {
   // AB#718 replaced the flat 2 a unit with a fee by distance; 2 a unit is still the in-system rate.
   logistics: { sameSystemFeePerUnit: 2, perJumpFeePerUnit: 3, sameSystemTransitMinutes: 30, perJumpTransitMinutes: 120 },
   // ISP-297 (AB#1789, AB#1741): the Salvage Assignment, ECONOMY.md "The way back from broke".
+  // AB#4689 (docs/design/desk-work.md section 7, accepted in Decision AB#4704): new, not moved.
+  desk: {
+    openPackets: 3, payByTier: [40, 80, 160], pointsByTier: [1, 2, 3], paidAssignmentsPerDay: 20, overCapPayPct: 25,
+    surveyNoisePctByTier: [15, 30, 45], surveyReserveTolerancePct: 20, auditCleanSharePct: 30, auditTwoClauseSharePct: 50,
+    dispatchTolerancePct: 5
+  },
   salvage: { creditsThreshold: 3000, hoursRequired: 4, payoutCredits: 3000, cooldownHours: 8 },
   npcBid: { quotaPerDay: 7000, driftAtFullQuotaPct: 50, recoveryPerDayPct: 60, floorPct: 55 }, // ISP-87
   npcAsks: { askMultiple: 1.5, dailyQty: [{ item: "Silicates", qty: 3000 }, { item: "Helium-3", qty: 40 }, { item: "Nickel", qty: 300 }, { item: "Titanium", qty: 80 }, { item: "Carbon", qty: 400 }, { item: "Rare Earths", qty: 40 }] }, // ISP-122 (AB#815)
