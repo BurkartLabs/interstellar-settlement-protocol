@@ -95,6 +95,17 @@ function effective(a, priced) {
   };
 }
 
+/**
+ * What an item's standing bid opens at: the plan's own price when it sets one (settings.prices, the Board's "let me
+ * change the price of Silicates"), else the game's (data/economy.json npcBuyers). The bid still falls and recovers
+ * from it by the game's rule.
+ */
+export function basePriceFor(item, rules, settings = {}) {
+  const own = settings.prices?.[item];
+  if (has(own) && num(own) >= 0) return num(own);
+  return rules.economy.npcBuyers.find((b) => b.item === item)?.unitPrice;
+}
+
 /** One bid per item: where its curve opens today and how much went into today's quota. */
 class Bid {
   constructor(base, npcBid) { this.base = base; this.npcBid = npcBid; this.opening = base; this.soldToday = 0; }
@@ -259,7 +270,7 @@ export function simulate(plan, rules) {
     for (const item of Object.keys(stock)) {
       const b = buyer(item);
       if (!b) continue;
-      const bid = (bids[item] ||= new Bid(b.unitPrice, e.npcBid));
+      const bid = (bids[item] ||= new Bid(basePriceFor(item, rules, s), e.npcBid));
       const { sold, gross } = bid.sell(stock[item]);
       if (!sold) continue;
       stock[item] -= sold;

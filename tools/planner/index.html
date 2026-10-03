@@ -46,6 +46,11 @@
         <label class="f">Extra days to simulate<input id="s-extra" data-f="set-extraDays" type="number" min="0" max="365"></label>
         <label class="f chk"><input id="s-down" data-f="set-downtime" type="checkbox"><span>Model downtime<small>expected uptime, not random</small></span></label>
       </div>
+      <div class="body prices">
+        <div class="prices-head"><span>Sale prices <small>what the standing bid opens at; it still falls as the day's quota fills</small></span>
+          <select id="price-add" aria-label="Set the price of another item"></select></div>
+        <div id="price-rows"></div>
+      </div>
     </details>
     <div class="phasebar">
       <button class="btn primary" data-act="phase-add">+ Add phase</button>
