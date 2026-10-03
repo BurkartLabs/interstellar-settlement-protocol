@@ -208,7 +208,13 @@
                sheet this opens, at the right end of the navigation's second row; a desktop never shows it. app.js wires it. -->
           <button id="phone-menu-toggle" class="app-nav__menu" type="button" aria-expanded="false" aria-controls="app-header" aria-label="Menu"><span aria-hidden="true">☰</span><span id="phone-menu-count" class="nav-count" hidden></span></button>
         </nav>
-        <aside class="side-panel">
+        <!-- AB#2468 slice 2: on a phone the sidebar's blocks are pinned along the bottom; each button opens its block as a sheet (app.js, bindPinnedPanels). Not shown on a desktop. -->
+        <nav class="pinned-bar" aria-label="Corporation panels">
+          <button class="pinned-bar__button" type="button" data-panel="sidebar-identity" aria-expanded="false" aria-controls="side-panel">Profile</button>
+          <button class="pinned-bar__button" type="button" data-panel="sidebar-milestones" aria-expanded="false" aria-controls="side-panel">Milestones</button>
+          <button class="pinned-bar__button" type="button" data-panel="sidebar-actions" aria-expanded="false" aria-controls="side-panel">Quick Actions</button>
+        </nav>
+        <aside class="side-panel" id="side-panel">
           <section class="ui-panel">
             <button class="side-panel__toggle" type="button" aria-expanded="true" aria-controls="sidebar-identity">
               <span class="ui-panel__title">Corporation Identity</span>

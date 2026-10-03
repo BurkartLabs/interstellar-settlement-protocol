@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { openTab } from "./nav.mjs";
+import { openSidePanel, openTab } from "./nav.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOT_DIR = path.join(process.cwd(), "e2e", "screenshots", "ab-2490");
@@ -63,9 +63,8 @@ for (const vp of VIEWPORTS) {
       await expect(page.locator("#chat-channel-tabs")).toHaveAttribute("aria-label", "Chat channels");
       await page.locator("#chat").scrollIntoViewIfNeeded();
       await page.screenshot({ path: path.join(SHOT_DIR, `chat-${vp.label}.png`) });
-      // The sidebar's blocks opened, so the quick action is in sight too
-      const closed = page.locator(".side-panel__toggle[aria-expanded='false']");
-      while (await closed.count()) await closed.first().click();
+      // Quick Actions opened (from the pinned bar on a phone, AB#2468), so the quick action is in sight too
+      await openSidePanel(page, "sidebar-actions");
       await expect(page.locator('#sidebar-actions [data-jump="chat"]')).toHaveText("Chat");
       // Nowhere on the page, in what is shown or what a screen reader is given
       const said = await page.evaluate(() => {

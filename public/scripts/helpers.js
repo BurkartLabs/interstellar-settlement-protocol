@@ -94,7 +94,7 @@ export function fixedBarEdges(rects, viewportHeight) {
 
 /** The fixed navigation bars on the page now, measured (none on a desktop, where the navigation is a column). */
 export function fixedBarRects(root = document) {
-  return [...root.querySelectorAll(".app-nav, .nav-group__tabs, .app-nav__menu")]
+  return [...root.querySelectorAll(".app-nav, .nav-group__tabs, .app-nav__menu, .pinned-bar")]
     .filter((el) => el.getClientRects().length && getComputedStyle(el).position === "fixed")
     .map((el) => el.getBoundingClientRect());
 }
