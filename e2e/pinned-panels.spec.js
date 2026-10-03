@@ -126,6 +126,9 @@ test.describe("at 375x812", () => {
         const rects = controls.map((el) => ({ bottom: el.getBoundingClientRect().bottom, name: el.id || el.textContent.trim().slice(0, 30) }));
         return rects.sort((a, b) => b.bottom - a.bottom)[0] || null;
       });
+      // the page itself ends above the bar (its last control is often well up the screen, so this is what catches a page running under it)
+      const end = await page.locator(".main-panel").evaluate((el) => el.getBoundingClientRect().bottom);
+      expect(end, `${tab}: the page ends above the bar`).toBeLessThanOrEqual(barTop);
       if (!last) continue;
       expect(last.bottom, `${tab}: its last control (${last.name}) ends above the bar`).toBeLessThanOrEqual(barTop);
       if (tab === "overview") await page.screenshot({ path: path.join(SHOT_DIR, "overview-end-375x812.png") });
