@@ -36,6 +36,17 @@ async function register(page) {
 }
 
 const button = (page, id) => page.locator(`.pinned-bar__button[data-panel="${id}"]`);
+/** Scroll to the page's end, again until its height stops changing: a screen that draws from data it is still
+ * fetching (the Starmap) grows after the first scroll, and the end measured then is not the page's end. */
+async function scrollToSettledEnd(page) {
+  let last = -1;
+  for (let i = 0; i < 20; i++) {
+    const height = await page.evaluate(() => { scrollTo(0, document.scrollingElement.scrollHeight); return document.scrollingElement.scrollHeight; });
+    await page.waitForTimeout(250);
+    if (height === last) return;
+    last = height;
+  }
+}
 const box = (locator) => locator.evaluate((el) => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, height: r.height }; });
 
 test.describe("at 375x812", () => {
@@ -118,8 +129,7 @@ test.describe("at 375x812", () => {
     const barTop = (await box(page.locator(".pinned-bar"))).top;
     for (const tab of ["overview", "station", "market", "finance", "inbox", "starmap", "chat"]) {
       await openTab(page, tab);
-      await page.evaluate(() => scrollTo(0, document.scrollingElement.scrollHeight));
-      await page.waitForTimeout(150);
+      await scrollToSettledEnd(page);
       const last = await page.evaluate(() => {
         const controls = [...document.querySelectorAll(".main-panel :is(button, a[href], input, select, textarea, [tabindex]:not([tabindex='-1']))")]
           .filter((el) => el.getClientRects().length && getComputedStyle(el).visibility !== "hidden");
