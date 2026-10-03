@@ -8,6 +8,8 @@
 import crypto from "node:crypto";
 import { ECONOMY } from "../economy.js";
 import { deskRng, generateAudit, generateDispatch, generateSurvey, gradeAudit, gradeDispatch, gradeSurvey } from "./desk.js";
+import { SYSTEMS_DATA } from "./catalog.js";
+import { isBeltPresent, recordBeltScouted } from "./belts.js";
 
 export const DESK_KINDS = Object.freeze(["survey", "audit", "dispatch"]);
 const GENERATE = { survey: generateSurvey, audit: generateAudit, dispatch: generateDispatch };
@@ -57,4 +59,38 @@ export function gradeDeskAnswer(key, answer) {
 export function deskPay(tier, paidToday, rules = ECONOMY.desk) {
   const fee = rules.payByTier[tier - 1];
   return paidToday < rules.paidAssignmentsPerDay ? fee : Math.round((fee * rules.overCapPayPct) / 100);
+}
+
+/**
+ * AB#4689 slice 6 (design section 5, the Survey table, and the Board's decision 5): what a correct Survey publishes, to
+ * this corporation only. Tier 2 and 3 surveys of a belt mark it scouted for its current generation, in
+ * asteroidMining.scoutedBelts, the field a probe writes (so conglomerate intel shares it as it shares a probe's); a belt
+ * that respawned since the packet was drawn is not the belt surveyed, and is not marked. A survey of a lease body stores
+ * what it learned in corp.surveys: the dominant resource at tier 1, the whole profile from tier 2. Returns what was
+ * published, or null. Called only for a correct answer: a wrong one publishes nothing.
+ */
+export function applySurveyPayoff(corp, key, belts, now = Date.now()) {
+  if (key?.kind !== "survey" || !key.subject) return null;
+  const s = key.subject;
+  const where = `${s.systemId}:${s.bodyId}`;
+  if (s.beltKey) {
+    const belt = belts?.[s.beltKey];
+    if (!isBeltPresent(belt) || belt.generation !== s.generation) return null;
+    if (key.tier >= 2) {
+      if (!corp.asteroidMining || typeof corp.asteroidMining !== "object") corp.asteroidMining = {};
+      recordBeltScouted(corp.asteroidMining, belt);
+      return { beltKey: s.beltKey, scouted: true, generation: belt.generation };
+    }
+    corp.surveys = { ...(corp.surveys || {}), [where]: { tier: key.tier, generation: belt.generation, dominant: key.truth[0].resource, at: now } };
+    return { beltKey: s.beltKey, dominant: key.truth[0].resource };
+  }
+  const body = SYSTEMS_DATA.find((sys) => sys.id === s.systemId)?.bodies?.find((b) => b.id === s.bodyId);
+  if (!(Number(body?.leaseCost) > 0)) return null;
+  const record = key.tier === 1
+    ? { tier: 1, dominant: key.truth[0].resource, at: now }
+    : { tier: key.tier, profile: (body.resourceProfile || []).map((p) => ({ item: p.item, concentration: p.concentration })), at: now };
+  // A body's profile does not change, so a tier-1 survey after a fuller one learns nothing to keep.
+  if (corp.surveys?.[where]?.profile && !record.profile) return { body: where, ...corp.surveys[where] };
+  corp.surveys = { ...(corp.surveys || {}), [where]: record };
+  return { body: where, ...record };
 }
